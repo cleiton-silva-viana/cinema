@@ -10,33 +10,6 @@ export enum Flow {
   continue = "continue"
 }
 
-// Funções de validação
-export const is = {
-  // Verifica se o valor é nulo ou undefined
-  null: (value: any, code: string, details: Record<string, any> = {}, flow: Flow = Flow.continue): Function => {
-    return () => ({
-      valid: isNull(value), code, flow, details
-    });
-  },
-
-  // Verifica se o valor está vazio (string vazia, array vazio, etc)
-  empty: (value: any, code: string, details: Record<string, any> = {}, flow: Flow = Flow.continue): Function => {
-    return () => ({
-      valid: isEmpty(value), code, flow, details
-    });
-  },
-
-  // Verifica se o valor é maior ou igual a um mínimo
-  greaterOrEqualTo: (value: any, min: number, code: string, details: Record<string, any> = {}, flow: Flow = Flow.continue): Function => {
-    // Mescla o parâmetro min nos detalhes
-    const mergedDetails = { ...details, min };
-
-    return () => ({
-      valid: greaterThanOrEqualTo(value, min), code, flow, details: mergedDetails
-    });
-  }
-};
-
 export class Assert {
   /**
    * Executa uma série de validações em sequência
