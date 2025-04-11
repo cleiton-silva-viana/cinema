@@ -1,0 +1,72 @@
+{
+  "INVALID_UUID_FORMAT": {
+    "message": {
+      "pt": "O uuid fornecido para o {{resource}} está em formato inválido.",
+      "en": "The provided uuid for {{resource}} is in invalid format."
+    },
+    "statusCode": 400
+  },
+  "RESOURCE_NOT_FOUND": {
+    "message": {
+      "pt": "O recurso {{resource}} solicitado não foi encontrado.",
+      "en": "The requested resource {{resource}} was not found."
+    },
+    "statusCode": 404
+  },
+  "VALIDATION_ERROR": {
+    "message": {
+      "pt": "Os dados fornecidos falharam na validação. Por favor, revise as informações e tente novamente.",
+      "en": "The provided data failed validation. Please check your input and try again."
+    },
+    "statusCode": 422
+  },
+  "UNAUTHORIZED_ACCESS": {
+    "message": {
+      "pt": "Você não está autorizado a realizar esta ação.",
+      "en": "You are not authorized to perform this action."
+    },
+    "statusCode": 401
+  },
+  "FORBIDDEN": {
+    "message": {
+      "pt": "Você não tem permissão para acessar este recurso.",
+      "en": "You do not have permission to access this resource."
+    },
+    "statusCode": 403
+  },
+  "INTERNAL_SERVER_ERROR": {
+    "message": {
+      "pt": "Ocorreu um erro interno no servidor. Tente novamente mais tarde.",
+      "en": "An internal server error occurred. Please try again later."
+    },
+    "statusCode": 500
+  },
+  "SERVICE_UNAVAILABLE": {
+    "message": {
+      "pt": "Serviço temporariamente indisponível. Por favor, tente novamente mais tarde.",
+      "en": "Service temporarily unavailable. Please try again later."
+    },
+    "statusCode": 503
+  },
+  "BAD_REQUEST": {
+    "message": {
+      "pt": "A requisição está mal formada. Verifique os parâmetros e tente novamente.",
+      "en": "The request is malformed. Please check your parameters and try again."
+    },
+    "statusCode": 400
+  },
+  "TIMEOUT_ERROR": {
+    "message": {
+      "pt": "O tempo limite da requisição foi excedido. Tente novamente.",
+      "en": "The request timeout has been exceeded. Please try again."
+    },
+    "statusCode": 408
+  },
+  "CONFLICT_ERROR": {
+    "message": {
+      "pt": "Há um conflito com o estado atual do recurso.",
+      "en": "There is a conflict with the current state of the resource."
+    },
+    "statusCode": 409
+  }
+}
