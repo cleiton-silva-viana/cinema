@@ -58,7 +58,7 @@ describe('BirthDate', () => {
           errorCodeExpected: 'FIELD_CANNOT_BE_NULL' 
         },
         { 
-          date: new Date(1899, 11, 31), 
+          date: new Date(1899, 11, 31, 0, 0, 0, 0),
           scenario: 'when birth date is before 1900', 
           errorCodeExpected: 'DATE_IS_TOO_OLD' 
         },

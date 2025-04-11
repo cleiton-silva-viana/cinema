@@ -4,6 +4,7 @@ import { failure, Result, success } from "../../../shared/result/result";
 import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
 import { TechnicalError } from "../../../shared/error/technical.error";
 import { isNull } from "../../../shared/validator/validator";
+import { is } from "../../../shared/assert/is";
 
 export class BirthDate {
   private constructor(private readonly _value: Date) {}
@@ -14,7 +15,7 @@ export class BirthDate {
 
   public static create(birthDate: Date): Result<BirthDate> {
     const failures: SimpleFailure[] = [];
-    const maxBirthDate = new Date(1900);
+    const maxBirthDate = new Date(1900, 0, 0, 0, 0, 0, 0);
     const minAge = 18;
     const minBirthDate = new Date()
     minBirthDate.setFullYear(minBirthDate.getFullYear() - minAge);
@@ -23,8 +24,8 @@ export class BirthDate {
       failures,
       { field: "birth date" },
       not.null(birthDate, "FIELD_CANNOT_BE_NULL", {}, Flow.stop),
-      not.dateAfter(birthDate, minBirthDate, "DATE_IS_TOO_YOUNG", {}, Flow.stop),
-      not.dateBefore(birthDate, maxBirthDate, "DATE_IS_TOO_OLD", {}, Flow.stop),
+      is.true(birthDate < minBirthDate, "DATE_IS_TOO_YOUNG", {}, Flow.stop),
+      is.true(birthDate > maxBirthDate, "DATE_IS_TOO_OLD", {}, Flow.stop),
     );
 
     return failures.length > 0
