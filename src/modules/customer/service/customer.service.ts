@@ -16,7 +16,7 @@ export class CustomerService implements ICustomerService {
 
     public async findById(uid: string | CustomerUID): Promise<Result<Customer>> {
         if (isNull(uid)) return failure({
-            code: 'INVALID_UID',
+            code: 'INVALID_UUID',
             details: { resource: 'customer' }
         });
 
@@ -102,7 +102,7 @@ export class CustomerService implements ICustomerService {
 
         if (failures.length > 0) return failure(failures)
 
-        const emailsAlreadyInUse = this.repository.findByEmail(email)
+        const emailsAlreadyInUse = await this.repository.findByEmail(email)
         if (emailsAlreadyInUse) return failure({
             code: 'EMAIL_ALREADY_IN_USE',
             details: {resource: 'customer'}
