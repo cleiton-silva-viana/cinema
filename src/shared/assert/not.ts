@@ -10,7 +10,7 @@ import {
 
 export const not = {
   null: (
-    value: string | any[] | null | undefined,
+    value: any,
     code: string,
     details: Record<string, any> = {},
     flow: Flow = Flow.continue,
@@ -92,7 +92,7 @@ export const not = {
       valid: !isDateAfterLimit(value, limitDate),
       code,
       flow,
-      details: { ...details, value, limitDate: limitDate?.toISOString() },
+      details: { ...details, value: value.toISOString(), limitDate: limitDate?.toISOString() },
     });
   },
 
@@ -107,7 +107,7 @@ export const not = {
       valid: !isDateBeforeLimit(value, limitDate),
       code,
       flow,
-      details: { ...details, value, limitDate: limitDate?.toISOString() },
+      details: { ...details, value: value.toISOString(), limitDate: limitDate?.toISOString() },
     });
   },
 }
