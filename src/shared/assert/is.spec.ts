@@ -4,6 +4,54 @@ import { v4, v7 } from "uuid";
 
 describe("is", () => { // Nome do describe mais específico
 
+  describe('true', () => {
+    const code = "ERR_TRUE";
+    const valueValid = true;
+    const valueInvalid = false;
+
+    it("should return valid=true when value is true", () => {
+      // Arrange
+      const validation = is.true(valueValid, code);
+
+      // Act
+      const result = validation();
+
+      // Assert
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+      expect(result.flow).toBe(Flow.continue);
+      expect(result.details).toEqual({});
+    });
+
+    it("should return valid=false with details when value is false", () => {
+      // Arrange
+      const extraDetails = { info: "additional data" };
+      const validation = is.true(valueInvalid, code, extraDetails);
+
+      // Act
+      const result = validation();
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.code).toBe(code);
+      expect(result.details).toEqual(extraDetails);
+      expect(result.flow).toBe(Flow.continue);
+    });
+
+    it("should set flow to stop when specified", () => {
+      // Arrange
+      const validation = is.true(valueValid, code, {}, Flow.stop);
+
+      // Act
+      const result = validation();
+
+      // Assert
+      expect(result.flow).toBe(Flow.stop);
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+    });
+  });
+
   describe("equal", () => {
     const code = "ERR_EQUAL";
     const value = 5;

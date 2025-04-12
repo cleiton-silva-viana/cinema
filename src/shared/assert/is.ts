@@ -13,6 +13,22 @@ import {
 import { Flow } from "./assert";
 
 export const is = {
+
+  // TODO: criar testes
+  true: (
+    value: boolean,
+    code: string,
+    details: Record<string, any> = {},
+    flow: Flow = Flow.continue
+  ): Function => {
+    return () => ({
+      valid: value,
+      code,
+      flow,
+      details
+    })
+  },
+
   equal: (
     value: any,
     target: any,
