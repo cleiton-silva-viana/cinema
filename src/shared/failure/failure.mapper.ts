@@ -1,37 +1,41 @@
 import { HttpStatus } from "@nestjs/common";
 import { SimpleFailure } from "./simple.failure.type";
 import { RichFailureType } from "./rich.failure.type";
-import { FailureMessageProvider, FailureMessageConfig } from "./failure.message.provider";
-
-/**
- * Interface para provedores de mensagens de falha
- */
-export interface IFailureMessageProvider {
-  getMessageConfig(code: string): FailureMessageConfig | undefined;
-}
+import { IFailureMessageProvider } from "./failure.message.provider.interface";
+import { IFailureMapper } from "./failure.mapper.interface";
+import { FailureMessageProvider } from "./failure.message.provider";
 
 /**
  * Classe responsável por mapear SimpleFailure para RichFailureType,
  * utilizando as configurações definidas no arquivo failure.messages.json
  */
-export class FailureMapper {
-  private static messageProvider: IFailureMessageProvider = FailureMessageProvider.getInstance();
+export class FailureMapper implements IFailureMapper{
 
+  private static instance: FailureMapper | null = null;
+
+  private constructor(
+    private readonly messageProvider: IFailureMessageProvider = FailureMessageProvider.getInstance()
+  ){}
+
+  public static getInstance(): FailureMapper {
+    if (FailureMapper.instance === null) 
+      FailureMapper.instance = new FailureMapper()
+    return FailureMapper.instance
+  }
+  
   /**
-   * Define um provedor de mensagens personalizado para o mapper
-   * Útil para testes e cenários onde se deseja substituir o provedor padrão
-   * 
-   * @param provider O provedor de mensagens a ser utilizado
+   * Reseta a instância do singleton (útil para testes)
+   */
+  public static reset(): void {
+    FailureMapper.instance = null;
+  }
+  
+  /**
+   * Define um provedor de mensagens personalizado (útil para testes)
    */
   public static setMessageProvider(provider: IFailureMessageProvider): void {
-    this.messageProvider = provider;
-  }
-
-  /**
-   * Restaura o provedor de mensagens para o padrão
-   */
-  public static resetMessageProvider(): void {
-    this.messageProvider = FailureMessageProvider.getInstance();
+    FailureMapper.reset();
+    FailureMapper.instance = new FailureMapper(provider);
   }
 
   /**
@@ -41,14 +45,14 @@ export class FailureMapper {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Um objeto RichFailureType com informações completas sobre o erro
    */
-  public static toRichFailure(failure: SimpleFailure, language: 'pt' | 'en' = 'pt'): RichFailureType {
+  public toRichFailure(failure: SimpleFailure, language: 'pt' | 'en' = 'pt'): RichFailureType {
     const messageConfig = this.messageProvider.getMessageConfig(failure.code);
     
     if (!messageConfig) {
       // Improved handling for unknown error codes
       const defaultMessages = {
-        pt: `Erro desconhecido`,
-        en: `Unknown error`
+        pt: `Erro não catalogado: ${failure.code}`,
+        en: `Uncatalogued error: ${failure.code}`
       };
       
       return {
@@ -61,10 +65,13 @@ export class FailureMapper {
       };
     }
     
+    // Obtém a mensagem no idioma solicitado ou em inglês como fallback
     const title = messageConfig.message[language] || messageConfig.message.en;
     
+    // Converte o status code numérico para o enum HttpStatus
     const status = messageConfig.statusCode as HttpStatus;
     
+    // Cria o objeto RichFailureType
     return {
       code: failure.code,
       status,
@@ -80,19 +87,19 @@ export class FailureMapper {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Array de objetos RichFailureType
    */
-  public static toRichFailures(failures: SimpleFailure[], language: 'pt' | 'en' = 'pt'): RichFailureType[] {
+  public toRichFailures(failures: SimpleFailure[], language: 'pt' | 'en' = 'pt'): RichFailureType[] {
     return failures.map(failure => this.toRichFailure(failure, language));
   }
-  
+
   /**
    * Converte o objeto de detalhes de um SimpleFailure para o formato esperado em RichFailureType
-   * 
+   *
    * @param details Objeto de detalhes do SimpleFailure
    * @returns Objeto de detalhes no formato esperado pelo RichFailureType
    */
-  private static convertDetailsToRecord(details: Record<string, any>): Record<string, string | number> {
+  private convertDetailsToRecord(details: Record<string, any>): Record<string, string | number> {
     const result: Record<string, string | number> = {};
-    
+
     // Itera sobre as propriedades do objeto de detalhes
     for (const [key, value] of Object.entries(details)) {
       // Ignora propriedades complexas como objetos e arrays
@@ -103,7 +110,7 @@ export class FailureMapper {
         result[key] = String(value);
       }
     }
-    
+
     return result;
   }
 }

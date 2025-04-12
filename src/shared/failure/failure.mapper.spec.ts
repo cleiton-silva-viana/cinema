@@ -1,9 +1,9 @@
 import { HttpStatus } from '@nestjs/common';
 import { SimpleFailure } from './simple.failure.type';
-import { FailureMapper, IFailureMessageProvider } from './failure.mapper';
+import { FailureMapper } from './failure.mapper';
 import { FailureMessageConfig } from './failure.message.provider';
+import { IFailureMessageProvider } from './failure.message.provider.interface';
 
-// Global error constants to avoid hardcoded strings
 const ERROR_CODES = {
   RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
@@ -37,7 +37,6 @@ const ERROR_MESSAGES = {
 };
 
 describe('FailureMapper', () => {
-  // Create a more comprehensive mock message provider
   const mockMessageProvider: IFailureMessageProvider = {
     getMessageConfig: jest.fn().mockImplementation((code: string): FailureMessageConfig | undefined => {
       const mockMessages: Record<string, FailureMessageConfig> = {
@@ -63,13 +62,15 @@ describe('FailureMapper', () => {
     })
   };
 
+  let mapper: FailureMapper;
+
   beforeEach(() => {
     FailureMapper.setMessageProvider(mockMessageProvider);
+    mapper = FailureMapper.getInstance();
   });
 
-  // Reset after tests
   afterEach(() => {
-    FailureMapper.resetMessageProvider();
+    FailureMapper.reset();
     jest.clearAllMocks();
   });
 
@@ -84,7 +85,7 @@ describe('FailureMapper', () => {
     };
 
     // Act
-    const richFailure = FailureMapper.toRichFailure(simpleFailure);
+    const richFailure = mapper.toRichFailure(simpleFailure);
 
     // Assert
     expect(mockMessageProvider.getMessageConfig).toHaveBeenCalledWith(ERROR_CODES.RESOURCE_NOT_FOUND);
@@ -102,8 +103,8 @@ describe('FailureMapper', () => {
     };
 
     // Act
-    const ptFailure = FailureMapper.toRichFailure(simpleFailure, 'pt');
-    const enFailure = FailureMapper.toRichFailure(simpleFailure, 'en');
+    const ptFailure = mapper.toRichFailure(simpleFailure, 'pt');
+    const enFailure = mapper.toRichFailure(simpleFailure, 'en');
 
     // Assert
     expect(mockMessageProvider.getMessageConfig).toHaveBeenCalledWith(ERROR_CODES.VALIDATION_ERROR);
@@ -119,12 +120,12 @@ describe('FailureMapper', () => {
     };
 
     // Act
-    const richFailure = FailureMapper.toRichFailure(simpleFailure);
+    const richFailure = mapper.toRichFailure(simpleFailure);
 
     // Assert
     expect(mockMessageProvider.getMessageConfig).toHaveBeenCalledWith(ERROR_CODES.UNKNOWN_ERROR_CODE);
     expect(richFailure.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-    expect(richFailure.title).toBe('Erro desconhecido');
+    expect(richFailure.title).toContain('Erro não catalogado');
     expect(richFailure.details).toEqual(simpleFailure.details);
   });
 
@@ -136,7 +137,7 @@ describe('FailureMapper', () => {
     };
 
     // Act
-    const richFailure = FailureMapper.toRichFailure(simpleFailure);
+    const richFailure = mapper.toRichFailure(simpleFailure);
 
     // Assert
     expect(richFailure.code).toBe(simpleFailure.code);
@@ -155,7 +156,7 @@ describe('FailureMapper', () => {
     ];
 
     // Act
-    const richFailures = FailureMapper.toRichFailures(failures);
+    const richFailures = mapper.toRichFailures(failures);
 
     // Assert
     expect(richFailures).toHaveLength(2);
@@ -174,7 +175,7 @@ describe('FailureMapper', () => {
     };
 
     // Act
-    const richFailure = FailureMapper.toRichFailure(simpleFailure);
+    const richFailure = mapper.toRichFailure(simpleFailure);
 
     // Assert
     expect(richFailure.code).toBe(simpleFailure.code);
@@ -194,7 +195,7 @@ describe('FailureMapper', () => {
     };
 
     // Act
-    const richFailure = FailureMapper.toRichFailure(simpleFailure);
+    const richFailure = mapper.toRichFailure(simpleFailure);
 
     // Assert
     expect(richFailure.details).toBeDefined();
@@ -207,7 +208,7 @@ describe('FailureMapper', () => {
 
   it('should return an empty array when converting an empty array of failures', () => {
     // Act
-    const richFailures = FailureMapper.toRichFailures([]);
+    const richFailures = mapper.toRichFailures([]);
 
     // Assert
     expect(richFailures).toEqual([]);
@@ -227,7 +228,7 @@ describe('FailureMapper', () => {
     };
 
     // Act
-    const ptFailure = FailureMapper.toRichFailure(simpleFailure, 'pt');
+    const ptFailure = mapper.toRichFailure(simpleFailure, 'pt');
 
     // Assert
     expect(ptFailure.title).toBe(ERROR_MESSAGES.ENGLISH_ONLY_ERROR.en);
