@@ -1,3 +1,5 @@
+import { IFailureMessageProvider } from "./failure.message.provider.interface";
+
 const fails = require('./failure.messages.json');
 
 /**
@@ -15,7 +17,7 @@ export interface FailureMessageConfig {
  * Provedor de mensagens de erro que carrega e armazena as configurações de mensagens
  * em um singleton para evitar múltiplas leituras do arquivo JSON.
  */
-export class FailureMessageProvider {
+export class FailureMessageProvider implements IFailureMessageProvider {
   private static instance: FailureMessageProvider;
   private messagesMap: Map<string, FailureMessageConfig>;
 
