@@ -1,10 +1,10 @@
-import { Result, failure, success } from "../../../shared/result/result";
-import { Assert, Flow } from "../../../shared/assert/assert";
-import { not } from "../../../shared/assert/not";
-import { is } from "../../../shared/assert/is";
-import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
-import { isNull } from "../../../shared/validator/validator";
-import { TechnicalError } from "../../../shared/error/technical.error";
+import { Result, failure, success } from "../../../../shared/result/result";
+import { Assert, Flow } from "../../../../shared/assert/assert";
+import { not } from "../../../../shared/assert/not";
+import { is } from "../../../../shared/assert/is";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { isNull } from "../../../../shared/validator/validator";
+import { TechnicalError } from "../../../../shared/error/technical.error";
 
 export class Email {
   private constructor(

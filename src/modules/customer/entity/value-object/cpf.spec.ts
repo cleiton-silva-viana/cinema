@@ -1,5 +1,5 @@
-import { CPF } from './CPF';
-import {TechnicalError} from "../../../shared/error/technical.error";
+import { CPF } from './cpf';
+import {TechnicalError} from "../../../../shared/error/technical.error";
 
 describe('CPF', () => {
     describe('create', () => {

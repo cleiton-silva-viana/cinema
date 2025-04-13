@@ -1,10 +1,10 @@
-import {failure, Result, success} from "../../../shared/result/result"
-import {SimpleFailure} from "../../../shared/failure/simple.failure.type";
-import { not } from "../../../shared/assert/not";
-import { is } from "../../../shared/assert/is";
-import {Assert, Flow} from "../../../shared/assert/assert";
-import {TechnicalError} from "../../../shared/error/technical.error";
-import { isNull } from "../../../shared/validator/validator";
+import {failure, Result, success} from "../../../../shared/result/result"
+import {SimpleFailure} from "../../../../shared/failure/simple.failure.type";
+import { not } from "../../../../shared/assert/not";
+import { is } from "../../../../shared/assert/is";
+import {Assert, Flow} from "../../../../shared/assert/assert";
+import {TechnicalError} from "../../../../shared/error/technical.error";
+import { isNull } from "../../../../shared/validator/validator";
 
 export class CPF {
 
