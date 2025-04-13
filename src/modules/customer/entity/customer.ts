@@ -1,11 +1,11 @@
 import { failure, Result, success } from "../../../shared/result/result";
 import { TechnicalError } from "../../../shared/error/technical.error";
 import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
-import {CustomerUID} from "../value-object/customer.uid";
-import {Email} from "../value-object/email";
-import { BirthDate } from "../value-object/birth.date";
-import {CPF} from "../value-object/cpf";
-import {Name} from "../value-object/name";
+import {CustomerUID} from "./value-object/customer.uid";
+import {Email} from "./value-object/email";
+import { BirthDate } from "./value-object/birth.date";
+import {CPF} from "./value-object/cpf";
+import {Name} from "./value-object/name";
 
 export class Customer {
   private constructor(
