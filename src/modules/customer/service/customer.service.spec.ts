@@ -1,9 +1,9 @@
 import { faker } from "@faker-js/faker";
 import { Customer } from "../entity/customer";
 import { ICustomerRepository } from "../repository/customer.repository.interface";
-import { CustomerUID } from "../value-object/customer.uid";
+import { CustomerUID } from "../entity/value-object/customer.uid";
 import { CustomerService } from "./customer.service";
-import {Email} from "../value-object/email";
+import {Email} from "../entity/value-object/email";
 import { v4, v7 } from "uuid";
 
 describe("CustomerService", () => {

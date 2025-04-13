@@ -4,11 +4,11 @@ import {CreateCustomerProps, ICustomerService, UpdateCustomerProps} from "./cust
 import {Customer} from "../entity/customer";
 import {failure, Result, success} from "../../../shared/result/result";
 import {isNull} from "../../../shared/validator/validator";
-import { Email } from "../value-object/email";
-import {BirthDate} from "../value-object/birth.date";
-import { Name } from "../value-object/name";
+import { Email } from "../entity/value-object/email";
+import {BirthDate} from "../entity/value-object/birth.date";
+import { Name } from "../entity/value-object/name";
 import {SimpleFailure} from "../../../shared/failure/simple.failure.type";
-import { CustomerUID } from "../value-object/customer.uid";
+import { CustomerUID } from "../entity/value-object/customer.uid";
 
 @Injectable()
 export class CustomerService implements ICustomerService {

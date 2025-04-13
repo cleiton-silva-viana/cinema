@@ -1,9 +1,9 @@
 import { faker } from "@faker-js/faker/locale/pt_PT";
 import {Customer} from "./customer";
-import {Name} from "../value-object/name";
-import {Email} from "../value-object/email";
-import {BirthDate} from "../value-object/birth.date";
-import {CustomerUID} from "../value-object/customer.uid";
+import {Name} from "./value-object/name";
+import {Email} from "./value-object/email";
+import {BirthDate} from "./value-object/birth.date";
+import {CustomerUID} from "./value-object/customer.uid";
 
 describe("Customer", () => {
   const validName = faker.person.firstName();
