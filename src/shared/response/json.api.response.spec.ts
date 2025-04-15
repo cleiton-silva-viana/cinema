@@ -55,7 +55,7 @@ describe("JsonApiResponse", () => {
       
       // Act
       status.forEach(s => {
-        response.status(s);
+        response.HttpStatus(s);
         
         // Assert
         expect((response as any)._httpStatus).toBe(s);
@@ -68,7 +68,7 @@ describe("JsonApiResponse", () => {
 
       // Act
       status.forEach(s => {
-        response.status(s); // Inválido
+        response.HttpStatus(s); // Inválido
 
       // Assert
       expect(response.toJSON().status).not.toBe(s);

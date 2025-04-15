@@ -2,6 +2,7 @@ import { isBlank, isNull } from "../validator/validator";
 import { SimpleFailure } from "../failure/simple.failure.type";
 import { Logger } from "@nestjs/common";
 import { IFailureMapper } from "../failure/failure.mapper.interface";
+import { FailureMapper } from "../failure/failure.mapper";
 
 const logger = new Logger("JsonApiResponse");
 
@@ -15,7 +16,7 @@ export interface CommonLinks {
 /**
  * Representa um identificador de recurso JSON:API (usado em relacionamentos).
  */
-export interface ResourceIdentifier {
+export type ResourceIdentifier = {
   id: string;
 
   type: string;
@@ -31,7 +32,7 @@ export interface ResourceIdentifier {
 /**
  * Representa um objeto de relacionamento JSON:API.
  */
-export interface RelationshipObject {
+export type RelationshipObject = {
   data: ResourceIdentifier | ResourceIdentifier[] | null;
   links?: CommonLinks;
   meta?: Record<string, any>;
@@ -41,7 +42,7 @@ export interface RelationshipObject {
  * Representa um objeto de recurso JSON:API completo.
  * é o nome do relacionamento e o valor é um objeto RelationshipObject.
  */
-export interface ResponseResource {
+export type ResponseResource = {
   /**
    * @property O campo'type' é obrigatório e deve ser uma string que identifica o recurso.
    */
@@ -78,7 +79,7 @@ export interface ResponseResource {
 /**
  * Representa um objeto de erro JSON:API.
  */
-export interface ResponseError {
+export type ResponseError = {
   links?: { about: string }; // Um link que leva a mais detalhes sobre este problema específico.
   status?: string; // O código de status HTTP aplicável a este problema, expresso como uma string.
   code?: string; // Um código de erro específico da aplicação, expresso como uma string.
@@ -107,7 +108,7 @@ export class JsonApiResponse {
   private _records: Map<string, Set<string>> = new Map();
 
   public constructor(
-    private readonly _failureMapper: IFailureMapper,
+    private readonly _failureMapper: IFailureMapper = FailureMapper.getInstance(),
   ) {}
 
   /**
@@ -115,7 +116,7 @@ export class JsonApiResponse {
    * @param statusCode O código de status HTTP (ex: 200, 201, 204, etc.)
    * @returns {this} A própria instância do builder para encadeamento.
    */
-  public status(statusCode: number): this {
+  public HttpStatus(statusCode: number): this {
     if (statusCode < 100 || statusCode > 599) {
       this.logError("Invalid HTTP status code");
       return this;
@@ -123,6 +124,10 @@ export class JsonApiResponse {
 
     this._httpStatus = statusCode;
     return this;
+  }
+
+  public get status(): number {
+    return this._httpStatus;
   }
 
   private logWarning(message: string, context?: Record<string, any>) {
@@ -231,6 +236,8 @@ export class JsonApiResponse {
       };
       this._errors.push(fail);
     });
+
+    this._httpStatus = failures[0].status
 
     return this;
   }
@@ -367,5 +374,18 @@ export class JsonApiResponse {
       response.links = this._links;
 
     return response;
+  }
+
+  public getAllDatas() {
+    return {
+      data: this._data,
+      errors: this._errors,
+      included: this._included,
+      meta: this._meta,
+      links: this._links,
+      jsonapi: this._jsonapi,
+      status: this._httpStatus,
+      records: this._records
+    };
   }
 }
