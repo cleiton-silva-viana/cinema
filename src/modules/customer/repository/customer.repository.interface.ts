@@ -1,6 +1,6 @@
 import { Customer } from '../entity/customer';
-import {CustomerUID} from "../value-object/customer.uid";
-import {Email} from "../value-object/email";
+import {CustomerUID} from "../entity/value-object/customer.uid";
+import {Email} from "../entity/value-object/email";
 
 export interface ICustomerRepository {
   findById(uid: CustomerUID): Promise<Customer>;
