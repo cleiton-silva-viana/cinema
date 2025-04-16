@@ -69,6 +69,12 @@ export class Customer {
       birthDate?: Date | BirthDate
     }): Result<void> {
       const failures: SimpleFailure[] = [];
+
+      if (!updates.name && !updates.email && !updates.birthDate)
+        return failure({
+          code: 'ANY_DATA_IS_REQUIRED_FOR_UPDATE',
+        })
+
       const pendingUpdates = new Map();
   
       if (updates.name) {

@@ -200,7 +200,7 @@ describe("Customer", () => {
         expect(result.invalid).toBe(true);
         expect(result.failures).toBeDefined();
         expect(result.failures).toHaveLength(1);
-        expect(customer.email).toBe(originalEmail); // should maintain original value
+        expect(customer.email).toBe(originalEmail);
       });
 
       it("should apply all or nothing on multiple updates", () => {
@@ -218,8 +218,22 @@ describe("Customer", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toHaveLength(1);
-        expect(customer.name).toBe(originalName); // should maintain original value
-        expect(customer.email).toBe(originalEmail); // should maintain original value
+        expect(customer.name).toBe(originalName); 
+        expect(customer.email).toBe(originalEmail);
+      });
+
+      it("should fail with no data to update", () => {
+        // Arrange
+        const updates = {};
+
+        // Act
+        const result = customer.update(updates);
+
+        // Assert
+        expect(result.invalid).toBe(true);
+        expect(result.failures).toBeDefined();
+        expect(result.failures).toHaveLength(1);
+        expect(result.failures[0].code).toBe('ANY_DATA_IS_REQUIRED_FOR_UPDATE');
       });
     });
   });
