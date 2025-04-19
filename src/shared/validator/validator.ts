@@ -314,7 +314,6 @@ export const isUIDv7 = (uid: string | null | undefined): boolean => {
  * @returns boolean True se value > limitDate, False caso contrário.
  */
 export const isDateAfterLimit = (value: Date, limitDate: Date): boolean => {
-  // TODO: Boa validação dos tipos e dos valores das datas.
   if (!(value instanceof Date) || isNaN(value.getTime()) || !(limitDate instanceof Date) || isNaN(limitDate.getTime()))
     return false;
 
@@ -333,4 +332,33 @@ export const isDateBeforeLimit = (value: Date, limitDate: Date): boolean => {
     return false;
 
   return value.getTime() < limitDate.getTime();
+};
+
+/**
+ * Verifica se um valor (string, array ou objeto/record) contém um valor específico.
+ * - Para strings: verifica se a substring está presente.
+ * - Para arrays: verifica se o elemento está presente.
+ * - Para objetos/records: verifica se algum valor do objeto é igual ao valor buscado.
+ * Retorna false para tipos não suportados ou se container/target for null/undefined.
+ * @param value A string, array ou objeto/record a ser verificado.
+ * @param target O valor a ser buscado.
+ * @returns boolean True se o valor for encontrado, False caso contrário.
+ */
+export const contains = (value: any, target: any): boolean => {
+  if (isNull(value)) return false;
+
+  if (typeof value === "string") {
+    if (typeof target !== "string") return false;
+    return value.includes(target);
+  }
+
+  if (Array.isArray(value)) {
+    return value.includes(target);
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value).includes(target);
+  }
+
+  return false;
 };
