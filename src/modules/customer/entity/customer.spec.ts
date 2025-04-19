@@ -6,7 +6,7 @@ import {BirthDate} from "../../../shared/value-object/birth.date";
 import {CustomerUID} from "./value-object/customer.uid";
 
 describe("Customer", () => {
-  const validName = faker.person.firstName();
+  const validName = faker.person.fullName();
   const validBirthDate = faker.date.between({
     from: new Date(1901, 0, 0),
     to: new Date(1969, 0, 0),
