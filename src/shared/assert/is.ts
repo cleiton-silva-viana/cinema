@@ -180,4 +180,18 @@ export const is = {
       details: { ...details, value: value.toISOString(), limitDate: limitDate?.toISOString() },
     });
   },
+
+  array: (
+      value: any,
+      code: string,
+      details: Record<string, any> = {},
+      flow: Flow = Flow.continue
+    ): Function => {
+      return () => ({
+        valid: Array.isArray(value),
+        code,
+        flow,
+        details: { ...details, value: JSON.stringify(value) }
+      });
+    }
 };

@@ -115,7 +115,7 @@ describe("is", () => { // Nome do describe mais específico
     const max = 10;
     const code = "ERR_BETWEEN";
     const valueInRange = 5;
-    const valueOutOfRange = [];
+    const valueOutOfRange: any[] = [];
 
     it("should return valid=true when value is within range", () => {
       // Arrange
@@ -487,6 +487,64 @@ describe("is", () => { // Nome do describe mais específico
     it("should set flow to stop when specified", () => {
       // Arrange
       const validation = is.dateBefore(valueValid, limitDate, code, {}, Flow.stop);
+
+      // Act
+      const result = validation();
+
+      // Assert
+      expect(result.flow).toBe(Flow.stop);
+    });
+  });
+
+  describe("array", () => {
+    const code = "ERR_ARRAY";
+    const valueValid = [1, 2, 3];
+    const valueInvalid = "not-an-array";
+
+    it("should return valid=true when value is an array", () => {
+      // Arrange
+      const validation = is.array(valueValid, code);
+
+      // Act
+      const result = validation();
+
+      // Assert
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+      expect(result.flow).toBe(Flow.continue);
+      expect(result.details.value).toBe(JSON.stringify(valueValid));
+    });
+
+    it("should return valid=false when value is not an array", () => {
+      // Arrange
+      const validation = is.array(valueInvalid, code);
+
+      // Act
+      const result = validation();
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.code).toBe(code);
+      expect(result.flow).toBe(Flow.continue);
+      expect(result.details.value).toBe(JSON.stringify(valueInvalid));
+    });
+
+    it("should merge custom details", () => {
+      // Arrange
+      const extraDetails = { custom: "info" };
+      const validation = is.array(valueValid, code, extraDetails);
+
+      // Act
+      const result = validation();
+
+      // Assert
+      expect(result.details.custom).toBe("info");
+      expect(result.details.value).toBe(JSON.stringify(valueValid));
+    });
+
+    it("should set flow to stop when specified", () => {
+      // Arrange
+      const validation = is.array(valueValid, code, {}, Flow.stop);
 
       // Act
       const result = validation();
