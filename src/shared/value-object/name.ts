@@ -14,7 +14,7 @@ export class Name {
   public static create(name: string): Result<Name> {
     const failures: SimpleFailure[] = []
     const minNameLength = 3;
-    const maxNameLength = 24;
+    const maxNameLength = 50;
 
     Assert.all(
       failures,
@@ -22,7 +22,7 @@ export class Name {
       not.null(name, "PROPERTY_CANNOT_BE_NULL", {}, Flow.stop),
       not.empty(name, "FIELD_CANNOT_BE_EMPTY", {}, Flow.stop),
       is.between(name, minNameLength, maxNameLength, "FIELD_WITH_INVALID_SIZE", {}, Flow.stop),
-      is.match(name, /^[a-zA-Z]{3,24}$/, "NAME_WITH_INVALID_FORMAT"),
+      is.match(name, /^[a-zA-Z\s]{3,50}$/, "NAME_WITH_INVALID_FORMAT"),
     );
 
     return (failures.length > 0)

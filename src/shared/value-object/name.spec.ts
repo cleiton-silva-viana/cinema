@@ -7,7 +7,8 @@ describe('Name', () => {
             const successCases = [
                 { name: 'john', scenario: 'with minimum length' },
                 { name: 'mark', scenario: 'with another valid name' },
-                { name: 'abcdefghijklmnopqrstuv', scenario: 'with maximum length' }
+                { name: 'Mary Jane Watson Parker', scenario: 'with multiple compound name' },
+                { name: repeate(50), scenario: 'with maximum length' }
             ];
 
             successCases.forEach(({ name, scenario }) => {
@@ -27,7 +28,7 @@ describe('Name', () => {
                 { name: undefined as unknown as string, scenario: 'when name is undefined', errorCodeExpected: 'PROPERTY_CANNOT_BE_NULL' },
                 { name: '', scenario: 'when name is empty', errorCodeExpected: 'FIELD_CANNOT_BE_EMPTY' },
                 { name: 'ab', scenario: 'when name is too short', errorCodeExpected: 'FIELD_WITH_INVALID_SIZE' },
-                { name: 'abcdefghijklmnopqrstuvwxyz', scenario: 'when name is too long', errorCodeExpected: 'FIELD_WITH_INVALID_SIZE' },
+                { name: repeate(51), scenario: 'when name is too long', errorCodeExpected: 'FIELD_WITH_INVALID_SIZE' },
                 { name: 'john123', scenario: 'when name contains invalid characters', errorCodeExpected: 'NAME_WITH_INVALID_FORMAT' },
                 { name: 'John #$$', scenario: 'when name contains special characters', errorCodeExpected: 'NAME_WITH_INVALID_FORMAT' }
             ];
@@ -61,11 +62,11 @@ describe('Name', () => {
 
         it('should throw an error when name is null or undefined', () => {
             // Arrange
-            const values = [null, undefined];
+            const values: any[] = [null, undefined];
 
             // Act
             values.forEach((value) => {
-                expect(() => Name.hydrate(value)).toThrow(TechnicalError);
+                expect(() => Name.hydrate(value as any)).toThrow(TechnicalError);
             })
         });
     });
@@ -101,3 +102,12 @@ describe('Name', () => {
         });
     });
 });
+
+function repeate(count: number) {
+    const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    for (let i = 0; i < count; i++) {
+        result += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    return result;
+}
