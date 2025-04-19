@@ -1,10 +1,10 @@
-import { Assert, Flow } from "../../../../shared/assert/assert";
-import { not } from "../../../../shared/assert/not";
-import { failure, Result, success } from "../../../../shared/result/result";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { TechnicalError } from "../../../../shared/error/technical.error";
-import { isNull } from "../../../../shared/validator/validator";
-import { is } from "../../../../shared/assert/is";
+import { Assert, Flow } from "../assert/assert";
+import { not } from "../assert/not";
+import { failure, Result, success } from "../result/result";
+import { SimpleFailure } from "../failure/simple.failure.type";
+import { TechnicalError } from "../error/technical.error";
+import { isNull } from "../validator/validator";
+import { is } from "../assert/is";
 
 export class BirthDate {
   private constructor(private readonly _value: Date) {}

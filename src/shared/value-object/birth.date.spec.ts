@@ -1,5 +1,5 @@
 import { BirthDate } from './birth.date';
-import { TechnicalError } from "../../../../shared/error/technical.error";
+import { TechnicalError } from "../error/technical.error";
 
 describe('BirthDate', () => {
   const originalDateNow = Date.now;
