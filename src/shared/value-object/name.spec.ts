@@ -7,6 +7,7 @@ describe('Name', () => {
             const successCases = [
                 { name: 'john', scenario: 'with minimum length' },
                 { name: 'mark', scenario: 'with another valid name' },
+                { name: 'Sérgio', scenario: 'with brazillian name' },
                 { name: 'Mary Jane Watson Parker', scenario: 'with multiple compound name' },
                 { name: repeate(50), scenario: 'with maximum length' }
             ];
