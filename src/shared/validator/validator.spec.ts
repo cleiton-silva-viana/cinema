@@ -13,12 +13,13 @@ import {
   isUIDv7,
   greaterThanOrEqualTo,
   lessThanOrEqualTo,
+  contains,
 } from "./validator";
 
 describe("Validation", () => {
   describe("isNull", () => {
     it("should return true", () => {
-      const values = [null, undefined];
+      const values: any[] = [null, undefined];
       values.forEach((value) => expect(isNull(value)).toBe(true));
     });
 
@@ -81,8 +82,8 @@ describe("Validation", () => {
         // Null / Undefined
         { value1: null, value2: 0, scenario: "null vs zero" },
         { value1: undefined, value2: "", scenario: "undefined vs empty string" },
-        { value1: null, value2: false, scenario: "null vs false" },
-        { value1: undefined, value2: false, scenario: "undefined vs false" },
+        { value1: undefined as boolean, value2: false, scenario: "undefined vs false" },
+        { value1: null as boolean, value2: false, scenario: "null vs false" },
         // Dates
         { value1: date1, value2: date2, scenario: "different Date values" },
         { value1: new Date(), value2: Date.now(), scenario: "Date object vs number (timestamp)" },
@@ -93,12 +94,12 @@ describe("Validation", () => {
         { value1: [1, 2, 3], value2: [1, 2, 4], scenario: "arrays with different number element" },
         { value1: [1, 2, 3], value2: [1, 3, 2], scenario: "arrays with same elements in different order" },
         { value1: [1, 2], value2: [1, 2, 3], scenario: "arrays with different lengths" },
-        { value1: [1, ["a", true]], value2: [1, ["a", false]], scenario: "nested arrays with different boolean value" },
+        { value1: [1, ["a", true]] as Array<any>, value2: [1, ["a", false]], scenario: "nested arrays with different boolean value" },
         { value1: [1, 2], value2: { 0: 1, 1: 2 }, scenario: "array vs array-like object" }, // Type mismatch handled
         { value1: [" "], value2: [""], scenario: "arrays with whitespace string vs empty string" },
         // Objects (not handled deeply by the function)
-        { value1: {}, value2: {}, scenario: "empty objects (different instances)" },
-        { value1: {a: 1}, value2: {a: 1}, scenario: "identical objects (different instances)" },
+        { value1: {} as any, value2: {} as any, scenario: "empty objects (different instances)" },
+        { value1: {a: 1} as any, value2: {a: 1} as any, scenario: "identical objects (different instances)" },
       ];
 
       unequalTestCases.forEach(({ value1, value2, scenario }) => {
@@ -117,7 +118,7 @@ describe("Validation", () => {
         { value: undefined, scenario: "undefined" },
         { value: "", scenario: "empty string" },
         { value: "   ", scenario: "whitespace-only string" },
-        { value: [], scenario: "empty array" },
+        { value: [] as Array<any>, scenario: "empty array" },
       ];
       emptyTestCases.forEach(({ value, scenario }) => {
         it(`should return true for ${scenario}`, () => {
@@ -849,7 +850,7 @@ describe("Validation", () => {
         { value: undefined, scenario: "undefined" },
         { value: "", scenario: "empty string" },
         { value: "   ", scenario: "whitespace-only string" },
-        { value: [], scenario: "empty array" },
+        { value: [] as Array<any>, scenario: "empty array" },
         { value: {}, scenario: "empty object" },
       ];
 
@@ -1226,6 +1227,65 @@ describe("Validation", () => {
         it(scenario, () => {
           expect(isUIDv7(uuid as any)).toBe(false);
         })
+      });
+    });
+  });
+
+  describe("contains", () => {
+    describe("when container is a string", () => {
+      it("should return true if substring is present", () => {
+        expect(contains("hello world", "world")).toBe(true);
+        expect(contains("abcabc", "a")).toBe(true);
+      });
+
+      it("should return false if substring is not present", () => {
+        expect(contains("hello world", "foo")).toBe(false);
+        expect(contains("abc", "d")).toBe(false);
+      });
+
+      it("should return false if target is not a string", () => {
+        expect(contains("hello", 1)).toBe(false);
+        expect(contains("hello", null)).toBe(false);
+      });
+    });
+
+    describe("when container is an array", () => {
+      it("should return true if element is present", () => {
+        expect(contains([1, 2, 3], 2)).toBe(true);
+        expect(contains(["a", "b", "c"], "b")).toBe(true);
+        expect(contains([null, undefined], null)).toBe(true);
+      });
+
+      it("should return false if element is not present", () => {
+        expect(contains([1, 2, 3], 4)).toBe(false);
+        expect(contains(["a", "b"], "c")).toBe(false);
+      });
+    });
+
+    describe("when container is an object", () => {
+      it("should return true if value is present among object values", () => {
+        expect(contains({ a: 1, b: 2 }, 2)).toBe(true);
+        expect(contains({ x: "foo", y: "bar" }, "bar")).toBe(true);
+      });
+
+      it("should return false if value is not present among object values", () => {
+        expect(contains({ a: 1, b: 2 }, 3)).toBe(false);
+        expect(contains({ x: "foo", y: "bar" }, "baz")).toBe(false);
+      });
+    });
+
+    describe("edge cases and unsupported types", () => {
+      it("should return false for null or undefined container or target", () => {
+        expect(contains(null, "a")).toBe(false);
+        expect(contains(undefined, "a")).toBe(false);
+        expect(contains("abc", null)).toBe(false);
+        expect(contains([1, 2], undefined)).toBe(false);
+      });
+
+      it("should return false for unsupported container types", () => {
+        expect(contains(123, 1)).toBe(false);
+        expect(contains(true, true)).toBe(false);
+        expect(contains(() => {}, "a")).toBe(false);
       });
     });
   });
