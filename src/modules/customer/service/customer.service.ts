@@ -9,8 +9,8 @@ import { Customer } from "../entity/customer";
 import { failure, Result, success } from "../../../shared/result/result";
 import { isNull } from "../../../shared/validator/validator";
 import { Email } from "../entity/value-object/email";
-import { BirthDate } from "../entity/value-object/birth.date";
-import { Name } from "../entity/value-object/name";
+import { BirthDate } from "../../../shared/value-object/birth.date";
+import { Name } from "../../../shared/value-object/name";
 import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
 import { CustomerUID } from "../entity/value-object/customer.uid";
 
