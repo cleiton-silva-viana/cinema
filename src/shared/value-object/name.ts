@@ -1,9 +1,9 @@
-import { failure, Result, success } from "../../../../shared/result/result";
-import { Assert, Flow } from "../../../../shared/assert/assert";
-import { not } from "../../../../shared/assert/not";
-import { is } from "../../../../shared/assert/is";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { TechnicalError } from "../../../../shared/error/technical.error";
+import { failure, Result, success } from "../result/result";
+import { Assert, Flow } from "../assert/assert";
+import { not } from "../assert/not";
+import { is } from "../assert/is";
+import { SimpleFailure } from "../failure/simple.failure.type";
+import { TechnicalError } from "../error/technical.error";
 
 export class Name {
 

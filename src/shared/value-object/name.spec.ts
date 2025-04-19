@@ -1,5 +1,5 @@
 import { Name } from './name';
-import { TechnicalError } from "../../../../shared/error/technical.error";
+import { TechnicalError } from "../error/technical.error";
 
 describe('Name', () => {
     describe('create', () => {
