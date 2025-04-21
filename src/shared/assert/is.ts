@@ -1,4 +1,5 @@
 import {
+  contains,
   greaterThanOrEqualTo,
   isBetween,
   isDateAfterLimit,
@@ -8,7 +9,7 @@ import {
   isMatch,
   isUIDv4,
   isUIDv7,
-  lessThanOrEqualTo,
+  lessThanOrEqualTo
 } from "../validator/validator";
 import { Flow } from "./assert";
 
@@ -193,5 +194,20 @@ export const is = {
         flow,
         details: { ...details, value: JSON.stringify(value) }
       });
-    }
+    },
+
+  contains: (
+    value: any,
+    target: any,
+    code: string,
+    details: Record<string, any> = {},
+    flow: Flow = Flow.continue
+  ): Function => {
+    return () => ({
+      valid: contains(value, target),
+      code,
+      flow,
+      details: { ...details, expectedValue: target }
+    })
+  }
 };

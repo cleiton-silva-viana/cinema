@@ -553,4 +553,153 @@ describe("is", () => { // Nome do describe mais específico
       expect(result.flow).toBe(Flow.stop);
     });
   });
+
+  describe("contains", () => {
+    const code = "ERR_CONTAINS";
+
+    describe("when value is a string", () => {
+      const mainString = 'hello World'
+
+      it("should return valid=true when substring is present", () => {
+        // Arrange
+        const word = 'World'
+
+        // Act
+        const result = is.contains(mainString, word, code)();
+
+        // Assert
+        expect(result.valid).toBe(true);
+        expect(result.code).toBe(code);
+        expect(result.flow).toBe(Flow.continue);
+        expect(result.details.expectedValue).toBe(word);
+      });
+
+      it("should return valid=false when substring is not present", () => {
+        // Arrange
+        const word = 'foo'
+
+        // Act
+        const result =  is.contains(mainString, word, code)();
+
+        // Assert
+        expect(result.valid).toBe(false);
+        expect(result.code).toBe(code);
+        expect(result.flow).toBe(Flow.continue);
+        expect(result.details.expectedValue).toBe(word);
+      });
+
+      it("should return valid=false when target is not a string", () => {
+        // Arrange
+        const number = 1
+
+        // Act
+        const result = is.contains(mainString, number, code)();
+
+        // Assert
+        expect(result.valid).toBe(false);
+        expect(result.code).toBe(code);
+        expect(result.details.expectedValue).toBe(1);
+      });
+    });
+
+    describe("when value is an array", () => {
+      const arr = [1, 2, 3]
+
+      it("should return valid=true when element is present", () => {
+        // Arrange
+        const item = 2
+
+        // Act
+        const result = is.contains(arr, item, code)();
+
+        // Assert
+        expect(result.valid).toBe(true);
+        expect(result.code).toBe(code);
+        expect(result.details.expectedValue).toBe(2);
+      });
+
+      it("should return valid=false when element is not present", () => {
+        // Arrange
+        const item = 4
+
+        // Act
+        const result = is.contains(arr, item, code)();
+
+        // Assert
+        expect(result.valid).toBe(false);
+        expect(result.code).toBe(code);
+        expect(result.details.expectedValue).toBe(4);
+      });
+    });
+
+    describe("when value is an object", () => {
+      const obj = { a: 1, b: 2 }
+
+      it("should return valid=true when value is present among object values", () => {
+        // Arrange
+        const item = 2
+
+        // Act
+        const result = is.contains(obj, item, code)();
+
+        // Assert
+        expect(result.valid).toBe(true);
+        expect(result.code).toBe(code);
+        expect(result.details.expectedValue).toBe(item);
+      });
+
+      it("should return valid=false when value is not present among object values", () => {
+        // Arrange
+        const item = 3
+
+        // Act
+        const result = is.contains(obj, item, code)();
+
+        // Assert
+        expect(result.valid).toBe(false);
+        expect(result.code).toBe(code);
+        expect(result.details.expectedValue).toBe(item);
+      });
+    });
+
+    describe("custom details and flow", () => {
+      const arr = [1, 2, 3]
+      const item = 2
+
+      it("should merge custom details", () => {
+        // Arrange
+        const extraDetails = { custom: "info" };
+
+        // Act
+        const result = is.contains(arr, item, code, extraDetails)();
+
+        // Assert
+        expect(result.details.custom).toBe("info");
+        expect(result.details.expectedValue).toBe(item);
+      });
+
+      it("should set flow to stop when specified", () => {
+        // Act
+        const result = is.contains(arr, item, code, {}, Flow.stop)();
+
+        // Assert
+        expect(result.flow).toBe(Flow.stop);
+      });
+    });
+
+    describe("edge cases", () => {
+      it("should return valid=false for null or undefined value or target", () => {
+        expect(is.contains(null, "a", code)().valid).toBe(false);
+        expect(is.contains(undefined, "a", code)().valid).toBe(false);
+        expect(is.contains("abc", null, code)().valid).toBe(false);
+        expect(is.contains([1, 2], undefined, code)().valid).toBe(false);
+      });
+
+      it("should return valid=false for unsupported value types", () => {
+        expect(is.contains(123, 1, code)().valid).toBe(false);
+        expect(is.contains(true, true, code)().valid).toBe(false);
+        expect(is.contains(() => {}, "a", code)().valid).toBe(false);
+      });
+    });
+  });
 });
