@@ -554,6 +554,65 @@ describe("is", () => { // Nome do describe mais específico
     });
   });
 
+  describe("string", () => {
+    const code = "ERR_STRING";
+    const valueValid = "texto válido";
+    const valueInvalid = 123;
+
+    it("should return valid=true when value is a string", () => {
+      // Act
+      const result = is.string(valueValid, code)();
+
+      // Assert
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+      expect(result.flow).toBe(Flow.continue);
+    });
+
+    it("should return valid=false with details when value is not a string", () => {
+      // Arrange
+      const expectedDetails = {
+        valueType: "number",
+        expectedType: "string",
+        value: JSON.stringify(valueInvalid)
+      };
+
+      // Act
+      const result =  is.string(valueInvalid, code)();
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.code).toBe(code);
+      expect(result.details).toEqual(expectedDetails);
+      expect(result.flow).toBe(Flow.continue);
+    });
+
+    it("should merge custom details", () => {
+      // Arrange
+      const extraDetails = { custom: "info" };
+      const expectedDetails = {
+        valueType: "string",
+        expectedType: "string",
+        value: JSON.stringify(valueValid),
+        ...extraDetails
+      };
+
+      // Act
+      const result = is.string(valueValid, code, extraDetails)();
+
+      // Assert
+      expect(result.details).toEqual(expectedDetails);
+    });
+
+    it("should set flow to stop when specified", () => {
+      // Act
+      const result = is.string(valueValid, code, {}, Flow.stop)();
+
+      // Assert
+      expect(result.flow).toBe(Flow.stop);
+    });
+  });
+
   describe("contains", () => {
     const code = "ERR_CONTAINS";
 

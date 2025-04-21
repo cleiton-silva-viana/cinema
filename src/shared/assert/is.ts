@@ -196,6 +196,21 @@ export const is = {
       });
     },
 
+  string: (
+    value: any,
+    code: string,
+    details: Record<string, any> = {},
+    flow: Flow = Flow.continue
+  ): Function => {
+    const valueType = typeof value
+    return () => ({
+      valid: valueType === 'string',
+      code,
+      flow,
+      details: { ...details, valueType, expectedType: 'string', value: JSON.stringify(value) },
+    })
+  },
+
   contains: (
     value: any,
     target: any,
