@@ -30,6 +30,20 @@ export const is = {
     })
   },
 
+  false: (
+    value: boolean,
+    code: string,
+    details: Record<string, any> = {},
+    flow: Flow = Flow.continue
+  ): Function => {
+    return () => ({
+      valid: !value,
+      code,
+      flow,
+      details
+    })
+  },
+
   equal: (
     value: any,
     target: any,

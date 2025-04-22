@@ -52,6 +52,47 @@ describe("is", () => { // Nome do describe mais específico
     });
   });
 
+  describe('false', () => {
+    const code = "ERR_FALSE";
+    const valueValid = false;
+    const valueInvalid = true;
+
+    it("should return valid=true when value is false", () => {
+      // Act
+      const result = is.false(valueValid, code)();
+
+      // Assert
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+      expect(result.flow).toBe(Flow.continue);
+      expect(result.details).toEqual({});
+    });
+
+    it("should return valid=false with details when value is true", () => {
+      // Arrange
+      const extraDetails = { info: "additional data" };
+
+      // Act
+      const result = is.false(valueInvalid, code, extraDetails)();
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.code).toBe(code);
+      expect(result.details).toEqual(extraDetails);
+      expect(result.flow).toBe(Flow.continue);
+    });
+
+    it("should set flow to stop when specified", () => {
+      // Act
+      const result = is.false(valueValid, code, {}, Flow.stop)();
+
+      // Assert
+      expect(result.flow).toBe(Flow.stop);
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+    });
+  });
+
   describe("equal", () => {
     const code = "ERR_EQUAL";
     const value = 5;
