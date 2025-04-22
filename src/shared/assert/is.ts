@@ -236,7 +236,7 @@ export const is = {
       valid: contains(value, target),
       code,
       flow,
-      details: { ...details, providedValue: value.toString(), expectedValue: target }
+      details: { ...details, providedValue: JSON.stringify(value), expectedValue: target }
     })
   }
 };
