@@ -12,6 +12,7 @@ export const codes = {
   contentDuplicateLanguage: "CONTENT_DUPLICATE_LANGUAGE",
   contentMissingRequiredLanguage: "CONTENT_MISSING_REQUIRED_LANGUAGE",
   contentLengthOutOfRange: "CONTENT_LENGTH_OUT_OF_RANGE",
+  contentInvalidFormat: 'CONTENT_INVALID_FORMAT'
 };
 
 /**
@@ -51,6 +52,12 @@ export abstract class MultilingualContent {
     SupportedLanguage.PT,
     SupportedLanguage.EN,
   ];
+
+  /**
+   * Expressão regular para validar o formato do texto
+   * Por padrão, não permite múltiplos espaços consecutivos
+   */
+  protected static readonly FORMAT_REGEX: RegExp = /^[A-Za-zÀ-ÖØ-öø-ÿ\d\s\-._]+$/;
 
   /**
    * Construtor protegido para garantir imutabilidade
@@ -223,6 +230,16 @@ export abstract class MultilingualContent {
         this.MAX_LENGTH,
         codes.contentLengthOutOfRange,
         {},
+        Flow.stop,
+      ),
+      is.match(
+        content.text,
+        this.FORMAT_REGEX,
+        codes.contentInvalidFormat,
+        {
+          language: content.language,
+          text: content.text,
+        },
         Flow.stop,
       ),
     );

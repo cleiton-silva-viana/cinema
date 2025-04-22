@@ -1,19 +1,10 @@
 import {
   codes,
-  LanguageContent,
-  MultilingualContent, MultilingualInput,
+  MultilingualContent,
   SupportedLanguage
 } from "./multilingual-content";
-import { SimpleFailure } from "../failure/simple.failure.type";
 
-class TestMultilingualContent extends MultilingualContent {
-  protected validate(
-    contents: LanguageContent[],
-    failures: SimpleFailure[],
-  ): void {
-    return;
-  }
-}
+class TestMultilingualContent extends MultilingualContent { }
 
 describe("MultilingualContent", () => {
   const pt = {
@@ -105,6 +96,38 @@ describe("MultilingualContent", () => {
           });
         });
       });
+
+      describe('constraints validations', () => {
+        it('deve falhar quando o texto contém caracteres não permitidos', () => {
+          // Arrange
+          const invalidContent = [
+            { language: "pt", text: "Texto com caractere inválido ¥" },
+            en
+          ]
+
+          // Act
+          const result = TestMultilingualContent.create(invalidContent);
+
+          // Assert
+          expect(result.invalid).toBe(true);
+          expect(result.failures[0].code).toBe(codes.contentInvalidFormat);
+        })
+
+        it("deve falhar quando o texto não segue o formato esperado", () => {
+          // Arrange
+          const invalidContent = [
+            { language: "pt", text: "Texto123$" }, // Assumindo que FORMAT_REGEX não permite números ou símbolos
+            { language: "en", text: "Hello" }
+          ];
+
+          // Act
+          const result = TestMultilingualContent.create(invalidContent);
+
+          // Assert
+          expect(result.invalid).toBe(true);
+          expect(result.failures[0].code).toBe(codes.contentInvalidFormat);
+        });
+      })
     });
 
     describe("hydrate", () => {
