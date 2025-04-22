@@ -90,7 +90,7 @@ describe('UID', () => {
     describe('hydrate', () => {
         it('should create a UID object without validation', () => {
             // Arrange
-            const uuid = v7();
+            const uuid = 'not-uuid-with-format-v4-or-v4';
             const uidString = `test.${uuid}`;
 
             // Act
