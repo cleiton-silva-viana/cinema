@@ -6,7 +6,7 @@ import {
 } from "./multilingual-content";
 import { SimpleFailure } from "../failure/simple.failure.type";
 
-class TestMultilingualContent extends MultilingualContent<TestMultilingualContent> {
+class TestMultilingualContent extends MultilingualContent {
   protected validate(
     contents: LanguageContent[],
     failures: SimpleFailure[],
