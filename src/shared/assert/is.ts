@@ -192,7 +192,7 @@ export const is = {
         valid: Array.isArray(value),
         code,
         flow,
-        details: { ...details, value: JSON.stringify(value) }
+        details: { ...details, expectedType: 'array', providedValue: JSON.stringify(value) }
       });
     },
 
@@ -222,7 +222,7 @@ export const is = {
       valid: contains(value, target),
       code,
       flow,
-      details: { ...details, expectedValue: target }
+      details: { ...details, providedValue: value.toString(), expectedValue: target }
     })
   }
 };
