@@ -84,12 +84,11 @@ export abstract class MultilingualContent {
     contents.forEach((content) => {
       contentsParsed.push(this.toLanguageContent(content, failures));
     });
+
+    this.validateContents(contentsParsed, failures);
     if (failures.length > 0) return failure(failures);
 
-    MultilingualContent.validateContents(contentsParsed, failures);
-    if (failures.length > 0) return failure(failures);
-
-    MultilingualContent.validateRequiredLanguages(contentsParsed, failures);
+    this.validateRequiredLanguages(contentsParsed, failures);
     if (failures.length > 0) return failure(failures);
 
     const contentsMap = new Map<SupportedLanguage, string>();
@@ -217,6 +216,7 @@ export abstract class MultilingualContent {
       not.null(content, codes.contentNullOrEmpty, {}, Flow.stop),
       not.null(content.language, codes.contentNullOrEmpty, {}, Flow.stop),
       is.string(content.language, codes.contentInvalidType, {}, Flow.stop),
+      is.string(content.text, codes.contentInvalidType, {}, Flow.stop),
       is.contains(
         Object.values(SupportedLanguage),
         content.language.toLowerCase(),
@@ -238,7 +238,7 @@ export abstract class MultilingualContent {
         codes.contentInvalidFormat,
         {
           language: content.language,
-          text: content.text,
+          value: content.text,
         },
         Flow.stop,
       ),
