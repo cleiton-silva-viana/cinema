@@ -1,6 +1,7 @@
 import { is } from "./is";
 import { Flow } from "./assert";
 import { v4, v7 } from "uuid";
+import { faker } from "@faker-js/faker";
 
 describe("is", () => { // Nome do describe mais específico
 
@@ -802,4 +803,65 @@ describe("is", () => { // Nome do describe mais específico
       });
     });
   });
+
+  describe("url", () => {
+    const code = "ERR_URL";
+    const valueValid = faker.internet.url()
+    const valueInvalid = "not-a-url";
+
+    it("should return valid=true for a valid URL", () => {
+      // Arrange
+      const validation = is.url(valueValid, code);
+      
+      // Act
+      const result = validation();
+      
+      // Assert
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+      expect(result.flow).toBe(Flow.continue);
+      expect(result.details).toEqual({});
+    });
+
+    it("should return valid=false with details for an invalid URL", () => {
+      // Arrange
+      const validation = is.url(valueInvalid, code);
+      
+      // Act
+      const result = validation();
+      
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.code).toBe(code);
+      expect(result.flow).toBe(Flow.continue);
+      expect(result.details).toEqual({});
+    });
+
+    it("should merge custom details", () => {
+      // Arrange
+      const extraDetails = { custom: "info" };
+      const validation = is.url(valueValid, code, extraDetails);
+      
+      // Act
+      const result = validation();
+      
+      // Assert
+      expect(result.details).toEqual(extraDetails);
+      expect(result.valid).toBe(true);
+    });
+
+    it("should set flow to stop when specified", () => {
+      // Arrange
+      const validation = is.url(valueValid, code, {}, Flow.stop);
+      
+      // Act
+      const result = validation();
+      
+      // Assert
+      expect(result.flow).toBe(Flow.stop);
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+    });
+  });
+  
 });

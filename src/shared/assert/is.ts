@@ -238,5 +238,29 @@ export const is = {
       flow,
       details: { ...details, providedValue: JSON.stringify(value), expectedValue: target }
     })
+  },
+
+  url: (
+    value: string,
+    code: string,
+    details: Record<string, any> = {},
+    flow: Flow = Flow.continue
+  ): Function => {
+    try {
+      new URL(value);
+      return () => ({
+        valid: true,
+        code,
+        flow,
+        details
+      });
+    } catch (error) {
+      return () => ({
+        valid: false,
+        code,
+        flow,
+        details
+      });
+    }
   }
 };
