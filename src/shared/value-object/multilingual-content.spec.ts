@@ -134,13 +134,13 @@ describe("MultilingualContent", () => {
       it("deve criar um objeto MultilingualContent para um idioma", () => {
         // Act
         const result = TestMultilingualContent.hydrate(
-          lang.en,
+          'pT', // diferentes tamanhos de fonte...
           en.text,
         );
 
         // Assert
-        expect(result.hasLanguage(lang.en)).toBe(true);
-        expect(result.content(lang.en)).toBe(en.text);
+        expect(result.hasLanguage(lang.pt)).toBe(true);
+        expect(result.content(lang.pt)).toBe(en.text);
         expect(result.languages().length).toBe(1)
       });
 
@@ -149,6 +149,7 @@ describe("MultilingualContent", () => {
         const cases = [
           { lang: null as SupportedLanguage, value: "Oi" },
           { lang: undefined, value: "Oi" },
+          { lang: '     ', value: "hall" },
           { lang: SupportedLanguage.PT, value: null },
           { lang: SupportedLanguage.PT, value: undefined },
         ];

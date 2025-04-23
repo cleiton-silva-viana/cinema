@@ -106,13 +106,16 @@ export abstract class MultilingualContent {
    * @returns Instância de conteúdo multi-idioma
    */
   public static hydrate<T extends MultilingualContent>(
-    lang: SupportedLanguage,
+    lang: string,
     value: string,
   ): T {
-    TechnicalError.if(!lang || !value?.trim(), "NULL_ARGUMENT");
+    TechnicalError.if(!lang?.trim() || !value?.trim(), "NULL_ARGUMENT");
+
+    const langEnum = this.toSupportedLanguage(lang);
+    TechnicalError.if(!langEnum, "INVALID_ARGUMENT");
 
     const contentMap = new Map<SupportedLanguage, string>();
-    contentMap.set(lang, value);
+    contentMap.set(langEnum, value);
 
     return new (this as any)(contentMap);
   }
