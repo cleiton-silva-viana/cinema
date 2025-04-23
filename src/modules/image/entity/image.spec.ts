@@ -2,6 +2,7 @@ import { faker } from "@faker-js/faker/locale/pt_PT";
 import { Image, textContent, Sizes } from "./image";
 import { ImageUID } from "./value-object/image-uid.vo";
 import { SupportedLanguage } from "../../../shared/value-object/multilingual-content";
+import { v4 } from "uuid";
 
 describe("Image", () => {
   const validTitleContents: textContent[] = [
@@ -22,7 +23,7 @@ describe("Image", () => {
     describe("create", () => {
       it("deve criar uma imagem válida", () => {
         // Act
-        const result = Image.create(validTitleContents, validDescriptionContents, sizes);
+        const result = Image.create(v4(), validTitleContents, validDescriptionContents, sizes);
 
         // Assert
         expect(result.invalid).toBe(false);
@@ -80,7 +81,7 @@ describe("Image", () => {
           const sizeForTest = 'sizes' in test ? test.sizes : sizes;
 
           // Act
-          const result = Image.create(titleContents, descriptionContents, sizeForTest);
+          const result = Image.create(v4(), titleContents, descriptionContents, sizeForTest);
 
           // Assert
           expect(result.invalid).toBe(true);

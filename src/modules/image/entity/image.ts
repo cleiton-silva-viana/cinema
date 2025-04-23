@@ -29,21 +29,25 @@ export class Image {
 
   /**
    * Cria uma nova instância de Image com validação completa
+   * @param uidV4 Id da imagem salva no storage
    * @param titleContents Conteúdo multilíngue do título
    * @param descriptionContents Conteúdo multilíngue da descrição
    * @param imageSizes URLs para os diferentes tamanhos da imagem
    */
   public static create(
+    uidV4: string,
     titleContents: textContent[],
     descriptionContents: textContent[],
     imageSizes: Sizes
   ): Result<Image> {
     const failures: SimpleFailure[] = [];
 
+    const uidResult = ImageUID.generate(uidV4)
     const titleResult = ImageTitle.create(titleContents);
     const descriptionResult = ImageDescription.create(descriptionContents);
     const sizesResult = ImageSizes.create(imageSizes);
 
+    if (uidResult.invalid) failures.push(...uidResult.failures);
     if (titleResult.invalid) failures.push(...titleResult.failures);
     if (descriptionResult.invalid) failures.push(...descriptionResult.failures);
     if (sizesResult.invalid) failures.push(...sizesResult.failures);
@@ -52,7 +56,7 @@ export class Image {
 
     return success(
       new Image(
-        ImageUID.create(),
+        uidResult.value,
         titleResult.value,
         descriptionResult.value,
         sizesResult.value
