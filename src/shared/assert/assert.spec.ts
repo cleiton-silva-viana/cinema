@@ -15,9 +15,9 @@ describe("Assert", () => {
     it("should not add errors if all validations pass", () => {
       // Arrange
       const validations = [
-        not.null("some value", 'PASS_NULL'),
-        not.empty([1, 2], 'PASS_EMPTY'),
-        is.greaterOrEqualTo(10, 5, "PASS_GE")
+        not.null("some value", "PASS_NULL"),
+        not.empty([1, 2], "PASS_EMPTY"),
+        is.greaterOrEqualTo(10, 5, "PASS_GE"),
       ];
 
       // Act
@@ -35,20 +35,25 @@ describe("Assert", () => {
       const extraDetails = { field: "age" };
 
       // Validação que falha: is.greaterOrEqualTo(10, 18, ...) -> valid: false
-      const failingValidation = is.greaterOrEqualTo(userAge, minAge, errorCode, extraDetails);
+      const failingValidation = is.greaterOrEqualTo(
+        userAge,
+        minAge,
+        errorCode,
+        extraDetails,
+      );
 
       const expectedError = {
         ...baseContext,
         code: errorCode,
         ...extraDetails,
         value: JSON.stringify(userAge), // Auto-adicionado por is.greaterOrEqualTo
-        min: minAge                     // Auto-adicionado por is.greaterOrEqualTo
+        min: minAge, // Auto-adicionado por is.greaterOrEqualTo
       };
 
       const validations = [
-        not.null("ok", 'PASS_1'),
+        not.null("ok", "PASS_1"),
         failingValidation,
-        not.empty("ok", 'PASS_2'),
+        not.empty("ok", "PASS_2"),
       ];
 
       // Act
@@ -67,7 +72,7 @@ describe("Assert", () => {
       const expectedError1 = {
         ...baseContext,
         code: failCode1,
-        ...failDetails1 // not.null retorna os detalhes passados
+        ...failDetails1, // not.null retorna os detalhes passados
       };
 
       // Falha 2: is.greaterOrEqualTo(3, 5, ...) -> valid: false
@@ -78,7 +83,7 @@ describe("Assert", () => {
         ...baseContext,
         code: failCode2,
         value: JSON.stringify(value2), // Auto-adicionado
-        min: min2                      // Auto-adicionado
+        min: min2, // Auto-adicionado
       };
 
       // Falha 3: not.empty("", ...) -> valid: false
@@ -87,14 +92,14 @@ describe("Assert", () => {
       const expectedError3 = {
         ...baseContext,
         code: failCode3,
-        ...failDetails3
+        ...failDetails3,
       };
 
       const validations = [
         not.null(null, failCode1, failDetails1),
         is.greaterOrEqualTo(value2, min2, failCode2),
         not.empty("", failCode3, failDetails3),
-        is.greaterOrEqualTo(10, 1, 'PASS')
+        is.greaterOrEqualTo(10, 1, "PASS"),
       ];
 
       // Act
@@ -119,7 +124,7 @@ describe("Assert", () => {
         min,
         errorCode,
         extraDetails,
-        Flow.stop
+        Flow.stop,
       );
 
       const expectedError = {
@@ -127,13 +132,13 @@ describe("Assert", () => {
         code: errorCode,
         ...extraDetails,
         value: JSON.stringify(value), // Auto-adicionado
-        min: min                      // Auto-adicionado
+        min: min, // Auto-adicionado
       };
 
       const validations = [
-        not.null("ok", 'PASS_1'),
+        not.null("ok", "PASS_1"),
         failingValidationWithStop,
-        not.empty("ok", 'NEVER_RUN'),
+        not.empty("ok", "NEVER_RUN"),
       ];
 
       // Act
@@ -146,27 +151,27 @@ describe("Assert", () => {
 
     it("should stop execution immediately if the first validation fails with flow stop", () => {
       // Arrange
-      const value = null;
-      const errorCode = 'ERR_NULL_STOP';
-      const extraDetails = { field: 'importantField' };
+      const value: any = null;
+      const errorCode = "ERR_NULL_STOP";
+      const extraDetails = { field: "importantField" };
 
       const firstFailingValidationWithStop = not.null(
         value,
         errorCode,
         extraDetails,
-        Flow.stop
+        Flow.stop,
       );
 
       const expectedError = {
         ...baseContext,
         code: errorCode,
-        ...extraDetails
+        ...extraDetails,
       };
 
       const validations = [
         firstFailingValidationWithStop,
-        is.greaterOrEqualTo(10, 5, 'NEVER_RUN'),
-        not.empty("ok", 'NEVER_RUN_2')
+        is.greaterOrEqualTo(10, 5, "NEVER_RUN"),
+        not.empty("ok", "NEVER_RUN_2"),
       ];
 
       // Act
@@ -189,13 +194,13 @@ describe("Assert", () => {
         min,
         code,
         extraDetails,
-        Flow.stop
+        Flow.stop,
       );
 
       const validations = [
-        not.empty("ok", 'PASS_1'),
+        not.empty("ok", "PASS_1"),
         passingValidationWithStop,
-        not.null(null, 'NEVER_RUN'), // Não será executada
+        not.null(null, "NEVER_RUN"), // Não será executada
       ];
 
       // Act
@@ -203,7 +208,7 @@ describe("Assert", () => {
 
       // Assert
       expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe(code)
+      expect(errors[0].code).toBe(code);
       expect(errors[0].value).toEqual(JSON.stringify(value));
     });
 
@@ -226,11 +231,11 @@ describe("Assert", () => {
       };
 
       const failCode2 = "E2";
-      const failDetails2 = { fieldName: 'items' }
+      const failDetails2 = { fieldName: "items" };
       const expectedError2 = {
         ...specificContext,
         code: failCode2,
-        ...failDetails2
+        ...failDetails2,
       };
 
       const validations = [
@@ -245,6 +250,135 @@ describe("Assert", () => {
       expect(errors).toHaveLength(2);
       expect(errors[0]).toEqual(expectedError1);
       expect(errors[1]).toEqual(expectedError2);
+    });
+  });
+
+  describe("untilFirstFailure", () => {
+    const code = "ERROR_CODE";
+    const details = { message: "Error 1" };
+    const codeNeverReached = "ERROR_NEVER_REACHED";
+    const detailsNotBeReached = { message: "Should not be reached" };
+
+    it("deve parar na primeira validação que falha com contexto explícito", () => {
+      // Arrange
+      const failures: any[] = [];
+      const context = { contextInfo: "test context" };
+
+      // Act
+      Assert.untilFirstFailure(
+        failures,
+        context,
+        () => ({ valid: false, code, details }),
+        () => ({
+          valid: false,
+          code: codeNeverReached,
+          details: detailsNotBeReached,
+        }),
+      );
+
+      // Assert
+      expect(failures).toHaveLength(1);
+      expect(failures[0].code).toBe(code);
+      expect(failures[0].message).toBe(details.message);
+      expect(failures[0].contextInfo).toBe(context.contextInfo);
+    });
+
+    it("deve parar na primeira validação que falha sem contexto explícito", () => {
+      // Arrange
+      const failures: any[] = [];
+
+      // Act
+      Assert.untilFirstFailure(
+        failures,
+        () => ({ valid: false, code, details }),
+        () => ({
+          valid: false,
+          code: codeNeverReached,
+          details: detailsNotBeReached,
+        }),
+      );
+
+      // Assert
+      expect(failures).toHaveLength(1);
+      expect(failures[0].code).toBe(code);
+      expect(failures[0].message).toBe(details.message);
+    });
+
+    it("deve continuar executando enquanto as validações passarem", () => {
+      // Arrange
+      const failures: any[] = [];
+
+      // Act
+      Assert.untilFirstFailure(
+        failures,
+        () => ({ valid: true }),
+        () => ({ valid: true }),
+        () => ({
+          valid: false,
+          code: "ERROR_3",
+          details: { message: "Error 3" },
+        }),
+      );
+
+      // Assert
+      expect(failures).toHaveLength(1);
+      expect(failures[0].code).toBe("ERROR_3");
+      expect(failures[0].message).toBe("Error 3");
+    });
+
+    it("não deve adicionar nada ao array de falhas se todas as validações passarem", () => {
+      // Arrange
+      const failures: any[] = [];
+
+      // Act
+      Assert.untilFirstFailure(
+        failures,
+        () => ({ valid: true }),
+        () => ({ valid: true }),
+        () => ({ valid: true }),
+      );
+
+      // Assert
+      expect(failures).toHaveLength(0);
+    });
+
+    it("deve ignorar o Flow.stop e sempre parar na primeira falha", () => {
+      // Arrange
+      const failures: any[] = [];
+
+      // Act
+      Assert.untilFirstFailure(
+        failures,
+        () => ({ valid: false, code, details, flow: Flow.continue }),
+        () => ({ valid: false, code: codeNeverReached, details: detailsNotBeReached }),
+      );
+
+      // Assert
+      expect(failures).toHaveLength(1);
+      expect(failures[0].code).toBe(code);
+      expect(failures[0].message).toBe(details.message);
+    });
+
+    it("deve funcionar com validadores reais como is e not", () => {
+      // Arrange
+      const failures: any[] = [];
+      const value: any = null;
+      const minValue = 10;
+
+      // Act
+      Assert.untilFirstFailure(
+        failures,
+        not.null(value, "NULL_VALUE", { field: "testField" }),
+        is.greaterOrEqualTo(value, minValue, "MIN_VALUE", {
+          field: "testField",
+          minValue,
+        }),
+      );
+
+      // Assert
+      expect(failures).toHaveLength(1);
+      expect(failures[0].code).toBe("NULL_VALUE");
+      expect(failures[0].field).toBe("testField");
     });
   });
 });

@@ -13,12 +13,12 @@ export enum Flow {
 export class Assert {
   /**
    * Executa uma série de validações em sequência
-   * @param errors Array para armazenar os erros encontrados
+   * @param failures Array para armazenar os erros encontrados
    * @param context Informações adicionais a serem incluídas em todos os erros
    * @param validations Funções de validação a serem executadas
    */
   public static all(
-    errors: Array<any>,
+    failures: Array<any>,
     context: Record<string, any>,
     ...validations: Function[]
   ): void {
@@ -27,7 +27,7 @@ export class Assert {
       const result = validationFn();
 
       if (!result.valid) {
-        errors.push({
+        failures.push({
           ...context,
           code: result.code,
           ...result.details
@@ -36,6 +36,37 @@ export class Assert {
         if (result.flow === Flow.stop) {
           break;
         }
+      }
+    }
+  }
+
+  /**
+   * Executa uma série de validações em sequência, parando na primeira falha encontrada
+   * @param failures Array para armazenar os erros encontrados
+   * @param contextOrValidation Contexto adicional ou primeira validação (se for uma função)
+   * @param validations Funções de validação a serem executadas
+   */
+  public static untilFirstFailure(
+    failures: Array<any>,
+    contextOrValidation: Record<string, any> | Function,
+    ...validations: Function[]
+  ): void {
+    const isContextObject = typeof contextOrValidation !== 'function';
+    
+    const context = isContextObject ? contextOrValidation : {};
+    const allValidations = isContextObject ? validations : [contextOrValidation, ...validations];
+    
+    for (const validationFn of allValidations) {
+      const result = validationFn();
+
+      if (!result.valid) {
+        failures.push({
+          ...context,
+          code: result.code,
+          ...result.details
+        });
+        
+        break;
       }
     }
   }
