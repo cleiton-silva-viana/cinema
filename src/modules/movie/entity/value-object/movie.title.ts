@@ -1,4 +1,4 @@
-import { MultilingualContent, SupportedLanguage } from "../../../../shared/value-object/multilingual-content";
+import { MultilingualContent } from "../../../../shared/value-object/multilingual-content";
 
 export class MovieTitle extends MultilingualContent {
 
