@@ -232,7 +232,7 @@ export abstract class MultilingualContent {
         this.MIN_LENGTH,
         this.MAX_LENGTH,
         codes.contentLengthOutOfRange,
-        {},
+        { actual: content.text.length },
         Flow.stop,
       ),
       is.match(
