@@ -5,54 +5,119 @@ import { TechnicalError } from "../../../../shared/error/technical.error";
 import { MovieUID } from "./movie.uid";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 
+/**
+ * Códigos de erro relacionados aos contribuidores de filmes.
+ */
 export const contributorCodes = {
-  INVALID_PERSON_MOVIE_ROLE: 'INVALID_PERSON_MOVIE_ROLE'
+  INVALID_PERSON_MOVIE_ROLE: "INVALID_PERSON_MOVIE_ROLE",
+  INVALID_PARAMS: 'INVALID_PARAMS'
+};
+
+/**
+ * Enum que define os possíveis papéis que uma pessoa pode ter em um filme.
+ */
+export enum PersonRole {
+  ACTOR = "actor",         // Ator
+  DIRECTOR = "director",   // Diretor
+  WRITER = "writer",       // Roteirista
+  PRODUCER = "producer",   // Produtor
+  ACTRESS = "actress",     // Atriz
+  CINEMATOGRAPHER = "cinematographer", // Diretor de fotografia
 }
 
-export enum PersonRole {
-  ACTOR = 'actor',
-  DIRECTOR = 'director',
-  WRITER = 'writer',
-  PRODUCER = 'producer',
-  ACTRESS = 'actress',
-  CINEMATOGRAPHER = 'cinematographer',
+/**
+ * Interface que define os dados necessários para criar um MovieContributor.
+ * Esta interface contém todas as propriedades obrigatórias para instanciar
+ * um value object do tipo MovieContributor através do método create().
+ * 
+ * @property personUid - Identificador único da pessoa (deve ser um UUID válido)
+ * @property movieUid - Identificador único do filme (deve ser um UUID válido)
+ * @property role - Papel da pessoa no filme (deve ser um dos valores definidos em PersonRole)
+ */
+export interface MovieContributorInput {
+  personUid: string;
+  movieUid: string;
+  role: string;
 }
 
 /**
  * Representa o vínculo de uma pessoa a um filme, com um papel específico.
- * Uma pessoa pode ter múltiplos PersonMovieRole para o mesmo filme (ex: ator e diretor).
+ * Uma pessoa pode ter múltiplos vínculos para o mesmo filme (ex: ator e diretor).
  */
 export class MovieContributor {
-  // TODO: Validar duplicidade (não permitir dois vínculos idênticos para a mesma pessoa, filme e papel).
   private constructor(
     public readonly personUid: PersonUID,
     public readonly movieUid: MovieUID,
-    public readonly role: PersonRole
+    public readonly role: PersonRole,
   ) {}
 
-  public static create(personUid: string, movieUid: string, role: string): Result<MovieContributor> {
-    const failures: SimpleFailure[] = []
+  /**
+   * Cria uma nova instância de MovieContributor com validação completa.
+   * 
+   * @param input - Objeto contendo os dados necessários para criar um contribuidor
+   * @returns Result<MovieContributor> - Objeto Result contendo a instância ou falhas
+   */
+  public static create(input: MovieContributorInput): Result<MovieContributor> {
+    const failures: SimpleFailure[] = [];
 
-    const personUidResult = PersonUID.parse(personUid);
+    const personUidResult = PersonUID.parse(input.personUid);
     if (personUidResult.invalid) failures.push(...personUidResult.failures);
 
-    const movieUidResult = MovieUID.parse(movieUid);
-    if(movieUidResult.invalid) failures.push(...movieUidResult.failures);
+    const movieUidResult = MovieUID.parse(input.movieUid);
+    if (movieUidResult.invalid) failures.push(...movieUidResult.failures);
 
-
-    if (!Object.values(PersonRole).includes(role as PersonRole))
+    if (!Object.values(PersonRole).includes(input.role as PersonRole))
       failures.push({
         code: contributorCodes.INVALID_PERSON_MOVIE_ROLE,
       });
 
     return failures.length > 0
-      ? failure({ code: contributorCodes.INVALID_PERSON_MOVIE_ROLE, details: { personUid, movieUid, role } })
-      : success(new MovieContributor(personUidResult.value, movieUidResult.value, role as PersonRole));
+      ? failure({
+          code: contributorCodes.INVALID_PERSON_MOVIE_ROLE,
+          details: {
+            personUID: input.personUid,
+            movieUID: input.movieUid,
+            role: input.role
+          },
+        })
+      : success(
+          new MovieContributor(
+            personUidResult.value,
+            movieUidResult.value,
+            input.role as PersonRole,
+          ),
+        );
   }
 
-  public static hydrate(personUID: string, movieUID: string, role: string) {
-    TechnicalError.if(!personUID || !movieUID || !role, 'INVALID_PARAMS', { personUID, movieUID, role })
+  /**
+   * Cria uma instância de MovieContributor a partir de dados brutos.
+   * Este método realiza uma validação básica dos dados de entrada e lança erro se estiverem inválidos.
+   * 
+   * @param input - Objeto contendo os dados do contribuidor (personUid, movieUid e role)
+   * @returns MovieContributor - Uma nova instância de MovieContributor
+   * @throws TechnicalError se algum dos campos obrigatórios estiver ausente ou inválido
+   */
+  public static hydrate(input: MovieContributorInput) {
+    TechnicalError.if(isNull(input), contributorCodes.INVALID_PARAMS, { 
+      message: "Movie contributor input object is required" 
+    });
     
-    return new MovieContributor(PersonUID.hydrate(personUID), MovieUID.hydrate(movieUID), role as PersonRole);
+    TechnicalError.if(isNull(input.personUid), contributorCodes.INVALID_PARAMS, { 
+      message: "Person UID is required" 
+    });
+
+    TechnicalError.if(isNull(input.movieUid), contributorCodes.INVALID_PARAMS, { 
+      message: "Movie UID is required" 
+    });
+
+    TechnicalError.if(isNull(input.role), contributorCodes.INVALID_PARAMS, { 
+      message: "Role is required" 
+    });
+
+    return new MovieContributor(
+      PersonUID.hydrate(input.personUid),
+      MovieUID.hydrate(input.movieUid),
+      input.role as PersonRole,
+    );
   }
 }
