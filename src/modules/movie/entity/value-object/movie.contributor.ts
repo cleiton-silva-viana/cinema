@@ -3,6 +3,7 @@ import { failure, Result, success } from "../../../../shared/result/result";
 import { isNull } from "../../../../shared/validator/validator";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { MovieUID } from "./movie.uid";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 
 export const contributorCodes = {
   INVALID_PERSON_MOVIE_ROLE: 'INVALID_PERSON_MOVIE_ROLE'
@@ -29,10 +30,24 @@ export class MovieContributor {
     public readonly role: PersonRole
   ) {}
 
-  public static create(personUid: PersonUID, movieUid: MovieUID, role: PersonRole): Result<MovieContributor> {
-    return (isNull(personUid) || isNull(movieUid) || isNull(role))
+  public static create(personUid: string, movieUid: string, role: string): Result<MovieContributor> {
+    const failures: SimpleFailure[] = []
+
+    const personUidResult = PersonUID.parse(personUid);
+    if (personUidResult.invalid) failures.push(...personUidResult.failures);
+
+    const movieUidResult = MovieUID.parse(movieUid);
+    if(movieUidResult.invalid) failures.push(...movieUidResult.failures);
+
+
+    if (!Object.values(PersonRole).includes(role as PersonRole))
+      failures.push({
+        code: contributorCodes.INVALID_PERSON_MOVIE_ROLE,
+      });
+
+    return failures.length > 0
       ? failure({ code: contributorCodes.INVALID_PERSON_MOVIE_ROLE, details: { personUid, movieUid, role } })
-      : success(new MovieContributor(personUid, movieUid, role));
+      : success(new MovieContributor(personUidResult.value, movieUidResult.value, role as PersonRole));
   }
 
   public static hydrate(personUID: string, movieUID: string, role: string) {

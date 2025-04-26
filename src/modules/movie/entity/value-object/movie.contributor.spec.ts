@@ -2,10 +2,11 @@ import { faker } from '@faker-js/faker/locale/pt_PT';
 import { MovieContributor, PersonRole } from './movie.contributor';
 import { PersonUID } from '../../../person/value-object/person.uid';
 import { MovieUID } from "./movie.uid";
+import { CustomerUID } from "../../../customer/entity/value-object/customer.uid";
 
 describe('MovieContributor', () => {
-  const personUid = PersonUID.create();
-  const movieUid = MovieUID.create();
+  const personUid = PersonUID.create().value;
+  const movieUid = MovieUID.create().value;
   const role = faker.helpers.arrayElement(Object.values(PersonRole));
 
   describe('Static Methods', () => {
@@ -16,23 +17,18 @@ describe('MovieContributor', () => {
         
         // Assert
         expect(result.invalid).toBe(false);
-        expect(result.value.personUid.value).toBe(personUid.value);
-        expect(result.value.movieUid.value).toBe(movieUid.value);
+        expect(result.value.personUid.value).toBe(personUid);
+        expect(result.value.movieUid.value).toBe(movieUid);
         expect(result.value.role).toBe(role);
       });
 
       it.each([
-        { scenario: 'personUid for nulo', personUid: null, movieUid, role },
-        { scenario: 'movieUid for nulo', personUid, movieUid: null, role },
-        { scenario: 'role for nulo', personUid, movieUid, role: null },
+        { scenario: 'personUid for inválido', personUid: null, movieUid, role },
+        { scenario: 'movieUid for inválido', personUid, movieUid: CustomerUID.create().value, role },
+        { scenario: 'role for inválido', personUid, movieUid, role: undefined },
       ])('deve falhar se $scenario', ({ personUid, movieUid, role }) => {
-        // Arrange
-        const p = typeof personUid === 'function' ? personUid() : personUid;
-        const m = typeof movieUid === 'function' ? movieUid() : movieUid;
-        const r = typeof role === 'function' ? role() : role;
-        
         // Act
-        const result = MovieContributor.create(p, m, r);
+        const result = MovieContributor.create(personUid, movieUid, role);
        
         // Assert
         expect(result.invalid).toBe(true);
@@ -43,11 +39,11 @@ describe('MovieContributor', () => {
     describe('hydrate', () => {
       it('deve hidratar um vínculo corretamente', () => {
         // Act
-        const hydrated = MovieContributor.hydrate(personUid.value, movieUid.value, role);
+        const hydrated = MovieContributor.hydrate(personUid, movieUid, role);
         
         // Assert
-        expect(hydrated.personUid.value).toBe(personUid.value);
-        expect(hydrated.movieUid.value).toBe(movieUid.value);
+        expect(hydrated.personUid.value).toBe(personUid);
+        expect(hydrated.movieUid.value).toBe(movieUid);
         expect(hydrated.role).toBe(role);
       });
 
