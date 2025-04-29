@@ -3,9 +3,10 @@ import { Flow } from "./assert";
 import { v4, v7 } from "uuid";
 import { faker } from "@faker-js/faker";
 
-describe("is", () => { // Nome do describe mais específico
+describe("is", () => {
+  // Nome do describe mais específico
 
-  describe('true', () => {
+  describe("true", () => {
     const code = "ERR_TRUE";
     const valueValid = true;
     const valueInvalid = false;
@@ -53,7 +54,7 @@ describe("is", () => { // Nome do describe mais específico
     });
   });
 
-  describe('false', () => {
+  describe("false", () => {
     const code = "ERR_FALSE";
     const valueValid = false;
     const valueInvalid = true;
@@ -104,7 +105,7 @@ describe("is", () => { // Nome do describe mais específico
       // Arrange
       const expectedDetails = {
         value: JSON.stringify(value),
-        target: JSON.stringify(matchingTarget)
+        target: JSON.stringify(matchingTarget),
       };
       const validation = is.equal(value, matchingTarget, code);
 
@@ -174,7 +175,11 @@ describe("is", () => { // Nome do describe mais específico
 
     it("should return valid=false with details when value is outside range", () => {
       // Arrange
-      const expectedDetailsFail = { value: JSON.stringify(valueOutOfRange), min: min, max: max }; // Detalhes auto-adicionados
+      const expectedDetailsFail = {
+        value: JSON.stringify(valueOutOfRange),
+        min: min,
+        max: max,
+      }; // Detalhes auto-adicionados
       const validation = is.between(valueOutOfRange, min, max, code);
       // Act
       const result = validation();
@@ -187,7 +192,14 @@ describe("is", () => { // Nome do describe mais específico
 
     it("should set flow to stop when specified", () => {
       // Arrange
-      const validation = is.between(valueInRange, min, max, code, {}, Flow.stop);
+      const validation = is.between(
+        valueInRange,
+        min,
+        max,
+        code,
+        {},
+        Flow.stop,
+      );
       // Act
       const result = validation();
       // Assert
@@ -216,7 +228,10 @@ describe("is", () => { // Nome do describe mais específico
 
     it("should return valid=false with details when value > max", () => {
       // Arrange
-      const expectedDetailsFail = { value: JSON.stringify(valueInvalid), max: max };
+      const expectedDetailsFail = {
+        value: JSON.stringify(valueInvalid),
+        max: max,
+      };
       const validation = is.lessOrEqualTo(valueInvalid, max, code);
 
       // Act
@@ -260,7 +275,10 @@ describe("is", () => { // Nome do describe mais específico
 
     it("should return valid=false with details when value < min", () => {
       // Arrange
-      const expectedDetailsFail = { value: JSON.stringify(valueInvalid), min: min };
+      const expectedDetailsFail = {
+        value: JSON.stringify(valueInvalid),
+        min: min,
+      };
       const validation = is.greaterOrEqualTo(valueInvalid, min, code);
 
       // Act
@@ -275,7 +293,13 @@ describe("is", () => { // Nome do describe mais específico
 
     it("should set flow to stop when specified", () => {
       // Arrange
-      const validation = is.greaterOrEqualTo(valueValid, min, code, {}, Flow.stop);
+      const validation = is.greaterOrEqualTo(
+        valueValid,
+        min,
+        code,
+        {},
+        Flow.stop,
+      );
       // Act
       const result = validation();
       // Assert
@@ -467,7 +491,10 @@ describe("is", () => { // Nome do describe mais específico
       // Arrange
       // Usando um valor inválido (anterior) como caso representativo de falha
       const validation = is.dateAfter(valueInvalid, limitDate, code);
-      const expectedDetailsFail = { value: valueInvalid.toISOString(), limitDate: limitDate.toISOString() };
+      const expectedDetailsFail = {
+        value: valueInvalid.toISOString(),
+        limitDate: limitDate.toISOString(),
+      };
 
       // Act
       const result = validation();
@@ -481,7 +508,13 @@ describe("is", () => { // Nome do describe mais específico
 
     it("should set flow to stop when specified", () => {
       // Arrange
-      const validation = is.dateAfter(valueValid, limitDate, code, {}, Flow.stop);
+      const validation = is.dateAfter(
+        valueValid,
+        limitDate,
+        code,
+        {},
+        Flow.stop,
+      );
       // Act
       const result = validation();
       // Assert
@@ -489,7 +522,7 @@ describe("is", () => { // Nome do describe mais específico
     });
   });
 
-  describe('dateBefore', () => {
+  describe("dateBefore", () => {
     const limitDate = new Date("2023-12-31T23:59:59.999Z");
     const valueValid = new Date("2023-01-01T00:00:00.000Z"); // Before limit
     const valueInvalid = new Date("2024-01-01T00:00:00.000Z"); // After limit
@@ -513,7 +546,7 @@ describe("is", () => { // Nome do describe mais específico
       const validation = is.dateBefore(valueInvalid, limitDate, code);
       const expectedDetails = {
         value: valueInvalid.toISOString(),
-        limitDate: limitDate.toISOString()
+        limitDate: limitDate.toISOString(),
       };
 
       // Act
@@ -528,7 +561,13 @@ describe("is", () => { // Nome do describe mais específico
 
     it("should set flow to stop when specified", () => {
       // Arrange
-      const validation = is.dateBefore(valueValid, limitDate, code, {}, Flow.stop);
+      const validation = is.dateBefore(
+        valueValid,
+        limitDate,
+        code,
+        {},
+        Flow.stop,
+      );
 
       // Act
       const result = validation();
@@ -616,11 +655,11 @@ describe("is", () => { // Nome do describe mais específico
       const expectedDetails = {
         valueType: "number",
         expectedType: "string",
-        value: JSON.stringify(valueInvalid)
+        value: JSON.stringify(valueInvalid),
       };
 
       // Act
-      const result =  is.string(valueInvalid, code)();
+      const result = is.string(valueInvalid, code)();
 
       // Assert
       expect(result.valid).toBe(false);
@@ -636,7 +675,7 @@ describe("is", () => { // Nome do describe mais específico
         valueType: "string",
         expectedType: "string",
         value: JSON.stringify(valueValid),
-        ...extraDetails
+        ...extraDetails,
       };
 
       // Act
@@ -655,15 +694,74 @@ describe("is", () => { // Nome do describe mais específico
     });
   });
 
+  describe("number", () => {
+    const code = "ERR_NUMBER";
+    const valueValid = 123;
+    const valueInvalid = "não é um número";
+
+    it("should return valid=true when value is a number", () => {
+      // Act
+      const result = is.number(valueValid, code)();
+
+      // Assert
+      expect(result.valid).toBe(true);
+      expect(result.code).toBe(code);
+      expect(result.flow).toBe(Flow.continue);
+    });
+
+    it("should return valid=false with details when value is not a number", () => {
+      // Arrange
+      const expectedDetails = {
+        valueType: "string",
+        expectedType: "number",
+        value: JSON.stringify(valueInvalid),
+      };
+
+      // Act
+      const result = is.number(valueInvalid, code)();
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.code).toBe(code);
+      expect(result.details).toEqual(expectedDetails);
+      expect(result.flow).toBe(Flow.continue);
+    });
+
+    it("should merge custom details", () => {
+      // Arrange
+      const extraDetails = { custom: "info" };
+      const expectedDetails = {
+        valueType: "number",
+        expectedType: "number",
+        value: JSON.stringify(valueValid),
+        ...extraDetails,
+      };
+
+      // Act
+      const result = is.number(valueValid, code, extraDetails)();
+
+      // Assert
+      expect(result.details).toEqual(expectedDetails);
+    });
+
+    it("should set flow to stop when specified", () => {
+      // Act
+      const result = is.number(valueValid, code, {}, Flow.stop)();
+
+      // Assert
+      expect(result.flow).toBe(Flow.stop);
+    });
+  });
+
   describe("contains", () => {
     const code = "ERR_CONTAINS";
 
     describe("when value is a string", () => {
-      const mainString = 'hello World'
+      const mainString = "hello World";
 
       it("should return valid=true when substring is present", () => {
         // Arrange
-        const word = 'World'
+        const word = "World";
 
         // Act
         const result = is.contains(mainString, word, code)();
@@ -677,10 +775,10 @@ describe("is", () => { // Nome do describe mais específico
 
       it("should return valid=false when substring is not present", () => {
         // Arrange
-        const word = 'foo'
+        const word = "foo";
 
         // Act
-        const result =  is.contains(mainString, word, code)();
+        const result = is.contains(mainString, word, code)();
 
         // Assert
         expect(result.valid).toBe(false);
@@ -691,7 +789,7 @@ describe("is", () => { // Nome do describe mais específico
 
       it("should return valid=false when target is not a string", () => {
         // Arrange
-        const number = 1
+        const number = 1;
 
         // Act
         const result = is.contains(mainString, number, code)();
@@ -704,11 +802,11 @@ describe("is", () => { // Nome do describe mais específico
     });
 
     describe("when value is an array", () => {
-      const arr = [1, 2, 3]
+      const arr = [1, 2, 3];
 
       it("should return valid=true when element is present", () => {
         // Arrange
-        const item = 2
+        const item = 2;
 
         // Act
         const result = is.contains(arr, item, code)();
@@ -721,7 +819,7 @@ describe("is", () => { // Nome do describe mais específico
 
       it("should return valid=false when element is not present", () => {
         // Arrange
-        const item = 4
+        const item = 4;
 
         // Act
         const result = is.contains(arr, item, code)();
@@ -734,11 +832,11 @@ describe("is", () => { // Nome do describe mais específico
     });
 
     describe("when value is an object", () => {
-      const obj = { a: 1, b: 2 }
+      const obj = { a: 1, b: 2 };
 
       it("should return valid=true when value is present among object values", () => {
         // Arrange
-        const item = 2
+        const item = 2;
 
         // Act
         const result = is.contains(obj, item, code)();
@@ -751,7 +849,7 @@ describe("is", () => { // Nome do describe mais específico
 
       it("should return valid=false when value is not present among object values", () => {
         // Arrange
-        const item = 3
+        const item = 3;
 
         // Act
         const result = is.contains(obj, item, code)();
@@ -764,8 +862,8 @@ describe("is", () => { // Nome do describe mais específico
     });
 
     describe("custom details and flow", () => {
-      const arr = [1, 2, 3]
-      const item = 2
+      const arr = [1, 2, 3];
+      const item = 2;
 
       it("should merge custom details", () => {
         // Arrange
@@ -806,16 +904,16 @@ describe("is", () => { // Nome do describe mais específico
 
   describe("url", () => {
     const code = "ERR_URL";
-    const valueValid = faker.internet.url()
+    const valueValid = faker.internet.url();
     const valueInvalid = "not-a-url";
 
     it("should return valid=true for a valid URL", () => {
       // Arrange
       const validation = is.url(valueValid, code);
-      
+
       // Act
       const result = validation();
-      
+
       // Assert
       expect(result.valid).toBe(true);
       expect(result.code).toBe(code);
@@ -826,10 +924,10 @@ describe("is", () => { // Nome do describe mais específico
     it("should return valid=false with details for an invalid URL", () => {
       // Arrange
       const validation = is.url(valueInvalid, code);
-      
+
       // Act
       const result = validation();
-      
+
       // Assert
       expect(result.valid).toBe(false);
       expect(result.code).toBe(code);
@@ -841,10 +939,10 @@ describe("is", () => { // Nome do describe mais específico
       // Arrange
       const extraDetails = { custom: "info" };
       const validation = is.url(valueValid, code, extraDetails);
-      
+
       // Act
       const result = validation();
-      
+
       // Assert
       expect(result.details).toEqual(extraDetails);
       expect(result.valid).toBe(true);
@@ -853,15 +951,14 @@ describe("is", () => { // Nome do describe mais específico
     it("should set flow to stop when specified", () => {
       // Arrange
       const validation = is.url(valueValid, code, {}, Flow.stop);
-      
+
       // Act
       const result = validation();
-      
+
       // Assert
       expect(result.flow).toBe(Flow.stop);
       expect(result.valid).toBe(true);
       expect(result.code).toBe(code);
     });
   });
-  
 });

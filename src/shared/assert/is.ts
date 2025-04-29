@@ -9,39 +9,38 @@ import {
   isMatch,
   isUIDv4,
   isUIDv7,
-  lessThanOrEqualTo
+  lessThanOrEqualTo,
 } from "../validator/validator";
 import { Flow } from "./assert";
 
 export const is = {
-
   // TODO: criar testes
   true: (
     value: boolean,
     code: string,
     details: Record<string, any> = {},
-    flow: Flow = Flow.continue
+    flow: Flow = Flow.continue,
   ): Function => {
     return () => ({
       valid: value,
       code,
       flow,
-      details
-    })
+      details,
+    });
   },
 
   false: (
     value: boolean,
     code: string,
     details: Record<string, any> = {},
-    flow: Flow = Flow.continue
+    flow: Flow = Flow.continue,
   ): Function => {
     return () => ({
       valid: !value,
       code,
       flow,
-      details
-    })
+      details,
+    });
   },
 
   equal: (
@@ -58,7 +57,7 @@ export const is = {
       details: {
         ...details,
         value: JSON.stringify(value),
-        target: JSON.stringify(target)
+        target: JSON.stringify(target),
       },
     });
   },
@@ -177,7 +176,11 @@ export const is = {
       valid: isDateAfterLimit(value, limitDate),
       code,
       flow,
-      details: { ...details, value: value.toISOString(), limitDate: limitDate?.toISOString() },
+      details: {
+        ...details,
+        value: value.toISOString(),
+        limitDate: limitDate?.toISOString(),
+      },
     });
   },
 
@@ -192,37 +195,70 @@ export const is = {
       valid: isDateBeforeLimit(value, limitDate),
       code,
       flow,
-      details: { ...details, value: value.toISOString(), limitDate: limitDate?.toISOString() },
+      details: {
+        ...details,
+        value: value.toISOString(),
+        limitDate: limitDate?.toISOString(),
+      },
     });
   },
 
   array: (
-      value: any,
-      code: string,
-      details: Record<string, any> = {},
-      flow: Flow = Flow.continue
-    ): Function => {
-      return () => ({
-        valid: Array.isArray(value),
-        code,
-        flow,
-        details: { ...details, expectedType: 'array', providedValue: JSON.stringify(value) }
-      });
-    },
+    value: any,
+    code: string,
+    details: Record<string, any> = {},
+    flow: Flow = Flow.continue,
+  ): Function => {
+    return () => ({
+      valid: Array.isArray(value),
+      code,
+      flow,
+      details: {
+        ...details,
+        expectedType: "array",
+        providedValue: JSON.stringify(value),
+      },
+    });
+  },
 
   string: (
     value: any,
     code: string,
     details: Record<string, any> = {},
-    flow: Flow = Flow.continue
+    flow: Flow = Flow.continue,
   ): Function => {
-    const valueType = typeof value
+    const valueType = typeof value;
     return () => ({
-      valid: valueType === 'string',
+      valid: valueType === "string",
       code,
       flow,
-      details: { ...details, valueType, expectedType: 'string', value: JSON.stringify(value) },
-    })
+      details: {
+        ...details,
+        valueType,
+        expectedType: "string",
+        value: JSON.stringify(value),
+      },
+    });
+  },
+
+  number: (
+    value: any,
+    code: string,
+    details: Record<string, any> = {},
+    flow: Flow = Flow.continue,
+  ): Function => {
+    const valueType = typeof value;
+    return () => ({
+      valid: valueType === "number",
+      code,
+      flow,
+      details: {
+        ...details,
+        valueType,
+        expectedType: "number",
+        value: JSON.stringify(value),
+      },
+    });
   },
 
   contains: (
@@ -230,21 +266,25 @@ export const is = {
     target: any,
     code: string,
     details: Record<string, any> = {},
-    flow: Flow = Flow.continue
+    flow: Flow = Flow.continue,
   ): Function => {
     return () => ({
       valid: contains(value, target),
       code,
       flow,
-      details: { ...details, providedValue: JSON.stringify(value), expectedValue: target }
-    })
+      details: {
+        ...details,
+        providedValue: JSON.stringify(value),
+        expectedValue: target,
+      },
+    });
   },
 
   url: (
     value: string,
     code: string,
     details: Record<string, any> = {},
-    flow: Flow = Flow.continue
+    flow: Flow = Flow.continue,
   ): Function => {
     try {
       new URL(value);
@@ -252,15 +292,15 @@ export const is = {
         valid: true,
         code,
         flow,
-        details
+        details,
       });
     } catch (error) {
       return () => ({
         valid: false,
         code,
         flow,
-        details
+        details,
       });
     }
-  }
+  },
 };
