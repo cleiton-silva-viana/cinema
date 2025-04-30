@@ -322,23 +322,11 @@ export class Movie {
   }
 
   /**
-   * Arquiva um filme quando ele atende a um dos seguintes critérios:
-   * - Está fora do período de exibição
-   * - Não tem período de exibição definido
-   * - Não tem exibições agendadas
+   * Transforma o filme para o estado arquivado.
    *
    * @returns Result<Movie> Um Result contendo a nova instância com status ARCHIVED ou falha
    */
   public toArchive(): Result<Movie> {
-    if (this.displayPeriod && this.displayPeriod.isActive()) {
-      return failure({
-        // Não é possível arquivar um filme que está em período de exibição ativo
-        code: MovieCodes.MOVIE_CANNOT_BE_ARCHIVED,
-        details: {
-          currentStatus: this.status,
-        },
-      });
-    }
     return success(this.withStatus(MovieAdministrativeStatus.ARCHIVED));
   }
 
