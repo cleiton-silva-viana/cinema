@@ -1,19 +1,6 @@
 import { Movie } from "../entity/movie";
 import { MovieUID } from "../entity/value-object/movie.uid";
-import { AgeRating } from "../entity/value-object/age.rating";
-import { MovieGenre } from "../entity/value-object/movie.genre";
-
-/**
- * Interface que define os critérios de filtragem para busca de filmes.
- */
-export interface IMovieFilter {
-  dateRange?: {
-    startDate: Date;
-    endDate: Date;
-  };
-  ageRating?: AgeRating;
-  genres?: MovieGenre;
-}
+import { MovieFilter } from "../entity/value-object/movie.filter";
 
 /**
  * Interface para o repositório de filmes.
@@ -37,7 +24,7 @@ export interface IMovieRepository {
    * @param filter - (Opcional) Objeto com critérios para filtrar a busca.
    * @returns {Promise<Movie[]>} Uma Promise que resolve com um array de filmes que atendem aos critérios.
    */
-  find(filter?: IMovieFilter): Promise<Movie[]>;
+  find(filter: MovieFilter): Promise<Movie[]>;
 
   /**
    * Persiste um filme, criando ou atualizando conforme necessário.
