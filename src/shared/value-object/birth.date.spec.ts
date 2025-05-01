@@ -1,7 +1,8 @@
-import { BirthDate } from './birth.date';
+import { BirthDate } from "./birth.date";
 import { TechnicalError } from "../error/technical.error";
+import { FailureCode } from "../failure/failure.codes.enum";
 
-describe('BirthDate', () => {
+describe("BirthDate", () => {
   const originalDateNow = Date.now;
 
   beforeAll(() => {
@@ -12,21 +13,21 @@ describe('BirthDate', () => {
     global.Date.now = originalDateNow;
   });
 
-  describe('create', () => {
-    describe('should create a valid', () => {
+  describe("create", () => {
+    describe("should create a valid", () => {
       const successCases = [
-        { 
-          date: new Date(1990, 0, 1), 
-          scenario: 'with date from 1990' 
+        {
+          date: new Date(1990, 0, 1),
+          scenario: "with date from 1990",
         },
-        { 
-          date: new Date(1980, 5, 15), 
-          scenario: 'with date from 1980' 
+        {
+          date: new Date(1980, 5, 15),
+          scenario: "with date from 1980",
         },
-        { 
-          date: new Date(2000, 11, 31), 
-          scenario: 'with date from 2000' 
-        }
+        {
+          date: new Date(2000, 11, 31),
+          scenario: "with date from 2000",
+        },
       ];
 
       successCases.forEach(({ date, scenario }) => {
@@ -35,38 +36,38 @@ describe('BirthDate', () => {
           const result = BirthDate.create(date);
 
           // Assert
-          expect(result.invalid).toBe(false)
+          expect(result.invalid).toBe(false);
           expect(result.value.value.getTime()).toBe(date.getTime());
         });
       });
     });
 
-    describe('should fail to create an invalid', () => {
+    describe("should fail to create an invalid", () => {
       const minAge = 18;
       const minBirthDate = new Date();
       minBirthDate.setFullYear(minBirthDate.getFullYear() - minAge);
-      
+
       const failureCases = [
-        { 
-          date: null, 
-          scenario: 'when birth date is null', 
-          errorCodeExpected: 'FIELD_CANNOT_BE_NULL' 
+        {
+          date: null,
+          scenario: "when birth date is null",
+          errorCodeExpected: FailureCode.NULL_ARGUMENT,
         },
-        { 
-          date: undefined, 
-          scenario: 'when birth date is undefined', 
-          errorCodeExpected: 'FIELD_CANNOT_BE_NULL' 
+        {
+          date: undefined,
+          scenario: "when birth date is undefined",
+          errorCodeExpected: FailureCode.NULL_ARGUMENT,
         },
-        { 
+        {
           date: new Date(1899, 11, 31, 0, 0, 0, 0),
-          scenario: 'when birth date is before 1900', 
-          errorCodeExpected: 'DATE_IS_TOO_OLD' 
+          scenario: "when birth date is before 1900",
+          errorCodeExpected: FailureCode.INVALID_BIRTH_DATE_TOO_OLD,
         },
-        { 
-          date: new Date(), 
-          scenario: 'when person is under 18 years old', 
-          errorCodeExpected: 'DATE_IS_TOO_YOUNG'
-        }
+        {
+          date: new Date(),
+          scenario: "when person is under 18 years old",
+          errorCodeExpected: FailureCode.INVALID_BIRTH_DATE_TOO_YOUNG,
+        },
       ];
 
       failureCases.forEach(({ date, scenario, errorCodeExpected }) => {
@@ -83,8 +84,8 @@ describe('BirthDate', () => {
     });
   });
 
-  describe('hydrate', () => {
-    it('should create a BirthDate object without validation', () => {
+  describe("hydrate", () => {
+    it("should create a BirthDate object without validation", () => {
       // Arrange
       const birthDate = new Date(1990, 0, 1);
 
@@ -96,9 +97,9 @@ describe('BirthDate', () => {
       expect(result.value.toISOString()).toBe(birthDate.toISOString());
     });
 
-    it('should throw an error when birth date is null or undefined', () => {
+    it("should throw an error when birth date is null or undefined", () => {
       // Arrange
-      const values = [null, undefined];
+      const values: Array<Date> = [null, undefined];
 
       // Act & Assert
       values.forEach((value) => {
@@ -107,8 +108,8 @@ describe('BirthDate', () => {
     });
   });
 
-  describe('equal', () => {
-    it('should return true when birth dates are equal', () => {
+  describe("equal", () => {
+    it("should return true when birth dates are equal", () => {
       // Arrange
       const birthDate = new Date(1990, 0, 1);
       const result1 = BirthDate.create(birthDate);
@@ -118,7 +119,7 @@ describe('BirthDate', () => {
       expect(result1.value.equal(result2.value)).toBe(true);
     });
 
-    it('should return false when birth dates are different', () => {
+    it("should return false when birth dates are different", () => {
       // Arrange
       const result1 = BirthDate.create(new Date(1990, 0, 1));
       const result2 = BirthDate.create(new Date(1991, 0, 1));
@@ -127,7 +128,7 @@ describe('BirthDate', () => {
       expect(result1.value.equal(result2.value)).toBe(false);
     });
 
-    it('should return false when comparing with null', () => {
+    it("should return false when comparing with null", () => {
       // Arrange
       const result = BirthDate.create(new Date(1990, 0, 1));
 
@@ -135,13 +136,15 @@ describe('BirthDate', () => {
       expect(result.value.equal(null as unknown as BirthDate)).toBe(false);
     });
 
-    it('should return false when comparing with non-BirthDate object', () => {
+    it("should return false when comparing with non-BirthDate object", () => {
       // Arrange
       const result = BirthDate.create(new Date(1990, 0, 1));
       const notBirthDateObject = { value: new Date(1990, 0, 1) };
 
       // Assert
-      expect(result.value.equal(notBirthDateObject as unknown as BirthDate)).toBe(false);
+      expect(
+        result.value.equal(notBirthDateObject as unknown as BirthDate),
+      ).toBe(false);
     });
   });
 });
