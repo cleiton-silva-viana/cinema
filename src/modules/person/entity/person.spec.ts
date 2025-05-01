@@ -68,16 +68,15 @@ describe("Person", () => {
     describe("updateName", () => {
       it("deve atualizar o nome da pessoa", () => {
         // Arrange
-        const result = Person.create(fullName, birthDate);
-        const person = result.value;
+        const person = Person.create(fullName, birthDate).value;
         const newName = faker.person.fullName();
 
         // Act
-        const failures = person.updateName(newName);
+        const result = person.updateName(newName);
 
         // Assert
-        expect(failures).toHaveLength(0);
-        expect(person.name.value).toBe(newName);
+        expect(result.invalid).toBe(false);
+        expect(result.value.name.value).toBe(newName);
       });
 
       it("deve falhar ao atualizar o nome para inválido", () => {
@@ -86,10 +85,10 @@ describe("Person", () => {
         const invalidName = "";
 
         // Act
-        const failures = person.updateName(invalidName);
+        const result = person.updateName(invalidName);
 
         // Assert
-        expect(failures.length).toBeGreaterThan(0);
+        expect(result.failures.length).toBeGreaterThan(0);
         expect(person.name.value).toBe(fullName);
         expect(person.birthDate.value.toISOString()).toBe(
           birthDate.toISOString(),
@@ -107,11 +106,11 @@ describe("Person", () => {
         });
 
         // Act
-        const failures = person.updateBirthDate(newDate);
+        const result = person.updateBirthDate(newDate);
 
         // Assert
-        expect(failures).toHaveLength(0);
-        expect(person.birthDate.value).toEqual(newDate);
+        expect(result.invalid).toBe(false);
+        expect(result.value.birthDate.value).toEqual(newDate);
       });
 
       it("deve falhar ao atualizar para data de nascimento inválida", () => {
@@ -120,10 +119,10 @@ describe("Person", () => {
         const invalidDate = faker.date.soon({ days: 365 }); // data futura
 
         // Act
-        const failures = person.updateBirthDate(invalidDate);
+        const result = person.updateBirthDate(invalidDate);
 
         // Assert
-        expect(failures.length).toBeGreaterThan(0);
+        expect(result.failures.length).toBeGreaterThan(0);
         expect(person.birthDate.value.toISOString()).toEqual(
           birthDate.toISOString(),
         );

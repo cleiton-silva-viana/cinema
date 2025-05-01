@@ -10,8 +10,8 @@ import { PersonUID } from "../value-object/person.uid";
 export class Person {
   protected constructor(
     public readonly uid: PersonUID,
-    private _name: Name,
-    private _birthDate: BirthDate
+    public readonly name: Name,
+    public readonly birthDate: BirthDate,
   ) {}
 
   /**
@@ -31,7 +31,9 @@ export class Person {
 
     if (failures.length > 0) return failure(failures);
 
-    return success(new Person(PersonUID.create(), nameResult.value, birthDateResult.value));
+    return success(
+      new Person(PersonUID.create(), nameResult.value, birthDateResult.value),
+    );
   }
 
   /**
@@ -42,7 +44,11 @@ export class Person {
    * @returns Person uma instância do tipo Person.
    */
   public static hydrate(uid: string, name: string, birthDate: Date): Person {
-    return new Person(PersonUID.hydrate(uid), Name.hydrate(name), BirthDate.hydrate(birthDate));
+    return new Person(
+      PersonUID.hydrate(uid),
+      Name.hydrate(name),
+      BirthDate.hydrate(birthDate),
+    );
   }
 
   /**
@@ -50,40 +56,27 @@ export class Person {
    * @param name Novo nome para a pessoa.
    * @returns Array de erros se a operação falhar, ou array vazio se for bem-sucedida.
    */
-  public updateName(name: string): SimpleFailure[] {
+  public updateName(name: string): Result<Person> {
     const nameResult = Name.create(name);
-    if (nameResult.invalid) return nameResult.failures;
+    if (nameResult.invalid) return failure(nameResult.failures);
 
-    this._name = nameResult.value;
-    return [];
+    return success(new Person(this.uid, nameResult.value, this.birthDate));
   }
 
   /**
- * Atualiza a data de nascimento da pessoa.
- * @param birthDate Nova data de nascimento.
- * @returns Array de erros se a operação falhar, ou array vazio se for bem-sucedida.
- */
-  public updateBirthDate(birthDate: Date): SimpleFailure[] {
-    if (!birthDate) return [];
+   * Atualiza a data de nascimento da pessoa.
+   * @param birthDate Nova data de nascimento.
+   * @returns Array de erros se a operação falhar, ou array vazio se for bem-sucedida.
+   */
+  public updateBirthDate(birthDate: Date): Result<Person> {
+    if (!birthDate)
+      return failure({
+        code: "NULL_ARGUMENT",
+      });
 
     const birthDateResult = BirthDate.create(birthDate);
-    if (birthDateResult.invalid) return birthDateResult.failures;
+    if (birthDateResult.invalid) return failure(birthDateResult.failures);
 
-    this._birthDate = birthDateResult.value;
-    return [];
-  }
-
-  /**
-   * Obtém o nome da pessoa.
-   */
-  public get name(): Name {
-    return this._name;
-  }
-
-  /**
-   * Obtém a data de nascimento da pessoa.
-   */
-  public get birthDate(): BirthDate {
-    return this._birthDate;
+    return success(new Person(this.uid, this.name, birthDateResult.value));
   }
 }
