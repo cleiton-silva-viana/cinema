@@ -2,13 +2,22 @@ import { SimpleFailure } from "../failure/simple.failure.type";
 import { TechnicalError } from "../error/technical.error";
 
 /**
- * Cria uma instância de `Result` representando um resultado de falha.
- * @template V O tipo do valor esperado (geralmente inferido como `null` se não especificado).
- * @param errors Um array de falhas que ocorreram.
- * @returns Uma instância de `Result<V>` no estado de falha.
+ * Cria uma instância de `Result<T>` representando um resultado bem-sucedido.
+ * @template T O tipo do valor encapsulado no resultado.
+ * @param value O valor a ser encapsulado (ex: dados, objetos, etc.).
+ * @returns Uma instância de `Result<T>` no estado de sucesso, com o valor fornecido e sem falhas.
  */
 export const success = <T, E>(value: T): Result<T> => new Result<T>(value, []);
-export const failure = <T, E>(errors: SimpleFailure | SimpleFailure[]): Result<T> => {
+
+/**
+ * Cria uma instância de `Result<T>` representando um resultado de falha.
+ * @template T O tipo do valor esperado (geralmente `null` em casos de falha).
+ * @param errors Um único erro (`SimpleFailure`) ou um array de erros a serem encapsulados.
+ * @returns Uma instância de `Result<T>` no estado de falha, com valor `null` e as falhas fornecidas.
+ */
+export const failure = <T, E>(
+  errors: SimpleFailure | SimpleFailure[],
+): Result<T> => {
   const errorArray = Array.isArray(errors) ? errors : [errors];
   return new Result<T>(null, errorArray);
 };
@@ -54,12 +63,12 @@ export class Result<V> {
   }
 
   get value(): V {
-    TechnicalError.if(this.invalid, 'INVALID_VALUE_RETRIEVAL');
+    TechnicalError.if(this.invalid, "INVALID_VALUE_RETRIEVAL");
     return this._value!;
   }
 
   get failures(): SimpleFailure[] {
-    TechnicalError.if(!this.invalid, 'INVALID_FAILURE_RETRIEVAL');
+    TechnicalError.if(!this.invalid, "INVALID_FAILURE_RETRIEVAL");
     return [...this._failures];
   }
 }
