@@ -1,4 +1,4 @@
-import { UID } from "../../../shared/value-object/uid";
+import { UID } from "../../../../shared/value-object/uid";
 
 /**
  * Representa o identificador único de uma pessoa no sistema.

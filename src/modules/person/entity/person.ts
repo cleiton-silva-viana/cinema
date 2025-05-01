@@ -2,7 +2,7 @@ import { Result, success, failure } from "../../../shared/result/result";
 import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
 import { BirthDate } from "../../../shared/value-object/birth.date";
 import { Name } from "../../../shared/value-object/name";
-import { PersonUID } from "../value-object/person.uid";
+import { PersonUID } from "./value-object/person.uid";
 
 /**
  * Representa a estrutura base de umz pessoa que contribuiu na produção de um filme no sistema.
