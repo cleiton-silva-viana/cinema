@@ -4,38 +4,71 @@ import { not } from "../assert/not";
 import { is } from "../assert/is";
 import { SimpleFailure } from "../failure/simple.failure.type";
 import { TechnicalError } from "../error/technical.error";
+import { FailureCode } from "../failure/failure.codes.enum";
 
+/**
+ * Representa um nome válido encapsulado com validações de formato e tamanho.
+ * Garante que nomes sigam regras de negócio (ex: mínimo 3 caracteres, apenas letras e espaços).
+ */
 export class Name {
+  private constructor(public readonly value: string) {}
 
-  private constructor(
-    public readonly value: string
-  ) {}
+  private static readonly MIN_NAME_LENGTH = 3;
+  private static readonly MAX_NAME_LENGTH = 50;
 
+  /**
+   * Regex que permite letras (incluindo acentos e caracteres Unicode) e espaços.
+   * Exemplos válidos: "João", "José Silva", "Élise".
+   */
+  private static readonly NAME_FORMAT_REGEX = /^[\p{L}\s]{3,50}$/u;
+
+  /**
+   * Cria uma instância válida de Name com validações de formato e tamanho.
+   * @param name - Nome a ser validado e encapsulado
+   * @returns Result<Name> com falha nos seguintes casos:
+   * - `FailureCode.NULL_ARGUMENT`: Se o nome for nulo
+   * - `FailureCode.EMPTY_FIELD`: Se o nome for vazio
+   * - `FailureCode.INVALID_FIELD_SIZE`: Se o comprimento for menor ou maior que o permitido
+   * - `FailureCode.NAME_WITH_INVALID_FORMAT`: Se conter caracteres não alfabéticos ou especiais
+   */
   public static create(name: string): Result<Name> {
-    const failures: SimpleFailure[] = []
-    const minNameLength = 3;
-    const maxNameLength = 50;
+    const failures: SimpleFailure[] = [];
 
     Assert.all(
       failures,
       { field: "name" },
-      not.null(name, "PROPERTY_CANNOT_BE_NULL", {}, Flow.stop),
-      not.empty(name, "FIELD_CANNOT_BE_EMPTY", {}, Flow.stop),
-      is.between(name, minNameLength, maxNameLength, "FIELD_WITH_INVALID_SIZE", {}, Flow.stop),
-      is.match(name, /^[\p{L}\s]{3,50}$/u, "NAME_WITH_INVALID_FORMAT"),
+      not.null(name, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
+      not.empty(name, FailureCode.EMPTY_FIELD, {}, Flow.stop),
+      is.between(
+        name,
+        Name.MIN_NAME_LENGTH,
+        Name.MAX_NAME_LENGTH,
+        FailureCode.INVALID_FIELD_SIZE,
+        {},
+        Flow.stop,
+      ),
+      is.match(name, Name.NAME_FORMAT_REGEX, FailureCode.INVALID_NAME_FORMAT),
     );
 
-    return (failures.length > 0)
-      ? failure(failures)
-      : success(new Name(name));
+    return failures.length > 0 ? failure(failures) : success(new Name(name));
   }
 
+  /**
+   * Cria uma instância direta de Name sem validações adicionais.
+   * @param name - Nome já validado (recuperado do banco de dados)
+   * @throws TechnicalError se o nome for nulo ou vazio
+   */
   public static hydrate(name: string): Name {
-    TechnicalError.if(!name, 'NULL_ARGUMENT')
-    return new Name(name)
+    TechnicalError.if(!name, FailureCode.NULL_ARGUMENT);
+    return new Name(name);
   }
 
+  /**
+   * Compara este Name com outro com base no valor encapsulado.
+   * @param other - Outro Name a ser comparado
+   * @returns true se os valores forem idênticos, false caso contrário
+   */
   public equal(other: Name): boolean {
-    return (other instanceof Name && other.value === this.value)
+    return other instanceof Name && other.value === this.value;
   }
 }
