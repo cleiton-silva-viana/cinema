@@ -1,6 +1,6 @@
 import { IMovieRepository } from "../repository/movie.repository.interface";
 import { failure, Result, success } from "../../../shared/result/result";
-import { CreateMovieInput, Movie, MovieUpdateInput } from "../entity/movie";
+import { ICreateMovieInput, Movie, IMovieUpdateInput } from "../entity/movie";
 import { Inject, Injectable } from "@nestjs/common";
 import {
   IShowtimeService,
@@ -82,7 +82,7 @@ export class MovieService {
    * @param input - Dados necessários para criar um novo filme
    * @returns Result<Movie> - Um Result contendo o filme criado ou falhas de validação
    */
-  public async create(input: CreateMovieInput): Promise<Result<Movie>> {
+  public async create(input: ICreateMovieInput): Promise<Result<Movie>> {
     if (isNull(input)) {
       return failure({
         // Input is null or undefined.
@@ -108,7 +108,7 @@ export class MovieService {
    */
   public async update(
     movieUID: string,
-    input: MovieUpdateInput,
+    input: IMovieUpdateInput,
   ): Promise<Result<Movie>> {
     // Input for update movie, input is null or undefined.
     if (isNull(input))
