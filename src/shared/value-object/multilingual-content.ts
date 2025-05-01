@@ -4,16 +4,7 @@ import { Assert, Flow } from "../assert/assert";
 import { is } from "../assert/is";
 import { not } from "../assert/not";
 import { TechnicalError } from "../error/technical.error";
-
-export const codes = {
-  contentNullOrEmpty: "CONTENT_NULL_OR_EMPTY",
-  contentInvalidLanguage: "CONTENT_INVALID_LANGUAGE",
-  contentInvalidType: "CONTENT_INVALID_TYPE",
-  contentDuplicateLanguage: "CONTENT_DUPLICATE_LANGUAGE",
-  contentMissingRequiredLanguage: "CONTENT_MISSING_REQUIRED_LANGUAGE",
-  contentLengthOutOfRange: "CONTENT_LENGTH_OUT_OF_RANGE",
-  contentInvalidFormat: "CONTENT_INVALID_FORMAT",
-};
+import { FailureCode } from "../failure/failure.codes.enum";
 
 /**
  * Idiomas suportados pela aplicação
@@ -25,6 +16,10 @@ export enum SupportedLanguage {
 
 /**
  * Interface para entrada de conteúdo multilíngue
+ * Exemplo:
+ * ```ts
+ * { text: "Olá Mundo", language: "pt" }
+ * ```
  */
 export interface IMultilingualInput {
   text: string;
@@ -33,6 +28,10 @@ export interface IMultilingualInput {
 
 /**
  * Interface que define a estrutura de um conteúdo em um idioma específico
+ * Exemplo:
+ * ```ts
+ * { text: "Hello World", language: SupportedLanguage.EN }
+ * ```
  */
 export interface ILanguageContent {
   text: string;
@@ -40,7 +39,13 @@ export interface ILanguageContent {
 }
 
 /**
- * Classe base abstrata para conteúdo multi-idioma
+ * Classe abstrata para representar conteúdo multilíngue com validações rigorosas.
+ * Garante que:
+ * - O conteúdo não seja vazio
+ * - Os idiomas sejam válidos (suportados)
+ * - Não haja idiomas duplicados
+ * - Os idiomas obrigatórios estejam sempre presentes
+ * - O texto siga regras de formato e tamanho
  */
 export abstract class MultilingualContent {
   /**
@@ -48,30 +53,38 @@ export abstract class MultilingualContent {
    */
   protected static readonly MIN_LENGTH: number = 1;
   protected static readonly MAX_LENGTH: number = 500;
+
+  /**
+   * Idiomas obrigatórios por padrão (ex: 'pt' e 'en')
+   */
   protected static readonly REQUIRED_LANGUAGES: SupportedLanguage[] = [
     SupportedLanguage.PT,
     SupportedLanguage.EN,
   ];
 
   /**
-   * Expressão regular para validar o formato do texto
-   * Por padrão, não permite múltiplos espaços consecutivos
+   * Expressão regular para validar o formato do texto:
+   * - Permite letras (incluindo acentos), números, espaços e alguns símbolos
+   * - Não permite caracteres especiais como @, #, etc.
    */
   protected static readonly FORMAT_REGEX: RegExp =
     /^[A-Za-zÀ-ÖØ-öø-ÿ\d\s\-._]+$/;
 
-  /**
-   * Construtor protegido para garantir imutabilidade
-   * @param contents Map com os conteúdos em diferentes idiomas
-   */
   protected constructor(
     protected readonly contents: Map<SupportedLanguage, string>,
   ) {}
 
   /**
-   * Cria uma nova instância de conteúdo multi-idioma
-   * @param contents Array de conteúdos em diferentes idiomas
-   * @returns Result contendo a instância ou falha
+   * Cria uma instância válida de conteúdo multilíngue com validações completas.
+   * @param contents Array de objetos com texto e idioma
+   * @returns Result<T> com falha nos seguintes casos:
+   * - `FailureCode.NULL_ARGUMENT`: Se o array for nulo
+   * - `FailureCode.EMPTY_FIELD`: Se o array estiver vazio
+   * - `FailureCode.CONTENT_INVALID_LANGUAGE`: Se o idioma não for suportado
+   * - `FailureCode.INVALID_FIELD_SIZE`: Se o texto estiver fora do limite de caracteres (1–500)
+   * - `FailureCode.CONTENT_INVALID_FORMAT`: Se o texto contiver caracteres inválidos
+   * - `FailureCode.CONTENT_DUPLICATE_LANGUAGE`: Se houver idiomas duplicados
+   * - `FailureCode.CONTENT_MISSING_REQUIRED_LANGUAGE`: Se faltar algum idioma obrigatório
    */
   public static create<T extends MultilingualContent>(
     contents: IMultilingualInput[],
@@ -85,6 +98,7 @@ export abstract class MultilingualContent {
     contents.forEach((content) => {
       contentsParsed.push(this.toLanguageContent(content, failures));
     });
+    if (failures.length > 0) return failure(failures);
 
     this.validateContents(contentsParsed, failures);
     if (failures.length > 0) return failure(failures);
@@ -101,19 +115,25 @@ export abstract class MultilingualContent {
   }
 
   /**
-   * Cria uma nova instância de conteúdo um único idioma a partir de um idioma e um valor
+   * Cria uma nova instância de conteúdo com apenas um idioma.
+   * Usado principalmente para reconstruir entidades a partir de dados persistentes.
    * @param lang Idioma do conteúdo
-   * @param value Valor do conteúdo
-   * @returns Instância de conteúdo multi-idioma
+   * @param value Conteúdo textual
+   * @returns Instância de conteúdo multilíngue
+   * @throws TechnicalError se o idioma ou texto forem vazios
+   * @throws TechnicalError se o idioma não for suportado
    */
   public static hydrate<T extends MultilingualContent>(
     lang: string,
     value: string,
   ): T {
-    TechnicalError.if(!lang?.trim() || !value?.trim(), "NULL_ARGUMENT");
+    TechnicalError.if(
+      !lang?.trim() || !value?.trim(),
+      FailureCode.NULL_ARGUMENT,
+    );
 
     const langEnum = this.toSupportedLanguage(lang);
-    TechnicalError.if(!langEnum, "INVALID_ARGUMENT");
+    TechnicalError.if(!langEnum, FailureCode.NULL_ARGUMENT);
 
     const contentMap = new Map<SupportedLanguage, string>();
     contentMap.set(langEnum, value);
@@ -123,6 +143,8 @@ export abstract class MultilingualContent {
 
   /**
    * Obtém o conteúdo em um idioma específico
+   * @param language Idioma a ser buscado
+   * @returns Texto correspondente ou undefined se não existir
    */
   public content(language: SupportedLanguage): string | undefined {
     return this.contents.get(language);
@@ -130,6 +152,8 @@ export abstract class MultilingualContent {
 
   /**
    * Verifica se possui conteúdo em um idioma específico
+   * @param language Idioma a ser verificado
+   * @returns true se o idioma existir, false caso contrário
    */
   public hasLanguage(language: SupportedLanguage): boolean {
     return this.contents.has(language);
@@ -137,15 +161,17 @@ export abstract class MultilingualContent {
 
   /**
    * Obtém todos os idiomas disponíveis
+   * @returns Array de idiomas presentes na instância atual
    */
   public languages(): SupportedLanguage[] {
     return Array.from(this.contents.keys());
   }
 
   /**
-   * Converte uma string ou SupportedLanguage para o enum correspondente
+   * Converte uma string para o enum SupportedLanguage (case-insensitive).
+   * Exemplo: "PT" → SupportedLanguage.PT
    * @param language Idioma a ser convertido
-   * @returns O enum correspondente ou undefined se inválido
+   * @returns O enum SupportedLanguage correspondente ou undefined se inválido
    */
   private static toSupportedLanguage(language: string): SupportedLanguage {
     if (typeof language === "string") {
@@ -159,7 +185,7 @@ export abstract class MultilingualContent {
    * Converte um MultilingualInput para LanguageContent
    * @param content Conteúdo a ser convertido
    * @param failures Array para armazenar os erros encontrados
-   * @returns LanguageContent ou undefined se inválido
+   * @returns LanguageContent válido ou undefined se inválido
    */
   private static toLanguageContent(
     content: IMultilingualInput,
@@ -170,7 +196,7 @@ export abstract class MultilingualContent {
     );
     if (!languageEnum) {
       failures.push({
-        code: codes.contentInvalidLanguage,
+        code: FailureCode.CONTENT_INVALID_LANGUAGE,
         details: {
           providedLanguage: content.language,
           supportedLanguages: Object.values(SupportedLanguage),
@@ -196,17 +222,21 @@ export abstract class MultilingualContent {
     Assert.all(
       failures,
       { field: "contents" },
-      not.null(contents, codes.contentNullOrEmpty, {}, Flow.stop),
-      is.array(contents, codes.contentInvalidType, {}, Flow.stop),
-      not.empty(contents, codes.contentNullOrEmpty),
+      not.null(contents, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
+      is.array(contents, FailureCode.CONTENT_INVALID_TYPE, {}, Flow.stop),
+      not.empty(contents, FailureCode.EMPTY_FIELD),
     );
   }
 
   /**
-   * Valida um conteúdo individual
+   * Valida um conteúdo individual quanto a:
+   * - Não ser nulo
+   * - Ter texto e idioma válidos
+   * - Estar dentro do comprimento permitido (MIN_LENGTH - MAX_LENGTH)
+   * - Seguir o formato permitido (expressão regular)
    * @param content Conteúdo a ser validado
    * @param failures Array para armazenar os erros encontrados
-   * @return true se não houve erros, false se foi identificado algum tipo de erro
+   * @returns true se válido, false se inválido
    */
   private static validateContent(
     content: ILanguageContent,
@@ -217,14 +247,19 @@ export abstract class MultilingualContent {
     Assert.all(
       failures,
       { field: "language" },
-      not.null(content, codes.contentNullOrEmpty, {}, Flow.stop),
-      not.null(content.language, codes.contentNullOrEmpty, {}, Flow.stop),
-      is.string(content.language, codes.contentInvalidType, {}, Flow.stop),
-      is.string(content.text, codes.contentInvalidType, {}, Flow.stop),
+      not.null(content, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
+      not.null(content.language, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
+      is.string(
+        content.language,
+        FailureCode.CONTENT_INVALID_TYPE,
+        {},
+        Flow.stop,
+      ),
+      is.string(content.text, FailureCode.CONTENT_INVALID_TYPE, {}, Flow.stop),
       is.contains(
         Object.values(SupportedLanguage),
         content.language.toLowerCase(),
-        codes.contentInvalidLanguage,
+        FailureCode.CONTENT_INVALID_LANGUAGE,
         {},
         Flow.stop,
       ),
@@ -232,14 +267,14 @@ export abstract class MultilingualContent {
         content.text,
         this.MIN_LENGTH,
         this.MAX_LENGTH,
-        codes.contentLengthOutOfRange,
+        FailureCode.INVALID_FIELD_SIZE,
         { actual: content.text.length },
         Flow.stop,
       ),
       is.match(
         content.text,
         this.FORMAT_REGEX,
-        codes.contentInvalidFormat,
+        FailureCode.CONTENT_INVALID_FORMAT,
         {
           language: content.language,
           value: content.text,
@@ -268,7 +303,7 @@ export abstract class MultilingualContent {
 
       if (seenLanguages.has(content.language)) {
         failures.push({
-          code: codes.contentDuplicateLanguage,
+          code: FailureCode.CONTENT_DUPLICATE_LANGUAGE,
           details: { language: content.language },
         });
         continue;
@@ -279,8 +314,9 @@ export abstract class MultilingualContent {
   }
 
   /**
-   * Valida se os idiomas obrigatórios estão presentes.
-   * @param contents Array de conteúdos em diferentes idiomas
+   * Valida se todos os idiomas obrigatórios estão presentes.
+   * Por padrão, exige: 'pt' e 'en'
+   * @param contents Array de conteúdos a ser validado
    * @param failures Array para armazenar os erros encontrados
    */
   private static validateRequiredLanguages(
@@ -295,7 +331,7 @@ export abstract class MultilingualContent {
         {},
         is.true(
           languages.has(requiredLang),
-          codes.contentMissingRequiredLanguage,
+          FailureCode.CONTENT_MISSING_REQUIRED_LANGUAGE,
           { requiredLanguage: requiredLang },
         ),
       );

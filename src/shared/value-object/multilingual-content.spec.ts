@@ -1,8 +1,5 @@
-import {
-  codes,
-  MultilingualContent,
-  SupportedLanguage,
-} from "./multilingual-content";
+import { MultilingualContent, SupportedLanguage } from "./multilingual-content";
+import { FailureCode } from "../failure/failure.codes.enum";
 
 class TestMultilingualContent extends MultilingualContent {}
 
@@ -66,22 +63,22 @@ describe("MultilingualContent", () => {
           {
             contents: [pt],
             scenario: "quando EN está faltando",
-            errorCode: codes.contentMissingRequiredLanguage,
+            errorCode: FailureCode.CONTENT_MISSING_REQUIRED_LANGUAGE,
           },
           {
             contents: [{ language: "pt", text: "Bonjour" }, pt, en],
             scenario: "quando PT está duplicado",
-            errorCode: codes.contentDuplicateLanguage,
+            errorCode: FailureCode.CONTENT_DUPLICATE_LANGUAGE,
           },
           {
             contents: [],
             scenario: "quando o array está vazio",
-            errorCode: codes.contentNullOrEmpty,
+            errorCode: FailureCode.EMPTY_FIELD,
           },
           {
             contents: [fr],
             scenario: "quando o idioma é inválido",
-            errorCode: codes.contentInvalidLanguage,
+            errorCode: FailureCode.CONTENT_INVALID_LANGUAGE,
           },
         ];
 
@@ -110,7 +107,9 @@ describe("MultilingualContent", () => {
 
           // Assert
           expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(codes.contentInvalidFormat);
+          expect(result.failures[0].code).toBe(
+            FailureCode.CONTENT_INVALID_FORMAT,
+          );
         });
 
         it("deve falhar quando o texto não segue o formato esperado", () => {
@@ -125,7 +124,9 @@ describe("MultilingualContent", () => {
 
           // Assert
           expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(codes.contentInvalidFormat);
+          expect(result.failures[0].code).toBe(
+            FailureCode.CONTENT_INVALID_FORMAT,
+          );
         });
       });
     });
