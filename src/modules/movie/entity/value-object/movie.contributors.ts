@@ -2,7 +2,7 @@ import { failure, Result, success } from "../../../../shared/result/result";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import {
   MovieContributor,
-  MovieContributorInput,
+  IMovieContributorInput,
   PersonRole,
 } from "./movie.contributor";
 import { TechnicalError } from "../../../../shared/error/technical.error";
@@ -41,7 +41,7 @@ export class MovieContributors {
    * @returns Result<MovieContributors>
    */
   public static create(
-    contributors: MovieContributor[] | MovieContributorInput[],
+    contributors: MovieContributor[] | IMovieContributorInput[],
   ): Result<MovieContributors> {
     const failures: SimpleFailure[] = [];
 
@@ -63,7 +63,7 @@ export class MovieContributors {
     }
 
     if (!isInstanceOfMovieContributor) {
-      for (const contributor of contributors as MovieContributorInput[]) {
+      for (const contributor of contributors as IMovieContributorInput[]) {
         const result = MovieContributor.create(contributor);
         if (result.invalid) {
           failures.push(...result.failures);
@@ -97,7 +97,7 @@ export class MovieContributors {
    * @returns MovieContributors
    */
   public static hydrate(
-    contributors: MovieContributorInput[],
+    contributors: IMovieContributorInput[],
   ): MovieContributors {
     TechnicalError.if(isNull(contributors), contributorsCodes.NULL_ARGUMENT, {
       message: "Contributors array cannot be null",
@@ -113,7 +113,7 @@ export class MovieContributors {
 
     const processedContributors: MovieContributor[] = [];
 
-    for (const contributor of contributors as MovieContributorInput[]) {
+    for (const contributor of contributors as IMovieContributorInput[]) {
       const result = MovieContributor.create(contributor);
       if (!result.invalid) {
         processedContributors.push(result.value);

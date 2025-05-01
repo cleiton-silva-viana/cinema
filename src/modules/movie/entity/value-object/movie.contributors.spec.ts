@@ -1,7 +1,7 @@
 import { contributorsCodes, MovieContributors } from "./movie.contributors";
 import {
   MovieContributor,
-  MovieContributorInput,
+  IMovieContributorInput,
   PersonRole,
 } from "./movie.contributor";
 import { PersonUID } from "../../../person/value-object/person.uid";
@@ -11,13 +11,12 @@ describe("MovieContributors", () => {
   // Preparando os dados de teste
   const createValidContributor = (
     role: PersonRole = PersonRole.ACTOR,
-  ): MovieContributorInput => ({
+  ): IMovieContributorInput => ({
     personUid: PersonUID.create().value,
-    movieUid: MovieUID.create().value,
     role: role,
   });
 
-  const createValidContributors = (): MovieContributorInput[] => {
+  const createValidContributors = (): IMovieContributorInput[] => {
     return [
       createValidContributor(PersonRole.DIRECTOR),
       createValidContributor(PersonRole.ACTOR),
@@ -96,9 +95,8 @@ describe("MovieContributors", () => {
 
       it("deve falhar se algum contribuidor for inválido", () => {
         // Arrange
-        const invalidContributor: MovieContributorInput = {
+        const invalidContributor: IMovieContributorInput = {
           personUid: null,
-          movieUid: MovieUID.create().value,
           role: PersonRole.DIRECTOR,
         };
 
