@@ -12,7 +12,7 @@ export const codes = {
   contentDuplicateLanguage: "CONTENT_DUPLICATE_LANGUAGE",
   contentMissingRequiredLanguage: "CONTENT_MISSING_REQUIRED_LANGUAGE",
   contentLengthOutOfRange: "CONTENT_LENGTH_OUT_OF_RANGE",
-  contentInvalidFormat: 'CONTENT_INVALID_FORMAT'
+  contentInvalidFormat: "CONTENT_INVALID_FORMAT",
 };
 
 /**
@@ -26,7 +26,7 @@ export enum SupportedLanguage {
 /**
  * Interface para entrada de conteúdo multilíngue
  */
-export interface MultilingualInput {
+export interface IMultilingualInput {
   text: string;
   language: string;
 }
@@ -34,7 +34,7 @@ export interface MultilingualInput {
 /**
  * Interface que define a estrutura de um conteúdo em um idioma específico
  */
-export interface LanguageContent {
+export interface ILanguageContent {
   text: string;
   language: SupportedLanguage;
 }
@@ -57,7 +57,8 @@ export abstract class MultilingualContent {
    * Expressão regular para validar o formato do texto
    * Por padrão, não permite múltiplos espaços consecutivos
    */
-  protected static readonly FORMAT_REGEX: RegExp = /^[A-Za-zÀ-ÖØ-öø-ÿ\d\s\-._]+$/;
+  protected static readonly FORMAT_REGEX: RegExp =
+    /^[A-Za-zÀ-ÖØ-öø-ÿ\d\s\-._]+$/;
 
   /**
    * Construtor protegido para garantir imutabilidade
@@ -73,14 +74,14 @@ export abstract class MultilingualContent {
    * @returns Result contendo a instância ou falha
    */
   public static create<T extends MultilingualContent>(
-    contents: MultilingualInput[],
+    contents: IMultilingualInput[],
   ): Result<T> {
     const failures: SimpleFailure[] = [];
 
     MultilingualContent.validateContentArray(contents, failures);
     if (failures.length > 0) return failure(failures);
 
-    const contentsParsed: LanguageContent[] = [];
+    const contentsParsed: ILanguageContent[] = [];
     contents.forEach((content) => {
       contentsParsed.push(this.toLanguageContent(content, failures));
     });
@@ -161,9 +162,9 @@ export abstract class MultilingualContent {
    * @returns LanguageContent ou undefined se inválido
    */
   private static toLanguageContent(
-    content: MultilingualInput,
+    content: IMultilingualInput,
     failures: SimpleFailure[],
-  ): LanguageContent | undefined {
+  ): ILanguageContent | undefined {
     const languageEnum = MultilingualContent.toSupportedLanguage(
       content.language,
     );
@@ -208,7 +209,7 @@ export abstract class MultilingualContent {
    * @return true se não houve erros, false se foi identificado algum tipo de erro
    */
   private static validateContent(
-    content: LanguageContent,
+    content: ILanguageContent,
     failures: SimpleFailure[],
   ): boolean {
     const flag = failures.length;
@@ -256,7 +257,7 @@ export abstract class MultilingualContent {
    * @param failures Array para armazenar os erros encontrados
    */
   private static validateContents(
-    contents: LanguageContent[],
+    contents: ILanguageContent[],
     failures: SimpleFailure[],
   ): void {
     const seenLanguages = new Set<SupportedLanguage>();
@@ -283,7 +284,7 @@ export abstract class MultilingualContent {
    * @param failures Array para armazenar os erros encontrados
    */
   private static validateRequiredLanguages(
-    contents: LanguageContent[],
+    contents: ILanguageContent[],
     failures: SimpleFailure[],
   ): void {
     const languages = new Set(contents.map((content) => content.language));

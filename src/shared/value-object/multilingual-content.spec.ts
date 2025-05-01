@@ -1,10 +1,10 @@
 import {
   codes,
   MultilingualContent,
-  SupportedLanguage
+  SupportedLanguage,
 } from "./multilingual-content";
 
-class TestMultilingualContent extends MultilingualContent { }
+class TestMultilingualContent extends MultilingualContent {}
 
 describe("MultilingualContent", () => {
   const pt = {
@@ -22,8 +22,8 @@ describe("MultilingualContent", () => {
 
   const lang = {
     en: SupportedLanguage.EN,
-    pt: SupportedLanguage.PT
-  }
+    pt: SupportedLanguage.PT,
+  };
 
   describe("static methods", () => {
     describe("create", () => {
@@ -52,7 +52,7 @@ describe("MultilingualContent", () => {
 
             // Assert
             expect(result.invalid).toBe(false);
-            expect(result.value.languages().length).toBe(2)
+            expect(result.value.languages().length).toBe(2);
             expect(result.value.hasLanguage(SupportedLanguage.PT)).toBe(true);
             expect(result.value.hasLanguage(SupportedLanguage.EN)).toBe(true);
             expect(result.value.content(SupportedLanguage.PT)).toBe(pt.text);
@@ -97,27 +97,12 @@ describe("MultilingualContent", () => {
         });
       });
 
-      describe('constraints validations', () => {
-        it('deve falhar quando o texto contém caracteres não permitidos', () => {
+      describe("constraints validations", () => {
+        it("deve falhar quando o texto contém caracteres não permitidos", () => {
           // Arrange
           const invalidContent = [
             { language: "pt", text: "Texto com caractere inválido ¥" },
-            en
-          ]
-
-          // Act
-          const result = TestMultilingualContent.create(invalidContent);
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(codes.contentInvalidFormat);
-        })
-
-        it("deve falhar quando o texto não segue o formato esperado", () => {
-          // Arrange
-          const invalidContent = [
-            { language: "pt", text: "Texto123$" }, // Assumindo que FORMAT_REGEX não permite números ou símbolos
-            { language: "en", text: "Hello" }
+            en,
           ];
 
           // Act
@@ -127,21 +112,36 @@ describe("MultilingualContent", () => {
           expect(result.invalid).toBe(true);
           expect(result.failures[0].code).toBe(codes.contentInvalidFormat);
         });
-      })
+
+        it("deve falhar quando o texto não segue o formato esperado", () => {
+          // Arrange
+          const invalidContent = [
+            { language: "pt", text: "Texto123$" }, // Assumindo que FORMAT_REGEX não permite números ou símbolos
+            { language: "en", text: "Hello" },
+          ];
+
+          // Act
+          const result = TestMultilingualContent.create(invalidContent);
+
+          // Assert
+          expect(result.invalid).toBe(true);
+          expect(result.failures[0].code).toBe(codes.contentInvalidFormat);
+        });
+      });
     });
 
     describe("hydrate", () => {
       it("deve criar um objeto MultilingualContent para um idioma", () => {
         // Act
         const result = TestMultilingualContent.hydrate(
-          'pT', // diferentes tamanhos de fonte...
+          "pT", // diferentes tamanhos de fonte...
           en.text,
         );
 
         // Assert
         expect(result.hasLanguage(lang.pt)).toBe(true);
         expect(result.content(lang.pt)).toBe(en.text);
-        expect(result.languages().length).toBe(1)
+        expect(result.languages().length).toBe(1);
       });
 
       it("deve falhar quando lang ou value são nulos ou indefinidos", () => {
@@ -149,7 +149,7 @@ describe("MultilingualContent", () => {
         const cases = [
           { lang: null as SupportedLanguage, value: "Oi" },
           { lang: undefined, value: "Oi" },
-          { lang: '     ', value: "hall" },
+          { lang: "     ", value: "hall" },
           { lang: SupportedLanguage.PT, value: null },
           { lang: SupportedLanguage.PT, value: undefined },
         ];
