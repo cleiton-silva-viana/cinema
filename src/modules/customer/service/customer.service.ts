@@ -11,6 +11,8 @@ import { isNull } from "../../../shared/validator/validator";
 import { Email } from "../entity/value-object/email";
 import { CustomerUID } from "../entity/value-object/customer.uid";
 import { CUSTOMER_REPOSITORY } from "../constant/customer.constants";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { ResourceTypes } from "../../../shared/constant/resource.types";
 
 @Injectable()
 export class CustomerService implements ICustomerService {
@@ -20,10 +22,7 @@ export class CustomerService implements ICustomerService {
 
   public async findById(uid: string | CustomerUID): Promise<Result<Customer>> {
     if (isNull(uid))
-      return failure({
-        code: "INVALID_UUID",
-        details: { resource: "customer" },
-      });
+      return failure({ code: FailureCode.INVALID_UUID });
 
     let result =
       uid instanceof CustomerUID ? success(uid) : CustomerUID.parse(uid);
@@ -32,8 +31,8 @@ export class CustomerService implements ICustomerService {
     const customer = await this.repository.findById(result.value);
     return !customer
       ? failure({
-          code: "RESOURCE_NOT_FOUND",
-          details: { resource: "customer" },
+          code: FailureCode.RESOURCE_NOT_FOUND,
+          details: { resource: ResourceTypes.CUSTOMER },
         })
       : success(customer);
   }
@@ -46,8 +45,8 @@ export class CustomerService implements ICustomerService {
     const customer = await this.repository.findByEmail(result.value);
     return !customer
       ? failure({
-          code: "RESOURCE_NOT_FOUND",
-          details: { resource: "customer" },
+        code: FailureCode.RESOURCE_NOT_FOUND,
+        details: { resource: ResourceTypes.CUSTOMER },
         })
       : success(customer);
   }
@@ -67,8 +66,8 @@ export class CustomerService implements ICustomerService {
     const emailAlreadyInUse = await this.repository.findByEmail(customer.email);
     if (emailAlreadyInUse)
       return failure({
-        code: "EMAIL_ALREADY_IN_USE",
-        details: { resource: "customer" },
+        code: FailureCode.EMAIL_ALREADY_IN_USE,
+        details: { resource: ResourceTypes.CUSTOMER },
       });
 
     const customerSaved = await this.repository.create(customer);
@@ -81,8 +80,8 @@ export class CustomerService implements ICustomerService {
   ): Promise<Result<Customer>> {
     if (isNull(updateProps))
       return failure({
-        code: "EMPTY_DATAS_FOR_UPDATE",
-        details: { resource: "customer" },
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: { resource: ResourceTypes.CUSTOMER },
       });
 
     const customerUidResult = CustomerUID.parse(uid);
@@ -96,8 +95,8 @@ export class CustomerService implements ICustomerService {
       const emailsAlreadyInUse = await this.repository.findByEmail(emailResult.value);
       if (emailsAlreadyInUse)
         return failure({
-          code: "EMAIL_ALREADY_IN_USE",
-          details: { resource: "customer" },
+          code: FailureCode.EMAIL_ALREADY_IN_USE,
+          details: { resource: ResourceTypes.CUSTOMER },
         });
     }
 

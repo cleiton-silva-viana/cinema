@@ -5,6 +5,7 @@ import { CustomerUID } from "../entity/value-object/customer.uid";
 import { CustomerService } from "./customer.service";
 import { Email } from "../entity/value-object/email";
 import { v4, v7 } from "uuid";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 
 describe("CustomerService", () => {
   let customerService: CustomerService;
@@ -50,40 +51,44 @@ describe("CustomerService", () => {
       expect(repositoryMock.findById).toHaveBeenCalledWith(validCustomerUID);
     });
 
-    [
-      {
-        description: "null uid",
-        uid: null,
-      },
-      {
-        description: "undefined uid",
-        uid: undefined,
-      },
-      {
-        description: "uid from another entity",
-        uid: `usr.${v7()}`,
-      },
-      {
-        description: "uid with invalid format",
-        uid: `cust.${v4()}`,
-      },
-      {
-        description: "uid without prefix",
-        uid: v7(),
-      },
-      {
-        description: "uid with invalid UUID format",
-        uid: "cus.invalid-uuid-format",
-      },
-    ].forEach((scenario) => {
-      it(`should return failure for ${scenario.description}`, async () => {
-        // Act
-        const result = await customerService.findById(scenario.uid);
+    describe("should return failure for", () => {
+      const invalidCases = [
+        {
+          description: "null uid",
+          uid: null,
+        },
+        {
+          description: "undefined uid",
+          uid: undefined,
+        },
+        {
+          description: "uid from another entity",
+          uid: `usr.${v7()}`,
+        },
+        {
+          description: "uid with invalid format",
+          uid: `cust.${v4()}`,
+        },
+        {
+          description: "uid without prefix",
+          uid: v7(),
+        },
+        {
+          description: "uid with invalid UUID format",
+          uid: "cus.invalid-uuid-format",
+        },
+      ];
 
-        // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe("INVALID_UUID");
-        expect(repositoryMock.findById).not.toHaveBeenCalled();
+      invalidCases.forEach((scenario) => {
+        it(`${scenario.description}`, async () => {
+          // Act
+          const result = await customerService.findById(scenario.uid);
+
+          // Assert
+          expect(result.invalid).toBe(true);
+          expect(result.failures[0].code).toBe(FailureCode.INVALID_UUID);
+          expect(repositoryMock.findById).not.toHaveBeenCalled();
+        });
       });
     });
 
@@ -96,7 +101,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("RESOURCE_NOT_FOUND");
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
     });
   });
 
@@ -168,7 +173,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("EMAIL_ALREADY_IN_USE");
+      expect(result.failures[0].code).toBe(FailureCode.EMAIL_ALREADY_IN_USE);
       expect(repositoryMock.create).not.toHaveBeenCalled();
     });
   });
@@ -213,7 +218,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("EMPTY_DATAS_FOR_UPDATE");
+      expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
     });
 
     it("should return failure when customer not found", async () => {
@@ -228,7 +233,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("RESOURCE_NOT_FOUND");
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
     });
 
     it("should return failure when email already in use", async () => {
@@ -244,7 +249,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("EMAIL_ALREADY_IN_USE");
+      expect(result.failures[0].code).toBe(FailureCode.EMAIL_ALREADY_IN_USE);
     });
   });
 
@@ -271,7 +276,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("RESOURCE_NOT_FOUND");
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
       expect(repositoryMock.delete).not.toHaveBeenCalled();
     });
 
