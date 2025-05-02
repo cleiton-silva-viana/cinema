@@ -3,13 +3,15 @@ import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
 import { Person } from "../entity/person";
 import { IPersonRepository } from "../repository/person.repository.interface";
 import { PersonUID } from "../entity/value-object/person.uid";
+import { Inject } from "@nestjs/common";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 
 /**
  * Serviço responsável por operações relacionadas a pessoas no sistema.
  * Gerencia pessoas que podem contribuir para filmes em diferentes papéis.
  */
 export class PersonService {
-  constructor(private readonly repository: IPersonRepository) {}
+  constructor(@Inject('PersonRepository') private readonly repository: IPersonRepository) {}
 
   /**
    * Busca uma pessoa pelo seu identificador único.
@@ -22,7 +24,7 @@ export class PersonService {
 
     const person = await this.repository.findById(uid);
     return !person
-      ? failure([{ code: "PERSON_NOT_FOUND", details: { idProvided: uid } }])
+      ? failure({ code: FailureCode.RESOURCE_NOT_FOUND, details: { idProvided: uid } })
       : success(person);
   }
 
@@ -37,9 +39,8 @@ export class PersonService {
     if (personResult.invalid) return failure(personResult.failures);
     const person = personResult.value;
 
-    await this.repository.save(person);
-
-    return success(person);
+    const savedPerson = await this.repository.save(person);
+    return success(savedPerson);
   }
 
   /**
@@ -56,7 +57,7 @@ export class PersonService {
   ): Promise<Result<Person>> {
     if (!name && !birthDate)
       return failure({
-        code: "NO_PROPERTIES_TO_UPDATE",
+        code: FailureCode.MISSING_REQUIRED_DATA,
       });
 
     const personUidResult = PersonUID.parse(uid);
