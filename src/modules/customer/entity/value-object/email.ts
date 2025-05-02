@@ -7,12 +7,10 @@ import { isNull } from "../../../../shared/validator/validator";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 
 export class Email {
-  private constructor(
-    public readonly value: string
-  ) {}
+  private constructor(public readonly value: string) {}
 
   public static create(email: string): Result<Email> {
-    const failures: SimpleFailure[] = []
+    const failures: SimpleFailure[] = [];
 
     Assert.all(
       failures,
@@ -22,19 +20,16 @@ export class Email {
       is.email(email, "EMAIL_WITH_INVALID_FORMAT"),
     );
 
-    return (failures.length > 0)
-      ? failure(failures)
-      : success(new Email(email));
+    return failures.length > 0 ? failure(failures) : success(new Email(email));
   }
 
   public static hydrate(email: string): Email {
-    TechnicalError.if(isNull(email), 'NULL_ARGUMENT')
-    return new Email(email)
+    TechnicalError.if(isNull(email), "NULL_ARGUMENT");
+    return new Email(email);
   }
 
   public equal(other: Email): boolean {
-    if (isNull(other)) return false
+    if (isNull(other)) return false;
     return other instanceof Email && other.value === this.value;
   }
-
 }
