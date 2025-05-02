@@ -1,9 +1,9 @@
 import { faker } from "@faker-js/faker/locale/pt_PT";
-import {Customer} from "./customer";
-import {Name} from "../../../shared/value-object/name";
-import {Email} from "./value-object/email";
-import {BirthDate} from "../../../shared/value-object/birth.date";
-import {CustomerUID} from "./value-object/customer.uid";
+import { Customer } from "./customer";
+import { Name } from "../../../shared/value-object/name";
+import { Email } from "./value-object/email";
+import { BirthDate } from "../../../shared/value-object/birth.date";
+import { CustomerUID } from "./value-object/customer.uid";
 
 describe("Customer", () => {
   const validName = faker.person.fullName();
@@ -31,43 +31,43 @@ describe("Customer", () => {
         {
           name: "",
           description: "invalid name",
-          expectedFailures: 1
+          expectedFailures: 1,
         },
         {
           email: "invalid_mail.com",
           description: "invalid email",
-          expectedFailures: 1
+          expectedFailures: 1,
         },
         {
           birthDate: new Date(),
           description: "invalid birth date",
-          expectedFailures: 1
+          expectedFailures: 1,
         },
         {
           name: "",
           email: "invalid_mail.com",
           description: "invalid name and email",
-          expectedFailures: 2
+          expectedFailures: 2,
         },
         {
           name: "",
           birthDate: new Date(),
           description: "invalid name and birth date",
-          expectedFailures: 2
+          expectedFailures: 2,
         },
         {
           email: "invalid_mail.com",
           birthDate: new Date(),
           description: "invalid email and birth date",
-          expectedFailures: 2
+          expectedFailures: 2,
         },
         {
           name: "",
           email: "invalid_mail.com",
           birthDate: new Date(),
           description: "all fields invalid",
-          expectedFailures: 3
-        }
+          expectedFailures: 3,
+        },
       ].forEach((test) => {
         it(`should return failure for ${test.description}`, () => {
           // Arrange
@@ -91,7 +91,12 @@ describe("Customer", () => {
         const customerUid = CustomerUID.create().value;
 
         // Act
-        const customer = Customer.hydrate(customerUid, validName, validBirthDate, validEmail);
+        const customer = Customer.hydrate(
+          customerUid,
+          validName,
+          validBirthDate,
+          validEmail,
+        );
 
         // Assert
         expect(customer.uid.value).toBe(customerUid);
@@ -102,9 +107,9 @@ describe("Customer", () => {
 
       it("should throw technical error for null values", () => {
         // Act & Assert
-        expect(() => 
-          Customer.hydrate(null, validName, validBirthDate, validEmail)
-        ).toThrow('PROPERTIES_NOT_NULLABLES');
+        expect(() =>
+          Customer.hydrate(null, validName, validBirthDate, validEmail),
+        ).toThrow("PROPERTIES_NOT_NULLABLES");
       });
     });
   });
@@ -117,10 +122,10 @@ describe("Customer", () => {
 
     beforeEach(() => {
       customer = Customer.hydrate(
-        'cus.123e4567-e89b-12d3-a456-426614174000',
+        "cus.123e4567-e89b-12d3-a456-426614174000",
         validName,
         validBirthDate,
-        validEmail
+        validEmail,
       );
       validNameVO = Name.hydrate(faker.person.firstName());
       validEmailVO = Email.hydrate(faker.internet.email());
@@ -133,11 +138,11 @@ describe("Customer", () => {
         const newName = faker.person.firstName();
         const newEmail = faker.internet.email();
         const newBirthDate = new Date("1995-01-01");
-        
+
         const updates = {
           name: newName,
           email: newEmail,
-          birthDate: newBirthDate
+          birthDate: newBirthDate,
         };
 
         // Act
@@ -155,7 +160,7 @@ describe("Customer", () => {
         const updates = {
           name: validNameVO,
           email: validEmailVO,
-          birthDate: validBirthDateVO
+          birthDate: validBirthDateVO,
         };
 
         // Act
@@ -173,7 +178,7 @@ describe("Customer", () => {
         const originalEmail = customer.email;
         const originalBirthDate = customer.birthDate;
         const updates = {
-          name: validNameVO
+          name: validNameVO,
         };
 
         // Act
@@ -190,7 +195,7 @@ describe("Customer", () => {
         // Arrange
         const originalEmail = customer.email;
         const updates = {
-          email: "invalid-email"
+          email: "invalid-email",
         };
 
         // Act
@@ -209,7 +214,7 @@ describe("Customer", () => {
         const originalEmail = customer.email;
         const updates = {
           name: "a", // invalid name
-          email: faker.internet.email()
+          email: faker.internet.email(),
         };
 
         // Act
@@ -218,7 +223,7 @@ describe("Customer", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toHaveLength(1);
-        expect(customer.name).toBe(originalName); 
+        expect(customer.name).toBe(originalName);
         expect(customer.email).toBe(originalEmail);
       });
 
@@ -233,7 +238,7 @@ describe("Customer", () => {
         expect(result.invalid).toBe(true);
         expect(result.failures).toBeDefined();
         expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe('ANY_DATA_IS_REQUIRED_FOR_UPDATE');
+        expect(result.failures[0].code).toBe("ANY_DATA_IS_REQUIRED_FOR_UPDATE");
       });
     });
   });

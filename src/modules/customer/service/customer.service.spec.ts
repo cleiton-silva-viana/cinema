@@ -3,7 +3,7 @@ import { Customer } from "../entity/customer";
 import { ICustomerRepository } from "../repository/customer.repository.interface";
 import { CustomerUID } from "../entity/value-object/customer.uid";
 import { CustomerService } from "./customer.service";
-import {Email} from "../entity/value-object/email";
+import { Email } from "../entity/value-object/email";
 import { v4, v7 } from "uuid";
 
 describe("CustomerService", () => {
@@ -22,7 +22,7 @@ describe("CustomerService", () => {
     } as jest.Mocked<ICustomerRepository>;
 
     customerService = new CustomerService(repositoryMock);
-    
+
     validCustomerUID = CustomerUID.create();
     customerMock = Customer.hydrate(
       validCustomerUID.value,
@@ -46,7 +46,7 @@ describe("CustomerService", () => {
       // Assert
       expect(result.invalid).toBe(false);
       expect(result.value).toEqual(customerMock);
-      expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findById).toHaveBeenCalledWith(validCustomerUID);
     });
 
@@ -82,7 +82,7 @@ describe("CustomerService", () => {
 
         // Assert
         expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe('INVALID_UUID');
+        expect(result.failures[0].code).toBe("INVALID_UUID");
         expect(repositoryMock.findById).not.toHaveBeenCalled();
       });
     });
@@ -96,7 +96,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe('RESOURCE_NOT_FOUND');
+      expect(result.failures[0].code).toBe("RESOURCE_NOT_FOUND");
     });
   });
 
@@ -131,17 +131,17 @@ describe("CustomerService", () => {
       birthDate: faker.date.between({
         from: new Date(1940, 0, 0),
         to: new Date(2006, 0, 0),
-      })
+      }),
     };
 
     it("should create customer successfully", async () => {
       // Arrange
       const customerMock = Customer.hydrate(
-          validCustomerUID.value,
-          createProps.name,
-          createProps.birthDate,
-          createProps.email
-      )
+        validCustomerUID.value,
+        createProps.name,
+        createProps.birthDate,
+        createProps.email,
+      );
       repositoryMock.findByEmail.mockResolvedValue(null);
       repositoryMock.create.mockResolvedValue(customerMock);
 
@@ -157,7 +157,6 @@ describe("CustomerService", () => {
       expect(result.value.birthDate.value).toEqual(createProps.birthDate);
       expect(repositoryMock.create).toHaveBeenCalled();
       expect(repositoryMock.create).toHaveBeenCalledTimes(1);
-
     });
 
     it("should return failure when email already exists", async () => {
@@ -169,7 +168,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe('EMAIL_ALREADY_IN_USE');
+      expect(result.failures[0].code).toBe("EMAIL_ALREADY_IN_USE");
       expect(repositoryMock.create).not.toHaveBeenCalled();
     });
   });
@@ -181,18 +180,26 @@ describe("CustomerService", () => {
       birthDate: faker.date.between({
         from: new Date(1940, 0, 0),
         to: new Date(2006, 0, 0),
-      })
+      }),
     };
 
     it("should update customer successfully", async () => {
       // Arrange
-      const updatedCustomerMock = Customer.hydrate(validCustomerUID.value, updateProps.name, updateProps.birthDate, updateProps.email);
+      const updatedCustomerMock = Customer.hydrate(
+        validCustomerUID.value,
+        updateProps.name,
+        updateProps.birthDate,
+        updateProps.email,
+      );
       repositoryMock.findById.mockResolvedValue(customerMock);
       repositoryMock.findByEmail.mockResolvedValue(null);
       repositoryMock.update.mockResolvedValue(updatedCustomerMock);
 
       // Act
-      const result = await customerService.update(validCustomerUID.value, updateProps);
+      const result = await customerService.update(
+        validCustomerUID.value,
+        updateProps,
+      );
 
       // Assert
       expect(result.invalid).toBe(false);
@@ -206,7 +213,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe('EMPTY_DATAS_FOR_UPDATE');
+      expect(result.failures[0].code).toBe("EMPTY_DATAS_FOR_UPDATE");
     });
 
     it("should return failure when customer not found", async () => {
@@ -214,11 +221,14 @@ describe("CustomerService", () => {
       repositoryMock.findById.mockResolvedValue(null);
 
       // Act
-      const result = await customerService.update(validCustomerUID.value, updateProps);
+      const result = await customerService.update(
+        validCustomerUID.value,
+        updateProps,
+      );
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe('RESOURCE_NOT_FOUND');
+      expect(result.failures[0].code).toBe("RESOURCE_NOT_FOUND");
     });
 
     it("should return failure when email already in use", async () => {
@@ -227,11 +237,14 @@ describe("CustomerService", () => {
       repositoryMock.findByEmail.mockResolvedValue(customerMock);
 
       // Act
-      const result = await customerService.update(validCustomerUID.value, updateProps);
+      const result = await customerService.update(
+        validCustomerUID.value,
+        updateProps,
+      );
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe('EMAIL_ALREADY_IN_USE');
+      expect(result.failures[0].code).toBe("EMAIL_ALREADY_IN_USE");
     });
   });
 
@@ -258,7 +271,7 @@ describe("CustomerService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe('RESOURCE_NOT_FOUND');
+      expect(result.failures[0].code).toBe("RESOURCE_NOT_FOUND");
       expect(repositoryMock.delete).not.toHaveBeenCalled();
     });
 
