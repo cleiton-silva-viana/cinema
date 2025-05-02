@@ -1,5 +1,6 @@
-import { MovieGenre, Genre, GenreCodes } from "./movie.genre";
+import { MovieGenre, Genre } from "./movie.genre";
 import { SupportedLanguage } from "../../../../shared/value-object/multilingual-content";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("MovieGenre", () => {
   const validGenres: Genre[] = [Genre.ACTION, Genre.COMEDY];
@@ -61,37 +62,37 @@ describe("MovieGenre", () => {
           {
             genres: null as any,
             scenario: "quando os gêneros são nulos",
-            errorCode: GenreCodes.INVALID_GENRE_COUNT,
+            errorCode: FailureCode.INVALID_GENRE_COUNT,
           },
           {
             genres: undefined as any,
             scenario: "quando os gêneros são indefinidos",
-            errorCode: GenreCodes.INVALID_GENRE_COUNT,
+            errorCode: FailureCode.INVALID_GENRE_COUNT,
           },
           {
             genres: [],
             scenario: "quando o array de gêneros está vazio",
-            errorCode: GenreCodes.INVALID_GENRE_COUNT,
+            errorCode: FailureCode.INVALID_GENRE_COUNT,
           },
           {
             genres: tooManyGenres,
             scenario: "quando há mais que o número máximo de gêneros",
-            errorCode: GenreCodes.INVALID_GENRE_COUNT,
+            errorCode: FailureCode.INVALID_GENRE_COUNT,
           },
           {
             genres: duplicatedGenres,
             scenario: "quando há gêneros duplicados usando enum",
-            errorCode: GenreCodes.DUPLICATE_GENRES,
+            errorCode: FailureCode.DUPLICATE_GENRES,
           },
           {
             genres: duplicatedGenreStrings,
             scenario: "quando há gêneros duplicados usando strings",
-            errorCode: GenreCodes.DUPLICATE_GENRES,
+            errorCode: FailureCode.DUPLICATE_GENRES,
           },
           {
             genres: [invalidGenreString],
             scenario: "quando contém um gênero inválido",
-            errorCode: GenreCodes.INVALID_GENRE,
+            errorCode: FailureCode.INVALID_GENRE,
           },
         ];
 
