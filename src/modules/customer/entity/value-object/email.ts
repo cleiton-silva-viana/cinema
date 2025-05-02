@@ -5,6 +5,7 @@ import { is } from "../../../../shared/assert/is";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { isNull } from "../../../../shared/validator/validator";
 import { TechnicalError } from "../../../../shared/error/technical.error";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 export class Email {
   private constructor(public readonly value: string) {}
@@ -15,16 +16,16 @@ export class Email {
     Assert.all(
       failures,
       { field: "email" },
-      not.null(email, "FIELD_CANNOT_BE_NULL", {}, Flow.stop),
-      not.empty(email, "FIELD_CANNOT_BE_EMPTY", {}, Flow.stop),
-      is.email(email, "EMAIL_WITH_INVALID_FORMAT"),
+      not.null(email, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
+      not.empty(email, FailureCode.EMPTY_FIELD, {}, Flow.stop),
+      is.email(email, FailureCode.INVALID_EMAIL_FORMAT),
     );
 
     return failures.length > 0 ? failure(failures) : success(new Email(email));
   }
 
   public static hydrate(email: string): Email {
-    TechnicalError.if(isNull(email), "NULL_ARGUMENT");
+    TechnicalError.if(isNull(email), FailureCode.NULL_ARGUMENT);
     return new Email(email);
   }
 

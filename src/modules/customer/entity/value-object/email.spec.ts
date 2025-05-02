@@ -1,20 +1,27 @@
 import { Email } from "./email";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { faker } from "@faker-js/faker";
 
 describe("Email", () => {
+  const EMAIL_STRING = faker.internet.email();
+
   describe("create", () => {
-    describe("should create a valid", () => {
+    describe("deve criar um email válido", () => {
       const successCases = [
-        { email: "test@example.com", scenario: "with standard format" },
-        { email: "user.name@domain.com", scenario: "with dots in local part" },
-        { email: "user+tag@example.org", scenario: "with plus tag" },
+        { email: "test@example.com", scenario: "com formato padrão" },
+        {
+          email: "user.name@domain.com",
+          scenario: "com pontos na parte local",
+        },
+        { email: "user+tag@example.org", scenario: "com tag de adição" },
         {
           email: "user@subdomain.example.co.uk",
-          scenario: "with subdomain and country TLD",
+          scenario: "com subdomínio e TLD de país",
         },
       ];
 
       successCases.forEach(({ email, scenario }) => {
-        it(`Email object ${scenario}`, () => {
+        it(`objeto Email ${scenario}`, () => {
           // Act
           const result = Email.create(email);
 
@@ -26,121 +33,132 @@ describe("Email", () => {
       });
     });
 
-    describe("should fail to create an invalid", () => {
+    it("deve falhar ao usar um valor vazio para criar um Email", () => {
+      // Act
+      const result = Email.create("");
+
+      // Assert
+      expect(result.invalid).toBe(true);
+      expect(result.failures[0].code).toBe(FailureCode.EMPTY_FIELD);
+    });
+
+    describe("deve falhar ao criar um Email com formato inválido", () => {
       const failureCases = [
         {
-          email: null as unknown as string,
-          scenario: "when email is null",
-          errorCodeExpected: "FIELD_CANNOT_BE_NULL",
-        },
-        {
-          email: undefined as unknown as string,
-          scenario: "when email is undefined",
-          errorCodeExpected: "FIELD_CANNOT_BE_NULL",
-        },
-        {
-          email: "",
-          scenario: "when email is empty",
-          errorCodeExpected: "FIELD_CANNOT_BE_EMPTY",
-        },
-        {
           email: "plainaddress",
-          scenario: "when email has no @ symbol",
-          errorCodeExpected: "EMAIL_WITH_INVALID_FORMAT",
+          scenario: "quando email não tem símbolo @",
         },
         {
           email: "@missingusername.com",
-          scenario: "when email has no username",
-          errorCodeExpected: "EMAIL_WITH_INVALID_FORMAT",
+          scenario: "quando email não tem nome de usuário",
         },
         {
           email: "user@",
-          scenario: "when email has no domain",
-          errorCodeExpected: "EMAIL_WITH_INVALID_FORMAT",
+          scenario: "quando email não tem domínio",
         },
         {
           email: "user@.com",
-          scenario: "when email has no domain name",
-          errorCodeExpected: "EMAIL_WITH_INVALID_FORMAT",
+          scenario: "quando email não tem nome de domínio",
         },
         {
           email: "user@domain,com",
-          scenario: "when email has invalid character in domain",
-          errorCodeExpected: "EMAIL_WITH_INVALID_FORMAT",
+          scenario: "quando email tem caractere inválido no domínio",
         },
       ];
 
-      failureCases.forEach(({ email, scenario, errorCodeExpected }) => {
-        it(`Email object ${scenario}`, () => {
+      failureCases.forEach(({ email, scenario }) => {
+        it(`objeto Email ${scenario}`, () => {
           // Act
           const result = Email.create(email);
+          const failures = result.failures;
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(errorCodeExpected);
+          expect(failures.length).toBe(1);
+          expect(failures[0].code).toBe(FailureCode.INVALID_EMAIL_FORMAT);
+        });
+      });
+    });
+
+    describe("deve falhar ao usar valores nulos para criar um Email", () => {
+      const failureCases = [
+        {
+          email: null as unknown as string,
+          scenario: "quando email é nulo",
+        },
+        {
+          email: undefined as unknown as string,
+          scenario: "quando email é indefinido",
+        },
+      ];
+
+      failureCases.forEach(({ email, scenario }) => {
+        it(scenario, () => {
+          // Act
+          const result = Email.create(email);
+          const failures = result.failures;
+
+          // Assert
+          expect(failures.length).toBe(1);
+          expect(failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
         });
       });
     });
   });
 
   describe("hydrate", () => {
-    it("should create an Email object without validation", () => {
-      // Arrange
-      const emailString = "test@example.com";
-
+    it("deve criar um objeto Email sem validação", () => {
       // Act
-      const hydratedEmail = Email.hydrate(emailString);
+      const hydratedEmail = Email.hydrate(EMAIL_STRING);
 
       // Assert
       expect(hydratedEmail).toBeInstanceOf(Email);
-      expect(hydratedEmail.value).toBe(emailString);
+      expect(hydratedEmail.value).toBe(EMAIL_STRING);
     });
 
-    it("should throw TechnicalError when email is null or undefined", () => {
+    it("deve lançar TechnicalError quando email é nulo ou indefinido", () => {
       // Arrange
-      const values = [null, undefined];
+      const values: Array<any> = [null, undefined];
 
       // Act & Assert
       values.forEach((value) => {
         expect(() => {
           Email.hydrate(value);
-        }).toThrow("NULL_ARGUMENT");
+        }).toThrow(FailureCode.NULL_ARGUMENT);
       });
     });
   });
 
   describe("equal", () => {
-    it("should return true when emails are equal", () => {
+    it("deve retornar verdadeiro quando emails são iguais", () => {
       // Arrange
-      const emailString = "test@example.com";
-      const result1 = Email.create(emailString);
-      const result2 = Email.create(emailString);
+      const result1 = Email.create(EMAIL_STRING);
+      const result2 = Email.create(EMAIL_STRING);
 
       // Assert
       expect(result1.value.equal(result2.value)).toBe(true);
     });
 
-    it("should return false when emails are different", () => {
+    it("deve retornar falso quando emails são diferentes", () => {
       // Arrange
-      const result1 = Email.create("test1@example.com");
-      const result2 = Email.create("test2@example.com");
+      const result1 = Email.create(EMAIL_STRING);
+      const result2 = Email.create(faker.internet.email());
 
       // Assert
       expect(result1.value.equal(result2.value)).toBe(false);
     });
 
-    it("should return false when comparing with null", () => {
+    it("deve retornar falso quando comparado com nulo", () => {
       // Arrange
-      const result = Email.create("test@example.com");
+      const result = Email.create(EMAIL_STRING);
 
       // Assert
       expect(result.value.equal(null)).toBe(false);
     });
 
-    it("should return false when comparing with non-Email object", () => {
+    it("deve retornar falso quando comparado com objeto não-Email", () => {
       // Arrange
-      const result = Email.create("test@example.com");
-      const notEmailObject = { value: "test@example.com" };
+      const result = Email.create(EMAIL_STRING);
+      const notEmailObject = { value: EMAIL_STRING };
 
       // Assert
       expect(result.value.equal(notEmailObject as unknown as Email)).toBe(
