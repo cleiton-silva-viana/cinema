@@ -4,12 +4,14 @@ import { TechnicalError } from "../error/technical.error";
 import { FailureCode } from "../failure/failure.codes.enum";
 
 class TestUID extends UID {
-  protected static readonly PREFIX: string = "test";
+  protected static readonly PREFIX: string = "TEST";
 }
 
 describe("UID", () => {
+  const UID_STRING = `TEST.${v7()}`;
+
   describe("create", () => {
-    it("should create a valid UID with UUID v7", () => {
+    it("deve criar um UID válido com UUID v7", () => {
       // Act
       const uid = TestUID.create();
 
@@ -22,119 +24,124 @@ describe("UID", () => {
   });
 
   describe("parse", () => {
-    describe("should create a valid", () => {
-      it("UID object from valid string", () => {
-        // Arrange
-        const uuid = v7();
-        const uidString = `test.${uuid}`;
-
+    describe("deve criar um válido", () => {
+      it("objeto UID a partir de uma string válida", () => {
         // Act
-        const result = TestUID.parse(uidString);
+        const result = TestUID.parse(UID_STRING);
 
         // Assert
         expect(result.invalid).toBe(false);
         expect(result.value).toBeInstanceOf(TestUID);
-        expect(result.value.value).toBe(uidString);
+        expect(result.value.value).toBe(UID_STRING);
       });
     });
 
-    describe("should fail to parse an invalid", () => {
+    describe("deve falhar ao usar valores nulos para criar um UID", () => {
       const failureCases = [
         {
-          value: null,
-          scenario: "when UID is null",
-          errorCodeExpected: FailureCode.NULL_ARGUMENT,
+          value: null as unknown as string,
+          scenario: "quando UID é nulo",
         },
         {
-          value: undefined,
-          scenario: "when UID is undefined",
-          errorCodeExpected: FailureCode.NULL_ARGUMENT,
-        },
-        {
-          value: "     ",
-          scenario: "when UID is empty",
-          errorCodeExpected: FailureCode.EMPTY_FIELD,
-        },
-        {
-          value: `wrongprefix.${v7()}`,
-          scenario: "when UID has wrong prefix",
-          errorCodeExpected: FailureCode.INVALID_UUID,
-        },
-        {
-          value: `test.${v4()}`,
-          scenario: "when UID has wrong uuid part",
-          errorCodeExpected: FailureCode.INVALID_UUID,
-        },
-        {
-          value: "test.invalid-uuid",
-          scenario: "when UUID part is invalid",
-          errorCodeExpected: FailureCode.INVALID_UUID,
-        },
-        {
-          value: "test.1234",
-          scenario: "when UID has wrong length",
-          errorCodeExpected: FailureCode.INVALID_UUID,
+          value: undefined as unknown as string,
+          scenario: "quando UID é indefinido",
         },
       ];
 
-      failureCases.forEach(({ value, scenario, errorCodeExpected }) => {
-        it(`UID object ${scenario}`, () => {
+      failureCases.forEach(({ value, scenario }) => {
+        it(scenario, () => {
           // Act
           const result = TestUID.parse(value);
+          const failures = result.failures;
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(errorCodeExpected);
+          expect(failures.length).toBe(1);
+          expect(failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
+        });
+      });
+    });
+
+    it("deve falhar ao usar um valor vazio para criar um UID", () => {
+      // Act
+      const result = TestUID.parse("     ");
+
+      // Assert
+      expect(result.invalid).toBe(true);
+      expect(result.failures[0].code).toBe(FailureCode.EMPTY_FIELD);
+    });
+
+    describe("deve falhar ao criar um UID com formato inválido", () => {
+      const failureCases = [
+        {
+          value: `wrongprefix.${v7()}`,
+          scenario: "quando UID tem prefixo errado",
+        },
+        {
+          value: `test.${v4()}`,
+          scenario: "quando UID tem parte uuid errada",
+        },
+        {
+          value: "test.invalid-uuid",
+          scenario: "quando parte UUID é inválida",
+        },
+        {
+          value: "test.1234",
+          scenario: "quando UID tem comprimento errado",
+        },
+      ];
+
+      failureCases.forEach(({ value, scenario }) => {
+        it(`objeto UID ${scenario}`, () => {
+          // Act
+          const result = TestUID.parse(value);
+          const failures = result.failures;
+
+          // Assert
+          expect(failures.length).toBe(1);
+          expect(failures[0].code).toBe(FailureCode.INVALID_UUID);
         });
       });
     });
   });
 
   describe("hydrate", () => {
-    it("should create a UID object without validation", () => {
-      // Arrange
-      const uuid = "not-uuid-with-format-v4-or-v4";
-      const uidString = `test.${uuid}`;
-
+    it("deve criar um objeto UID sem validação", () => {
       // Act
-      const hydratedUID = TestUID.hydrate(uidString);
+      const hydratedUID = TestUID.hydrate(UID_STRING);
 
       // Assert
       expect(hydratedUID).toBeInstanceOf(TestUID);
-      expect(hydratedUID.value).toBe(uidString);
+      expect(hydratedUID.value).toBe(UID_STRING);
     });
 
-    it("should extract UUID part correctly even with invalid format", () => {
+    it("deve extrair a parte UUID corretamente mesmo com formato inválido", () => {
       // Arrange
-      const invalidUUID = "invalid-uuid";
-      const uidString = `test.${invalidUUID}`;
+      const invalidUuid = `TEST.invalid-uuid`;
 
       // Act
-      const hydratedUID = TestUID.hydrate(uidString);
+      const hydratedUID = TestUID.hydrate(invalidUuid);
 
       // Assert
       expect(hydratedUID).toBeInstanceOf(TestUID);
-      expect(hydratedUID.value).toBe(uidString);
+      expect(hydratedUID.value).toBe(invalidUuid);
     });
 
-    it("should throw error", () => {
+    it("deve lançar erro", () => {
       expect(() => TestUID.hydrate(null)).toThrow(TechnicalError);
     });
   });
 
   describe("equal", () => {
-    it("should return true when UIDs are equal", () => {
+    it("deve retornar verdadeiro quando UIDs são iguais", () => {
       // Arrange
-      const uuid = v7();
-      const uidString = `test.${uuid}`;
-      const uid1 = TestUID.hydrate(uidString);
-      const uid2 = TestUID.hydrate(uidString);
+      const uid1 = TestUID.hydrate(UID_STRING);
+      const uid2 = TestUID.hydrate(UID_STRING);
 
       // Assert
       expect(uid1.equal(uid2)).toBe(true);
     });
 
-    it("should return false when UIDs are different", () => {
+    it("deve retornar falso quando UIDs são diferentes", () => {
       // Arrange
       const uid1 = TestUID.create();
       const uid2 = TestUID.create();
@@ -143,7 +150,7 @@ describe("UID", () => {
       expect(uid1.equal(uid2)).toBe(false);
     });
 
-    it("should return false when comparing with null", () => {
+    it("deve retornar falso quando comparado com nulo", () => {
       // Arrange
       const uid = TestUID.create();
 
@@ -151,7 +158,7 @@ describe("UID", () => {
       expect(uid.equal(null)).toBe(false);
     });
 
-    it("should return false when comparing with non-UID object", () => {
+    it("deve retornar falso quando comparado com objeto não-UID", () => {
       // Arrange
       const uid = TestUID.create();
       const notUIDObject = { value: uid.value };

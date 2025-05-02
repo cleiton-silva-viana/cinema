@@ -67,7 +67,7 @@ export abstract class UID {
    * @throws TechnicalError se o valor for nulo ou vazio
    */
   public static hydrate(value: string): UID {
-    TechnicalError.if(isBlank(value), "NULL_ARGUMENT");
+    TechnicalError.if(isBlank(value), FailureCode.NULL_ARGUMENT);
     const uid = UID.extractUuidPart(value, this);
     return new (this as any)(uid);
   }
