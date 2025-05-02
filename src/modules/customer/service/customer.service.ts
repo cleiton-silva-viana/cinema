@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { ICustomerRepository } from "../repository/customer.repository.interface";
 import {
   CreateCustomerProps,
@@ -10,10 +10,13 @@ import { failure, Result, success } from "../../../shared/result/result";
 import { isNull } from "../../../shared/validator/validator";
 import { Email } from "../entity/value-object/email";
 import { CustomerUID } from "../entity/value-object/customer.uid";
+import { CUSTOMER_REPOSITORY } from "../constant/customer.constants";
 
 @Injectable()
 export class CustomerService implements ICustomerService {
-  constructor(private readonly repository: ICustomerRepository) {}
+  constructor(
+    @Inject(CUSTOMER_REPOSITORY) private readonly repository: ICustomerRepository
+  ) {}
 
   public async findById(uid: string | CustomerUID): Promise<Result<Customer>> {
     if (isNull(uid))
