@@ -6,20 +6,47 @@ import { Email } from "./value-object/email";
 import { BirthDate } from "../../../shared/value-object/birth.date";
 import { CPF } from "./value-object/cpf";
 import { Name } from "../../../shared/value-object/name";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { isNull } from "../../../shared/validator/validator";
 
+/**
+ * Representa um cliente no sistema de cinema.
+ * 
+ * Esta classe é imutável. Todas as propriedades são somente leitura.
+ * Qualquer atualização resulta em uma nova instância.
+ */
 export class Customer {
+  /**
+   * Construtor privado para garantir que instâncias sejam criadas apenas
+   * através dos métodos estáticos `create` e `hydrate`.
+   * 
+   * @param uid - Identificador único do cliente
+   * @param name - Nome do cliente
+   * @param birthDate - Data de nascimento do cliente
+   * @param email - Email do cliente
+   * @param cpf - CPF do cliente (opcional)
+   * @param carteiraEstudantil - Dados da carteira estudantil (opcional)
+   */
   private constructor(
     public readonly uid: CustomerUID,
-    private _name: Name,
-    private _birthDate: BirthDate,
-    private _email: Email,
+    public readonly name: Name,
+    public readonly birthDate: BirthDate,
+    public readonly email: Email,
     public readonly cpf?: CPF,
     public readonly carteiraEstudantil?: {
-      id: string;
-      validade: Date;
+      readonly id: string;
+      readonly validade: Date;
     },
   ) {}
 
+  /**
+   * Cria uma nova instância de Customer com validação.
+   * 
+   * @param name - Nome do cliente
+   * @param birthDate - Data de nascimento do cliente
+   * @param email - Email do cliente
+   * @returns Um Result contendo o Customer criado ou falhas de validação
+   */
   public static create(
     name: string,
     birthDate: Date,
@@ -45,16 +72,26 @@ export class Customer {
             emailResult.value,));
   }
 
+  /**
+   * Cria uma instância de Customer a partir de dados existentes sem validação.
+   * Usado principalmente para reconstruir objetos a partir do banco de dados.
+   * 
+   * @param uid - Identificador único do cliente
+   * @param name - Nome do cliente
+   * @param birthDate - Data de nascimento do cliente
+   * @param email - Email do cliente
+   * @returns Uma instância de Customer
+   * @throws TechnicalError se algum parâmetro for nulo ou indefinido
+   */
   public static hydrate(
     uid: string,
     name: string,
     birthDate: Date,
     email: string,
   ): Customer {
-    // Invalid hydrate user data, properties are not nullable
     TechnicalError.if(
       !uid || !name || !birthDate || !email,
-      "PROPERTIES_NOT_NULLABLES",
+      FailureCode.NULL_ARGUMENT,
     );
     return new Customer(
       CustomerUID.hydrate(uid),
@@ -64,19 +101,32 @@ export class Customer {
     );
   }
 
+  /**
+   * Atualiza os dados do cliente criando uma nova instância.
+   * Mantém a imutabilidade da classe.
+   * 
+   * @param updates - Objeto contendo os campos a serem atualizados
+   * @returns Um Result contendo o novo Customer atualizado ou falhas de validação
+   */
   public update(updates: {
     name?: string | Name;
     email?: string | Email;
     birthDate?: Date | BirthDate;
-  }): Result<void> {
+  }): Result<Customer> {
+    if (isNull(updates)) return failure({
+      code: FailureCode.NULL_ARGUMENT
+    })
+
     const failures: SimpleFailure[] = [];
 
     if (!updates.name && !updates.email && !updates.birthDate)
       return failure({
-        code: "ANY_DATA_IS_REQUIRED_FOR_UPDATE",
+        code: FailureCode.MISSING_REQUIRED_DATA,
       });
 
-    const pendingUpdates = new Map();
+    let updatedName = this.name;
+    let updatedEmail = this.email;
+    let updatedBirthDate = this.birthDate;
 
     if (updates.name) {
       const nameResult =
@@ -85,7 +135,7 @@ export class Customer {
           : Name.create(updates.name);
 
       if (nameResult.invalid) failures.push(...nameResult.failures);
-      else pendingUpdates.set("name", nameResult.value);
+      else updatedName = nameResult.value;
     }
 
     if (updates.email) {
@@ -95,7 +145,7 @@ export class Customer {
           : Email.create(updates.email);
 
       if (emailResult.invalid) failures.push(...emailResult.failures);
-      else pendingUpdates.set("email", emailResult.value);
+      else updatedEmail = emailResult.value;
     }
 
     if (updates.birthDate) {
@@ -105,37 +155,20 @@ export class Customer {
           : BirthDate.create(updates.birthDate);
 
       if (birthDateResult.invalid) failures.push(...birthDateResult.failures);
-      else pendingUpdates.set("birthDate", birthDateResult.value);
+      else updatedBirthDate = birthDateResult.value;
     }
 
     if (failures.length > 0) return failure(failures);
 
-    pendingUpdates.forEach((value, key) => {
-      switch (key) {
-        case "name":
-          this._name = value;
-          break;
-        case "email":
-          this._email = value;
-          break;
-        case "birthDate":
-          this._birthDate = value;
-          break;
-      }
-    });
-
-    return success(void 0);
-  }
-
-  get name(): Name {
-    return this._name;
-  }
-
-  get email(): Email {
-    return this._email;
-  }
-
-  get birthDate(): BirthDate {
-    return this._birthDate;
+    return success(
+      new Customer(
+        this.uid,
+        updatedName,
+        updatedBirthDate,
+        updatedEmail,
+        this.cpf,
+        this.carteiraEstudantil
+      )
+    );
   }
 }

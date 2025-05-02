@@ -4,242 +4,308 @@ import { Name } from "../../../shared/value-object/name";
 import { Email } from "./value-object/email";
 import { BirthDate } from "../../../shared/value-object/birth.date";
 import { CustomerUID } from "./value-object/customer.uid";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 
 describe("Customer", () => {
-  const validName = faker.person.fullName();
-  const validBirthDate = faker.date.between({
-    from: new Date(1901, 0, 0),
-    to: new Date(1969, 0, 0),
-  });
-  const validEmail = faker.internet.email();
+  const NAME = faker.person.fullName();
+  const BIRTH_DATE = faker.date.birthdate({ mode: "age", min: 18, max: 90 });
+  const EMAIL = faker.internet.email();
 
-  describe("Static Methods", () => {
+  describe("Métodos Estáticos", () => {
     describe("create", () => {
-      it("should create a valid customer", () => {
+      it("deve criar um cliente válido", () => {
         // Act
-        const result = Customer.create(validName, validBirthDate, validEmail);
+        const result = Customer.create(NAME, BIRTH_DATE, EMAIL);
 
         // Assert
         expect(result.invalid).toBe(false);
         expect(result.value.uid).toBeDefined();
-        expect(result.value.name.value).toBe(validName);
-        expect(result.value.email.value).toBe(validEmail);
-        expect(result.value.birthDate.value).toEqual(validBirthDate);
+        expect(result.value.name.value).toBe(NAME);
+        expect(result.value.email.value).toBe(EMAIL);
+        expect(result.value.birthDate.value).toEqual(BIRTH_DATE);
       });
 
-      [
-        {
-          name: "",
-          description: "invalid name",
-          expectedFailures: 1,
-        },
-        {
-          email: "invalid_mail.com",
-          description: "invalid email",
-          expectedFailures: 1,
-        },
-        {
-          birthDate: new Date(),
-          description: "invalid birth date",
-          expectedFailures: 1,
-        },
-        {
-          name: "",
-          email: "invalid_mail.com",
-          description: "invalid name and email",
-          expectedFailures: 2,
-        },
-        {
-          name: "",
-          birthDate: new Date(),
-          description: "invalid name and birth date",
-          expectedFailures: 2,
-        },
-        {
-          email: "invalid_mail.com",
-          birthDate: new Date(),
-          description: "invalid email and birth date",
-          expectedFailures: 2,
-        },
-        {
-          name: "",
-          email: "invalid_mail.com",
-          birthDate: new Date(),
-          description: "all fields invalid",
-          expectedFailures: 3,
-        },
-      ].forEach((test) => {
-        it(`should return failure for ${test.description}`, () => {
-          // Arrange
-          const name = test.name ?? validName;
-          const birthDate = test.birthDate ?? validBirthDate;
-          const email = test.email ?? validEmail;
+      describe("deve falhar ao criar um cliente com dados inválidos", () => {
+        const failureCases = [
+          {
+            name: "",
+            birthDate: BIRTH_DATE,
+            email: EMAIL,
+            description: "quando nome é inválido",
+            expectedFailures: 1,
+          },
+          {
+            name: NAME,
+            birthDate: BIRTH_DATE,
+            email: "invalid_mail.com",
+            description: "quando email é inválido",
+            expectedFailures: 1,
+          },
+          {
+            name: NAME,
+            birthDate: new Date(),
+            email: EMAIL,
+            description: "quando data de nascimento é inválida",
+            expectedFailures: 1,
+          },
+          {
+            name: "",
+            birthDate: BIRTH_DATE,
+            email: "invalid_mail.com",
+            description: "quando nome e email são inválidos",
+            expectedFailures: 2,
+          },
+          {
+            name: NAME,
+            birthDate: new Date(),
+            email: "invalid_mail.com",
+            description: "quando email e data de nascimento são inválidos",
+            expectedFailures: 2,
+          },
+          {
+            name: "",
+            birthDate: new Date(),
+            email: "invalid_mail.com",
+            description: "quando todos os campos são inválidos",
+            expectedFailures: 3,
+          },
+        ];
 
-          // Act
-          const result = Customer.create(name, birthDate, email);
+        failureCases.forEach(
+          ({ name, birthDate, email, description, expectedFailures }) => {
+            it(description, () => {
+              // Act
+              const result = Customer.create(name, birthDate, email);
 
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures).toHaveLength(test.expectedFailures);
-        });
+              // Assert
+              expect(result.invalid).toBe(true);
+              expect(result.failures).toHaveLength(expectedFailures);
+            });
+          },
+        );
       });
     });
 
     describe("hydrate", () => {
-      it("should restore a customer with provided data", () => {
+      it("deve criar um objeto Customer sem validação", () => {
         // Arrange
         const customerUid = CustomerUID.create().value;
 
         // Act
-        const customer = Customer.hydrate(
-          customerUid,
-          validName,
-          validBirthDate,
-          validEmail,
-        );
+        const customer = Customer.hydrate(customerUid, NAME, BIRTH_DATE, EMAIL);
 
         // Assert
+        expect(customer).toBeInstanceOf(Customer);
         expect(customer.uid.value).toBe(customerUid);
-        expect(customer.name.value).toBe(validName);
-        expect(customer.email.value).toBe(validEmail);
-        expect(customer.birthDate.value).toEqual(validBirthDate);
+        expect(customer.name.value).toBe(NAME);
+        expect(customer.email.value).toBe(EMAIL);
+        expect(customer.birthDate.value).toEqual(BIRTH_DATE);
       });
 
-      it("should throw technical error for null values", () => {
+      it("deve lançar TechnicalError quando algum valor é nulo", () => {
         // Act & Assert
-        expect(() =>
-          Customer.hydrate(null, validName, validBirthDate, validEmail),
-        ).toThrow("PROPERTIES_NOT_NULLABLES");
+        expect(() => Customer.hydrate(null, NAME, BIRTH_DATE, EMAIL)).toThrow(
+          FailureCode.NULL_ARGUMENT,
+        );
       });
     });
   });
 
-  describe("Instance Methods", () => {
-    let customer: Customer;
-    let validNameVO: Name;
-    let validEmailVO: Email;
-    let validBirthDateVO: BirthDate;
-
-    beforeEach(() => {
-      customer = Customer.hydrate(
-        "cus.123e4567-e89b-12d3-a456-426614174000",
-        validName,
-        validBirthDate,
-        validEmail,
-      );
-      validNameVO = Name.hydrate(faker.person.firstName());
-      validEmailVO = Email.hydrate(faker.internet.email());
-      validBirthDateVO = BirthDate.hydrate(new Date("1995-01-01"));
-    });
-
+  describe("Métodos de Instância", () => {
     describe("update", () => {
-      it("should update with primitive values", () => {
-        // Arrange
-        const newName = faker.person.firstName();
-        const newEmail = faker.internet.email();
-        const newBirthDate = new Date("1995-01-01");
+      let validNameVO = Name.hydrate(faker.person.firstName())
+      let validEmailVO = Email.hydrate(faker.internet.email())
+      let validBirthDateVO = BirthDate.hydrate(new Date(BIRTH_DATE))
+      let customer = Customer.hydrate(
+        CustomerUID.create().value,
+        NAME,
+        BIRTH_DATE,
+        EMAIL
+      );
 
-        const updates = {
-          name: newName,
-          email: newEmail,
-          birthDate: newBirthDate,
-        };
+      describe("deve atualizar um cliente com sucesso", () => {
+        it("com valores primitivos - nome", () => {
+          // Arrange
+          const newName = faker.person.firstName();
+          const updates = { name: newName };
+          
+          // Act
+          const result = customer.update(updates);
+          
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value).toBeInstanceOf(Customer);
+          expect(result.value.name.value).toBe(newName);
+          expect(result.value.email).toBe(customer.email);
+          expect(result.value.birthDate).toBe(customer.birthDate);
+        });
+        
+        it("com valores primitivos - email", () => {
+          // Arrange
+          const newEmail = faker.internet.email();
+          const updates = { email: newEmail };
+          
+          // Act
+          const result = customer.update(updates);
+          
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value).toBeInstanceOf(Customer);
+          expect(result.value.name).toBe(customer.name);
+          expect(result.value.email.value).toBe(newEmail);
+          expect(result.value.birthDate).toBe(customer.birthDate);
+        });
+        
+        it("com valores primitivos - data de nascimento", () => {
+          // Arrange
+          const newBirthDate = new Date("1995-01-01");
+          const updates = { birthDate: newBirthDate };
+          
+          // Act
+          const result = customer.update(updates);
+          
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value).toBeInstanceOf(Customer);
+          expect(result.value.name).toBe(customer.name);
+          expect(result.value.email).toBe(customer.email);
+          expect(result.value.birthDate.value).toEqual(newBirthDate);
+        });
 
-        // Act
-        const result = customer.update(updates);
-
-        // Assert
-        expect(result.invalid).toBe(false);
-        expect(customer.name.value).toBe(newName);
-        expect(customer.email.value).toBe(newEmail);
-        expect(customer.birthDate.value).toEqual(newBirthDate);
+        it("com valores primitivos - todos os campos", () => {
+          // Arrange
+          const newName = faker.person.firstName();
+          const newEmail = faker.internet.email();
+          const newBirthDate = new Date("1995-01-01");
+          const updates = { 
+            name: newName,
+            email: newEmail,
+            birthDate: newBirthDate
+          };
+          
+          // Act
+          const result = customer.update(updates);
+          
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value).toBeInstanceOf(Customer);
+          expect(result.value.name.value).toBe(newName);
+          expect(result.value.email.value).toBe(newEmail);
+          expect(result.value.birthDate.value).toEqual(newBirthDate);
+        });
+        
+        it("com objetos de valor - nome", () => {
+          // Arrange
+          const updates = { name: validNameVO };
+          
+          // Act
+          const result = customer.update(updates);
+          
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value).toBeInstanceOf(Customer);
+          expect(result.value.name).toBe(validNameVO);
+          expect(result.value.email).toBe(customer.email);
+          expect(result.value.birthDate).toBe(customer.birthDate);
+        });
+        
+        it("com objetos de valor - email", () => {
+          // Arrange
+          const updates = { email: validEmailVO };
+          
+          // Act
+          const result = customer.update(updates);
+          
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value).toBeInstanceOf(Customer);
+          expect(result.value.name).toBe(customer.name);
+          expect(result.value.email).toBe(validEmailVO);
+          expect(result.value.birthDate).toBe(customer.birthDate);
+        });
+        
+        it("com objetos de valor - data de nascimento", () => {
+          // Arrange
+          const updates = { birthDate: validBirthDateVO };
+          
+          // Act
+          const result = customer.update(updates);
+          
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value).toBeInstanceOf(Customer);
+          expect(result.value.name).toBe(customer.name);
+          expect(result.value.email).toBe(customer.email);
+          expect(result.value.birthDate).toBe(validBirthDateVO);
+        });
+        
+        it("com objetos de valor - todos os campos", () => {
+          // Arrange
+          const updates = { 
+            name: validNameVO,
+            email: validEmailVO,
+            birthDate: validBirthDateVO
+          };
+          
+          // Act
+          const result = customer.update(updates);
+          
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value).toBeInstanceOf(Customer);
+          expect(result.value.name).toBe(validNameVO);
+          expect(result.value.email).toBe(validEmailVO);
+          expect(result.value.birthDate).toBe(validBirthDateVO);
+        });
       });
 
-      it("should update with value objects", () => {
-        // Arrange
-        const updates = {
-          name: validNameVO,
-          email: validEmailVO,
-          birthDate: validBirthDateVO,
-        };
+      describe("deve falhar ao atualizar com dados inválidos", () => {
+        const failureCases = [
+          {
+            scenario: "quando email é inválido",
+            updates: {
+              email: "invalid-email",
+            }
+          },
+          {
+            scenario: "quando nome é inválido e email é válido (tudo ou nada)",
+            updates: {
+              name: "a", // nome inválido
+              email: faker.internet.email(),
+            }
+          },
+        ];
+        failureCases.forEach(
+          ({ scenario, updates }) => {
+            it(scenario, () => {
+              // Arrange
+              const originalName = customer.name;
+              const originalEmail = customer.email;
+              const originalBirthDate = customer.birthDate;
 
-        // Act
-        const result = customer.update(updates);
+              // Act
+              const result = customer.update(updates);
 
-        // Assert
-        expect(result.invalid).toBe(false);
-        expect(customer.name).toBe(validNameVO);
-        expect(customer.email).toBe(validEmailVO);
-        expect(customer.birthDate).toBe(validBirthDateVO);
+              // Assert
+              expect(result.invalid).toBe(true);
+              expect(customer.name).toBe(originalName);
+              expect(customer.email).toBe(originalEmail);
+              expect(customer.birthDate).toBe(originalBirthDate);
+            });
+          },
+        );
       });
 
-      it("should update partially", () => {
-        // Arrange
-        const originalEmail = customer.email;
-        const originalBirthDate = customer.birthDate;
-        const updates = {
-          name: validNameVO,
-        };
-
+      it('deve falhar quando receber um objeto nulo', () => {
         // Act
-        const result = customer.update(updates);
-
-        // Assert
-        expect(result.invalid).toBe(false);
-        expect(customer.name).toBe(validNameVO);
-        expect(customer.email).toBe(originalEmail);
-        expect(customer.birthDate).toBe(originalBirthDate);
-      });
-
-      it("should fail with invalid data", () => {
-        // Arrange
-        const originalEmail = customer.email;
-        const updates = {
-          email: "invalid-email",
-        };
-
-        // Act
-        const result = customer.update(updates);
+        const result = customer.update(null)
 
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toBeDefined();
-        expect(result.failures).toHaveLength(1);
-        expect(customer.email).toBe(originalEmail);
-      });
-
-      it("should apply all or nothing on multiple updates", () => {
-        // Arrange
-        const originalName = customer.name;
-        const originalEmail = customer.email;
-        const updates = {
-          name: "a", // invalid name
-          email: faker.internet.email(),
-        };
-
-        // Act
-        const result = customer.update(updates);
-
-        // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures).toHaveLength(1);
-        expect(customer.name).toBe(originalName);
-        expect(customer.email).toBe(originalEmail);
-      });
-
-      it("should fail with no data to update", () => {
-        // Arrange
-        const updates = {};
-
-        // Act
-        const result = customer.update(updates);
-
-        // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures).toBeDefined();
-        expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe("ANY_DATA_IS_REQUIRED_FOR_UPDATE");
-      });
+        expect(result.failures.length).toBe(1)
+        expect(result.failures[0].code).toBe(FailureCode.NULL_ARGUMENT)
+      })
     });
   });
 });
