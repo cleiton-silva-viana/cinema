@@ -10,7 +10,7 @@ export interface IPersonRepository {
    * @param person Pessoa a ser salva
    * @returns Result indicando sucesso ou falha na operação
    */
-  save(person: Person): Promise<null>;
+  save(person: Person): Promise<Person>;
 
   /**
    * Busca uma pessoa pelo seu identificador único.
