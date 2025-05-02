@@ -1,16 +1,20 @@
 import { CPF } from "./cpf";
 import { TechnicalError } from "../../../../shared/error/technical.error";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("CPF", () => {
+  const VALID_CPF_1 = "123.456.789-90";
+  const VALID_CPF_2 = "123.456.789-40";
+
   describe("create", () => {
-    describe("should create a valid", () => {
+    describe("deve criar um CPF válido", () => {
       const successCases = [
-        { cpf: "1234567890123", scenario: "with valid format" },
-        { cpf: "9876543210123", scenario: "with different valid numbers" },
+        { cpf: VALID_CPF_1, scenario: "com formato válido" },
+        { cpf: "987.654.321-23", scenario: "com números válidos diferentes" },
       ];
 
       successCases.forEach(({ cpf, scenario }) => {
-        it(`CPF object ${scenario}`, () => {
+        it(`objeto CPF ${scenario}`, () => {
           // Act
           const result = CPF.create(cpf);
 
@@ -22,111 +26,122 @@ describe("CPF", () => {
       });
     });
 
-    describe("should fail to create an invalid", () => {
+    it("deve falhar ao usar um valor vazio para criar um CPF", () => {
+      // Act
+      const result = CPF.create("    ");
+
+      // Assert
+      expect(result.invalid).toBe(true);
+      expect(result.failures[0].code).toBe(FailureCode.EMPTY_FIELD);
+    });
+
+    describe("deve falhar ao criar um CPF com valor inválido", () => {
       const failureCases = [
         {
-          cpf: null,
-          scenario: "when CPF is null",
-          errorCodeExpected: "FIELD_CANNOT_BE_NULL",
+          cpf: "123.456.789-0",
+          scenario: "quando CPF tem menos de 13 dígitos",
         },
         {
-          cpf: undefined,
-          scenario: "when CPF is undefined",
-          errorCodeExpected: "FIELD_CANNOT_BE_NULL",
+          cpf: "123.456.789.012-34",
+          scenario: "quando CPF tem mais de 13 dígitos",
         },
         {
-          cpf: "",
-          scenario: "when CPF is empty",
-          errorCodeExpected: "FIELD_CANNOT_BE_EMPTY",
-        },
-        {
-          cpf: "123456789012",
-          scenario: "when CPF has less than 13 digits",
-          errorCodeExpected: "INVALID_CPF_FORMAT",
-        },
-        {
-          cpf: "12345678901234",
-          scenario: "when CPF has more than 13 digits",
-          errorCodeExpected: "INVALID_CPF_FORMAT",
-        },
-        {
-          cpf: "1234567890abc",
-          scenario: "when CPF contains non-numeric characters",
-          errorCodeExpected: "INVALID_CPF_FORMAT",
+          cpf: "123.456.789-bc",
+          scenario: "quando CPF contém caracteres não numéricos",
         },
       ];
 
-      failureCases.forEach(({ cpf, scenario, errorCodeExpected }) => {
-        it(`CPF object ${scenario}`, () => {
+      failureCases.forEach(({ cpf, scenario }) => {
+        it(`objeto CPF ${scenario}`, () => {
           // Act
           const result = CPF.create(cpf);
+          const failures = result.failures;
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(errorCodeExpected);
+          expect(failures.length).toBe(1);
+          expect(failures[0].code).toBe(FailureCode.INVALID_CPF_FORMAT);
+        });
+      });
+    });
+
+    describe("deve falhar ao usar valores nulos para criar um criar um cpf", () => {
+      const failureCases = [
+        {
+          cpf: null as unknown as string,
+          scenario: "quando CPF é nulo",
+        },
+        {
+          cpf: undefined as unknown as string,
+          scenario: "quando CPF é indefinido",
+        },
+      ];
+
+      failureCases.forEach(({ cpf, scenario }) => {
+        it(scenario, () => {
+          // Act
+          const result = CPF.create(cpf);
+          const failures = result.failures;
+
+          // Assert
+          expect(failures.length).toBe(1);
+          expect(failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
         });
       });
     });
   });
 
   describe("hydrate", () => {
-    it("should create a CPF object without validation", () => {
-      // Arrange
-      const cpfString = "1234567890123";
-
+    it("deve criar um objeto CPF sem validação", () => {
       // Act
-      const hydratedCPF = CPF.hydrate(cpfString);
+      const result = CPF.hydrate(VALID_CPF_1);
 
       // Assert
-      expect(hydratedCPF).toBeInstanceOf(CPF);
-      expect(hydratedCPF.value).toBe(cpfString);
+      expect(result).toBeInstanceOf(CPF);
+      expect(result.value).toBe(VALID_CPF_1);
     });
 
-    it("should throw TechnicalError when CPF is null or undefined", () => {
+    it("deve lançar um erro quando CPF é nulo ou indefinido", () => {
       // Arrange
-      const values = [null, undefined];
+      const values: Array<any> = [null, undefined];
 
       // Act & Assert
       values.forEach((value) => {
-        expect(() => {
-          CPF.hydrate(value);
-        }).toThrow(TechnicalError);
+        expect(() => CPF.hydrate(value)).toThrow(TechnicalError);
       });
     });
   });
 
   describe("equal", () => {
-    it("should return true when CPFs are equal", () => {
+    it("deve retornar verdadeiro quando CPFs são iguais", () => {
       // Arrange
-      const cpfString = "1234567890123";
-      const result1 = CPF.create(cpfString);
-      const result2 = CPF.create(cpfString);
+      const result1 = CPF.create(VALID_CPF_1);
+      const result2 = CPF.create(VALID_CPF_1);
 
       // Assert
       expect(result1.value.equal(result2.value)).toBe(true);
     });
 
-    it("should return false when CPFs are different", () => {
+    it("deve retornar falso quando CPFs são diferentes", () => {
       // Arrange
-      const result1 = CPF.create("1234567890123");
-      const result2 = CPF.create("9876543210123");
+      const result1 = CPF.create(VALID_CPF_1);
+      const result2 = CPF.create(VALID_CPF_2);
 
       // Assert
       expect(result1.value.equal(result2.value)).toBe(false);
     });
 
-    it("should return false when comparing with null", () => {
+    it("deve retornar falso quando comparado com nulo", () => {
       // Arrange
-      const result = CPF.create("1234567890123");
+      const result = CPF.create(VALID_CPF_1);
 
       // Assert
-      expect(result.value.equal(null)).toBe(false);
+      expect(result.value.equal(null as unknown as CPF)).toBe(false);
     });
 
-    it("should return false when comparing with non-CPF object", () => {
+    it("deve retornar falso quando comparado com objeto não-CPF", () => {
       // Arrange
-      const result = CPF.create("1234567890123");
-      const notCPFObject = { value: "1234567890123" };
+      const result = CPF.create(VALID_CPF_1);
+      const notCPFObject = { value: VALID_CPF_1 };
 
       // Assert
       expect(result.value.equal(notCPFObject as unknown as CPF)).toBe(false);
