@@ -1,14 +1,15 @@
-import { MovieDescription } from './movie.description';
+import { MovieDescription } from "./movie.description";
 import { faker } from "@faker-js/faker/.";
-import { codes } from "../../../../shared/value-object/multilingual-content";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("MovieDescription", () => {
-  const validPtDescription = faker.lorem.paragraph();
-  const validEnDescription = faker.lorem.paragraph();
-  const tooShortDescription = faker.string.alphanumeric(47);
-  const tooLongDescription = faker.string.alphanumeric(1025);
-  const descriptionWithValidCharacters = faker.lorem.paragraph() + ".,!?-_+-";
-  const descriptionWithInvalidCharacters = faker.lorem.paragraph() + "¥";
+  const VALID_PT_DESCRIPTION = faker.lorem.paragraph();
+  const VALID_EN_DESCRIPTION = faker.lorem.paragraph();
+  const TOO_SHORT_DESCRIPTION = faker.string.alphanumeric(47);
+  const TOO_LONG_DESCRIPTION = faker.string.alphanumeric(1025);
+  const DESCRIPTION_WITH_VALID_SPECIAL_CHARS =
+    faker.lorem.paragraph() + ".,!?-_+-";
+  const DESCRIPTION_WITH_INVALID_SPECIAL_CHARS = faker.lorem.paragraph() + "¥";
 
   describe("create", () => {
     describe("deve retornar uma instância de MovieDescription com sucesso", () => {
@@ -16,21 +17,21 @@ describe("MovieDescription", () => {
         {
           contents: [
             { language: "pt", text: faker.string.alphanumeric(48) },
-            { language: "en", text: validEnDescription },
+            { language: "en", text: VALID_EN_DESCRIPTION },
           ],
           scenario: "com o tamanho mínimo exato",
         },
         {
           contents: [
-            { language: "pt", text: validPtDescription },
+            { language: "pt", text: VALID_PT_DESCRIPTION },
             { language: "en", text: faker.string.alphanumeric(1024) },
           ],
           scenario: "com o tamanho máximo exato",
         },
         {
           contents: [
-            { language: "pt", text: descriptionWithValidCharacters },
-            { language: "en", text: descriptionWithValidCharacters },
+            { language: "pt", text: DESCRIPTION_WITH_VALID_SPECIAL_CHARS },
+            { language: "en", text: DESCRIPTION_WITH_VALID_SPECIAL_CHARS },
           ],
           scenario: "com caracteres especiais permitidos",
         },
@@ -52,42 +53,42 @@ describe("MovieDescription", () => {
       const failureCases = [
         {
           contents: [
-            { language: "pt", text: tooShortDescription },
-            { language: "en", text: validEnDescription },
+            { language: "pt", text: TOO_SHORT_DESCRIPTION },
+            { language: "en", text: VALID_EN_DESCRIPTION },
           ],
           scenario: "com menos que o tamanho mínimo",
-          errorCode: codes.contentLengthOutOfRange,
+          errorCode: FailureCode.INVALID_FIELD_SIZE,
         },
         {
           contents: [
-            { language: "pt", text: validPtDescription },
-            { language: "en", text: tooLongDescription },
+            { language: "pt", text: VALID_PT_DESCRIPTION },
+            { language: "en", text: TOO_LONG_DESCRIPTION },
           ],
           scenario: "com mais que o tamanho máximo",
-          errorCode: codes.contentLengthOutOfRange,
+          errorCode: FailureCode.INVALID_FIELD_SIZE,
         },
         {
           contents: [
-            { language: "pt", text: descriptionWithInvalidCharacters },
-            { language: "en", text: descriptionWithValidCharacters },
+            { language: "pt", text: DESCRIPTION_WITH_INVALID_SPECIAL_CHARS },
+            { language: "en", text: DESCRIPTION_WITH_VALID_SPECIAL_CHARS },
           ],
           scenario: "com caracteres inválidos na descrição",
-          errorCode: codes.contentInvalidFormat,
+          errorCode: FailureCode.CONTENT_INVALID_FORMAT,
         },
         {
           contents: null as any,
           scenario: "quando o conteúdo é nulo",
-          errorCode: codes.contentNullOrEmpty,
+          errorCode: FailureCode.NULL_ARGUMENT,
         },
         {
           contents: undefined as any,
           scenario: "quando o conteúdo é indefinido",
-          errorCode: codes.contentNullOrEmpty,
+          errorCode: FailureCode.NULL_ARGUMENT,
         },
         {
           contents: [],
           scenario: "quando o conteúdo está vazio",
-          errorCode: codes.contentNullOrEmpty,
+          errorCode: FailureCode.EMPTY_FIELD,
         },
       ];
 
