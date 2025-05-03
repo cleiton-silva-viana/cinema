@@ -271,5 +271,19 @@
       "en": "The requested movie is not available in the specified period."
     },
     "statusCode": 400
+  },
+  "MOVIE_ARCHIVE_BLOCKED_BY_SCREENINGS": {
+    "message": {
+      "pt": "Não é possível arquivar um filme que possui exibições agendadas.",
+      "en": "Cannot archive a movie that has scheduled screenings."
+    },
+    "statusCode": 400
+  },
+  "MOVIE_DELETE_BLOCKED_BY_SHOWINGS": {
+    "message": {
+      "pt": "Não é possível excluir um filme que possui ou já teve exibições. Considere arquivá-lo.",
+      "en": "Cannot delete a movie that has or had showings. Consider archiving it instead."
+    },
+    "statusCode": 400
   }
 }
