@@ -1,13 +1,15 @@
-import { MovieService, MovieServiceCodes } from "./movie.service";
+import { MovieService } from "./movie.service";
 import { IMovieRepository } from "../repository/movie.repository.interface";
 import { IShowtimeService } from "../../showtime/service/showtime.service.interface";
 import { MovieUID } from "../entity/value-object/movie.uid";
-import { Movie } from "../entity/movie";
+import { ICreateMovieInput, Movie } from "../entity/movie";
 import { failure, success } from "../../../shared/result/result";
 import {
   IMovieFilterInput,
   MovieFilter,
 } from "../entity/value-object/movie.filter";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { v7 } from "uuid";
 
 describe("MovieService", () => {
   let movieService: MovieService;
@@ -83,9 +85,7 @@ describe("MovieService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(
-        MovieServiceCodes.RESOURCE_NOT_FOUND,
-      );
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
       expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
       expect(repositoryMock.findById).toHaveBeenCalledWith(validMovieUID);
     });
@@ -146,14 +146,12 @@ describe("MovieService", () => {
   });
 
   describe("create", () => {
-    const createProps = {
+    const createProps: ICreateMovieInput = {
       title: [{ language: "pt", text: "Título do Filme" }],
       description: [{ language: "pt", text: "Descrição do filme" }],
       ageRating: "10",
-      images: { poster: { uid: { value: "poster-uid" } } as any },
-      contributors: [
-        { personUid: "person-uid", movieUid: "movie-uid", role: "director" },
-      ],
+      imageUID: "IMG." + v7(),
+      contributors: [{ personUid: "person-uid", role: "director" }],
     };
 
     it("should create movie successfully", async () => {
@@ -181,7 +179,7 @@ describe("MovieService", () => {
       // Assert
       expect(result.invalid).toBe(true);
       expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toBe(MovieServiceCodes.INVALID_INPUT);
+      expect(result.failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
       expect(repositoryMock.save).not.toHaveBeenCalled();
     });
 
@@ -237,7 +235,7 @@ describe("MovieService", () => {
       // Assert
       expect(result.invalid).toBe(true);
       expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toEqual(MovieServiceCodes.INVALID_INPUT);
+      expect(result.failures[0].code).toEqual(FailureCode.NULL_ARGUMENT);
     });
 
     it("should return failure when movie not found", async () => {
@@ -253,9 +251,7 @@ describe("MovieService", () => {
       // Assert
       expect(result.invalid).toBe(true);
       expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toEqual(
-        MovieServiceCodes.RESOURCE_NOT_FOUND,
-      );
+      expect(result.failures[0].code).toEqual(FailureCode.RESOURCE_NOT_FOUND);
     });
 
     it("deve retornar uma falha quando há as novas propriedades são inválidas", async () => {
@@ -308,9 +304,7 @@ describe("MovieService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(
-        MovieServiceCodes.RESOURCE_NOT_FOUND,
-      );
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
       expect(movieMock.toPendingReview).not.toHaveBeenCalled();
       expect(repositoryMock.update).not.toHaveBeenCalled();
     });
@@ -377,9 +371,7 @@ describe("MovieService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(
-        MovieServiceCodes.RESOURCE_NOT_FOUND,
-      );
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
       expect(movieMock.toApprove).not.toHaveBeenCalled();
       expect(repositoryMock.update).not.toHaveBeenCalled();
     });
@@ -449,9 +441,7 @@ describe("MovieService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(
-        MovieServiceCodes.RESOURCE_NOT_FOUND,
-      );
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
       expect(movieMock.toArchive).not.toHaveBeenCalled();
       expect(repositoryMock.update).not.toHaveBeenCalled();
     });
@@ -501,7 +491,7 @@ describe("MovieService", () => {
       // Assert
       expect(result.invalid).toBe(true);
       expect(result.failures[0].code).toBe(
-        MovieServiceCodes.MOVIE_HAS_SCHEDULED_SCREENINGS,
+        FailureCode.MOVIE_ARCHIVE_BLOCKED_BY_SCREENINGS,
       );
       expect(movieMock.toArchive).not.toHaveBeenCalled();
       expect(repositoryMock.update).not.toHaveBeenCalled();
@@ -557,7 +547,7 @@ describe("MovieService", () => {
       expect(result.invalid).toBe(true);
       expect(result.failures.length).toBe(1);
       expect(result.failures[0].code).toBe(
-        MovieServiceCodes.CANNOT_DELETE_MOVIE_WITH_SHOWINGS,
+        FailureCode.MOVIE_DELETE_BLOCKED_BY_SHOWINGS,
       );
       expect(repositoryMock.delete).not.toHaveBeenCalled();
     });
@@ -587,9 +577,7 @@ describe("MovieService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(
-        MovieServiceCodes.RESOURCE_NOT_FOUND,
-      );
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
       expect(showtimeServiceMock.movieHasShowings).not.toHaveBeenCalled();
       expect(repositoryMock.delete).not.toHaveBeenCalled();
     });
