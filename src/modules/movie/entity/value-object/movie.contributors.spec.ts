@@ -1,14 +1,13 @@
-import { contributorsCodes, MovieContributors } from "./movie.contributors";
+import { MovieContributors } from "./movie.contributors";
 import {
   MovieContributor,
   IMovieContributorInput,
   PersonRole,
 } from "./movie.contributor";
 import { PersonUID } from "../../../person/entity/value-object/person.uid";
-import { MovieUID } from "./movie.uid";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("MovieContributors", () => {
-  // Preparando os dados de teste
   const createValidContributor = (
     role: PersonRole = PersonRole.ACTOR,
   ): IMovieContributorInput => ({
@@ -61,7 +60,7 @@ describe("MovieContributors", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures[0].code).toBe(
-          contributorsCodes.THE_MOVIE_MISSING_CONTRIBUTORS,
+          FailureCode.MOVIE_MISSING_CONTRIBUTORS,
         );
       });
 
@@ -72,7 +71,7 @@ describe("MovieContributors", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures[0].code).toBe(
-          contributorsCodes.THE_MOVIE_MISSING_CONTRIBUTORS,
+          FailureCode.MOVIE_MISSING_CONTRIBUTORS,
         );
       });
 
@@ -89,7 +88,7 @@ describe("MovieContributors", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures[0].code).toBe(
-          contributorsCodes.MOVIE_DIRECTOR_REQUIRED,
+          FailureCode.MOVIE_DIRECTOR_REQUIRED,
         );
       });
 
@@ -126,14 +125,14 @@ describe("MovieContributors", () => {
       it("deve lançar erro técnico se a entrada for null", () => {
         // Assert
         expect(() => MovieContributors.hydrate(null)).toThrow(
-          contributorsCodes.NULL_ARGUMENT,
+          FailureCode.NULL_ARGUMENT,
         );
       });
 
       it("deve lançar erro técnico se a entrada for um array vazio", () => {
         // Assert
         expect(() => MovieContributors.hydrate([])).toThrow(
-          contributorsCodes.EMPTY_VALUES,
+          FailureCode.EMPTY_FIELD,
         );
       });
     });

@@ -7,21 +7,28 @@ import {
 } from "./movie.contributor";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { isNull } from "../../../../shared/validator/validator";
-
-export const contributorsCodes = {
-  THE_MOVIE_MISSING_CONTRIBUTORS: "THE_MOVIE_MISSING_CONTRIBUTORS",
-  MOVIE_DIRECTOR_REQUIRED: "MOVIE_DIRECTOR_REQUIRED",
-  NULL_ARGUMENT: "NULL_ARGUMENT",
-  EMPTY_VALUES: "EMPTY_VALUES",
-};
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 /**
  * Value object que representa todos os contribuidores de um filme,
  * organizados por papel.
+ *
+ * Esta classe é responsável por:
+ * - Agrupar contribuidores por seus papéis (diretor, ator, etc.)
+ * - Garantir que um filme tenha pelo menos um diretor
+ * - Fornecer métodos para acessar contribuidores por papel específico
  */
 export class MovieContributors {
+  /**
+   * Mapa que organiza os contribuidores por papel
+   * @private
+   */
   private readonly contributorsByRole: Map<PersonRole, MovieContributor[]>;
 
+  /**
+   * Construtor privado. Use os métodos estáticos `create` ou `hydrate` para instanciar.
+   * @param contributors Array de contribuidores já validados
+   */
   private constructor(contributors: MovieContributor[]) {
     this.contributorsByRole = new Map<PersonRole, MovieContributor[]>();
 
@@ -36,9 +43,15 @@ export class MovieContributors {
   }
 
   /**
-   * Cria uma instância de MovieContributors com validação
+   * Cria uma instância de MovieContributors com validação completa.
+   *
+   * Validações realizadas:
+   * - Verifica se o array de contribuidores não é nulo ou vazio
+   * - Valida cada contribuidor individualmente
+   * - Verifica se existe pelo menos um diretor
+   *
    * @param contributors Array de MovieContributor ou MovieContributorInput
-   * @returns Result<MovieContributors>
+   * @returns Result<MovieContributors> contendo a instância criada ou falhas de validação
    */
   public static create(
     contributors: MovieContributor[] | IMovieContributorInput[],
@@ -47,7 +60,7 @@ export class MovieContributors {
 
     if (isNull(contributors) || contributors.length === 0) {
       failures.push({
-        code: contributorsCodes.THE_MOVIE_MISSING_CONTRIBUTORS,
+        code: FailureCode.MOVIE_MISSING_CONTRIBUTORS,
         details: { field: "contributors" },
       });
       return failure(failures);
@@ -81,7 +94,7 @@ export class MovieContributors {
 
     if (!hasDirector) {
       failures.push({
-        code: contributorsCodes.MOVIE_DIRECTOR_REQUIRED,
+        code: FailureCode.MOVIE_DIRECTOR_REQUIRED,
         details: { field: "contributors" },
       });
       return failure(failures);
@@ -90,26 +103,28 @@ export class MovieContributors {
     return success(new MovieContributors(processedContributors));
   }
 
-  // Vamos melhorar a mensagem de erro
   /**
-   * Cria uma instância de MovieContributors a partir de dados já validados
-   * @param contributors Array de MovieContributor
+   * Cria uma instância de MovieContributors a partir de dados já existentes.
+   * Este método é usado principalmente para reconstruir objetos a partir do banco de dados.
+   *
+   * Validações básicas:
+   * - Verifica se o array de contribuidores não é nulo ou vazio
+   * - Processa cada contribuidor, ignorando os inválidos
+   *
+   * @param contributors Array de IMovieContributorInput
    * @returns MovieContributors
+   * @throws TechnicalError se contributors for nulo ou vazio
    */
   public static hydrate(
     contributors: IMovieContributorInput[],
   ): MovieContributors {
-    TechnicalError.if(isNull(contributors), contributorsCodes.NULL_ARGUMENT, {
-      message: "Contributors array cannot be null",
+    TechnicalError.if(isNull(contributors), FailureCode.NULL_ARGUMENT, {
+      field: "contributors",
     });
 
-    TechnicalError.if(
-      contributors.length === 0,
-      contributorsCodes.EMPTY_VALUES,
-      {
-        message: "Contributors array cannot be empty",
-      },
-    );
+    TechnicalError.if(contributors.length === 0, FailureCode.EMPTY_FIELD, {
+      field: "contributors",
+    });
 
     const processedContributors: MovieContributor[] = [];
 
@@ -124,24 +139,24 @@ export class MovieContributors {
   }
 
   /**
-   * Retorna todos os contribuidores
-   * @returns Array de MovieContributor
+   * Retorna todos os contribuidores de todos os papéis em um único array
+   * @returns Array de MovieContributor contendo todos os contribuidores
    */
   public getAll(): MovieContributor[] {
     return Array.from(this.contributorsByRole.values()).flat();
   }
 
   /**
-   * Retorna todos os diretores
-   * @returns Array de MovieContributor
+   * Retorna todos os diretores do filme
+   * @returns Array de MovieContributor contendo apenas os diretores
    */
   public getDirectors(): MovieContributor[] {
     return this.contributorsByRole.get(PersonRole.DIRECTOR) || [];
   }
 
   /**
-   * Retorna todos os atores e atrizes
-   * @returns Array de MovieContributor
+   * Retorna todos os atores e atrizes do filme em um único array
+   * @returns Array de MovieContributor contendo atores e atrizes
    */
   public getActors(): MovieContributor[] {
     const actors = this.contributorsByRole.get(PersonRole.ACTOR) || [];
@@ -151,15 +166,16 @@ export class MovieContributors {
 
   /**
    * Retorna todos os contribuidores com um papel específico
-   * @param role Papel desejado
-   * @returns Array de MovieContributor
+   * @param role Papel desejado (ex: PersonRole.WRITER)
+   * @returns Array de MovieContributor com o papel especificado ou array vazio se não houver
    */
   public getByRole(role: PersonRole): MovieContributor[] {
     return this.contributorsByRole.get(role) || [];
   }
 
   /**
-   * Retorna a quantidade de contribuidores
+   * Retorna a quantidade total de contribuidores
+   * @returns Número total de contribuidores de todos os papéis
    */
   public get count(): number {
     return this.getAll().length;
@@ -167,6 +183,7 @@ export class MovieContributors {
 
   /**
    * Retorna todos os papéis presentes na coleção
+   * @returns Array de PersonRole contendo todos os papéis existentes
    */
   public get roles(): PersonRole[] {
     return Array.from(this.contributorsByRole.keys());
