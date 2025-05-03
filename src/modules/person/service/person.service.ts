@@ -3,7 +3,7 @@ import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
 import { Person } from "../entity/person";
 import { IPersonRepository } from "../repository/person.repository.interface";
 import { PersonUID } from "../entity/value-object/person.uid";
-import { Inject } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { PERSON_REPOSITORY } from "../constant/person.constant";
 import { ResourceTypes } from "../../../shared/constant/resource.types";
@@ -12,6 +12,7 @@ import { ResourceTypes } from "../../../shared/constant/resource.types";
  * Serviço responsável por operações relacionadas a pessoas no sistema.
  * Gerencia pessoas que podem contribuir para filmes em diferentes papéis.
  */
+@Injectable()
 export class PersonService {
   constructor(@Inject(PERSON_REPOSITORY) private readonly repository: IPersonRepository) {}
 
