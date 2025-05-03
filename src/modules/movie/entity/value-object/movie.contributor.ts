@@ -1,16 +1,9 @@
-import { PersonUID } from "../../../person/value-object/person.uid";
+import { PersonUID } from "../../../person/entity/value-object/person.uid";
 import { failure, Result, success } from "../../../../shared/result/result";
 import { isNull } from "../../../../shared/validator/validator";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-
-/**
- * Códigos de erro relacionados aos contribuidores de filmes.
- */
-export const contributorCodes = {
-  INVALID_PERSON_MOVIE_ROLE: "INVALID_PERSON_MOVIE_ROLE",
-  INVALID_PARAMS: "INVALID_PARAMS",
-};
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 /**
  * Enum que define os possíveis papéis que uma pessoa pode ter em um filme.
@@ -40,8 +33,24 @@ export interface IMovieContributorInput {
 /**
  * Representa o vínculo de uma pessoa a um filme, com um papel específico.
  * Uma pessoa pode ter múltiplos vínculos para o mesmo filme (ex: ator e diretor).
+ *
+ * Este é um Value Object imutável que encapsula:
+ * - O identificador único da pessoa (PersonUID)
+ * - O papel desempenhado pela pessoa no filme (PersonRole)
+ *
+ * Características:
+ * - Imutável: todas as propriedades são readonly
+ * - Sem identidade própria: dois MovieContributor com os mesmos valores são considerados iguais
+ * - Validação na criação: use o método estático create() para instanciar com validação
+ * - Hidratação: use o método hydrate() para instanciar a partir de dados já validados
  */
 export class MovieContributor {
+  /**
+   * Construtor privado. Use os métodos estáticos `create` ou `hydrate` para instanciar.
+   * @param personUid - Identificador único da pessoa associada ao filme
+   * @param role - Papel desempenhado pela pessoa no filme
+   * @private
+   */
   private constructor(
     public readonly personUid: PersonUID,
     public readonly role: PersonRole,
@@ -49,6 +58,14 @@ export class MovieContributor {
 
   /**
    * Cria uma nova instância de MovieContributor com validação completa.
+   *
+   * Validações realizadas:
+   * - Verifica se o personUid é um UUID válido
+   * - Verifica se o role é um valor válido do enum PersonRole
+   *
+   * Possíveis falhas:
+   * - Falhas relacionadas à validação do PersonUID
+   * - FailureCode.INVALID_ENUM_VALUE quando o role não é um valor válido do enum PersonRole
    *
    * @param input - Objeto contendo os dados necessários para criar um contribuidor
    * @returns Result<MovieContributor> - Objeto Result contendo a instância ou falhas
@@ -61,19 +78,19 @@ export class MovieContributor {
     const personUidResult = PersonUID.parse(input.personUid);
     if (personUidResult.invalid) failures.push(...personUidResult.failures);
 
-    if (!Object.values(PersonRole).includes(input.role as PersonRole))
+    const hasRole = Object.values(PersonRole).includes(
+      input.role as PersonRole,
+    );
+    if (!hasRole)
       failures.push({
-        code: contributorCodes.INVALID_PERSON_MOVIE_ROLE,
+        code: FailureCode.INVALID_ENUM_VALUE,
+        details: {
+          validValues: Object.values(PersonRole),
+        },
       });
 
     return failures.length > 0
-      ? failure({
-          code: contributorCodes.INVALID_PERSON_MOVIE_ROLE,
-          details: {
-            personUID: input.personUid,
-            role: input.role,
-          },
-        })
+      ? failure(failures)
       : success(
           new MovieContributor(personUidResult.value, input.role as PersonRole),
         );
@@ -85,28 +102,37 @@ export class MovieContributor {
    *
    * @param input - Objeto contendo os dados do contribuidor (personUid e role)
    * @returns MovieContributor - Uma nova instância de MovieContributor
-   * @throws TechnicalError se algum dos campos obrigatórios estiver ausente ou inválido
+   * @throws TechnicalError com código NULL_ARGUMENT se input for nulo
+   * @throws TechnicalError com código NULL_ARGUMENT se personUid for nulo
+   * @throws TechnicalError com código NULL_ARGUMENT se role for nulo
    */
   public static hydrate(input: IMovieContributorInput) {
-    TechnicalError.if(isNull(input), contributorCodes.INVALID_PARAMS, {
-      message: "Movie contributor input object is required",
+    TechnicalError.if(isNull(input), FailureCode.NULL_ARGUMENT, {
+      object: "input",
     });
 
-    TechnicalError.if(
-      isNull(input.personUid),
-      contributorCodes.INVALID_PARAMS,
-      {
-        message: "Person UID is required",
-      },
-    );
+    TechnicalError.if(isNull(input.personUid), FailureCode.NULL_ARGUMENT, {
+      field: "personUid",
+    });
 
-    TechnicalError.if(isNull(input.role), contributorCodes.INVALID_PARAMS, {
-      message: "Role is required",
+    TechnicalError.if(isNull(input.role), FailureCode.NULL_ARGUMENT, {
+      field: "role",
     });
 
     return new MovieContributor(
       PersonUID.hydrate(input.personUid),
       input.role as PersonRole,
     );
+  }
+  /**
+   * Verifica se este MovieContributor é igual a outro.
+   * Dois MovieContributor são considerados iguais se tiverem o mesmo personUid e role.
+   *
+   * @param other - Outro MovieContributor para comparação
+   * @returns boolean - true se forem iguais, false caso contrário
+   */
+  public equal(other: MovieContributor): boolean {
+    if (!other) return false;
+    return this.personUid.equal(other.personUid) && this.role === other.role;
   }
 }

@@ -4,7 +4,7 @@ import {
   IMovieContributorInput,
   PersonRole,
 } from "./movie.contributor";
-import { PersonUID } from "../../../person/value-object/person.uid";
+import { PersonUID } from "../../../person/entity/value-object/person.uid";
 import { MovieUID } from "./movie.uid";
 
 describe("MovieContributors", () => {
