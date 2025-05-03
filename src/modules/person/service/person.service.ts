@@ -5,13 +5,15 @@ import { IPersonRepository } from "../repository/person.repository.interface";
 import { PersonUID } from "../entity/value-object/person.uid";
 import { Inject } from "@nestjs/common";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { PERSON_REPOSITORY } from "../constant/person.constant";
+import { ResourceTypes } from "../../../shared/constant/resource.types";
 
 /**
  * Serviço responsável por operações relacionadas a pessoas no sistema.
  * Gerencia pessoas que podem contribuir para filmes em diferentes papéis.
  */
 export class PersonService {
-  constructor(@Inject('PersonRepository') private readonly repository: IPersonRepository) {}
+  constructor(@Inject(PERSON_REPOSITORY) private readonly repository: IPersonRepository) {}
 
   /**
    * Busca uma pessoa pelo seu identificador único.
@@ -24,7 +26,7 @@ export class PersonService {
 
     const person = await this.repository.findById(uid);
     return !person
-      ? failure({ code: FailureCode.RESOURCE_NOT_FOUND, details: { idProvided: uid } })
+      ? failure({ code: FailureCode.RESOURCE_NOT_FOUND, details: { resource: ResourceTypes.PERSON } })
       : success(person);
   }
 

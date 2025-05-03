@@ -3,6 +3,7 @@ import { PersonService } from "./person.service";
 import { Person } from "../entity/person";
 import { PersonUID } from "../entity/value-object/person.uid";
 import { IPersonRepository } from "../repository/person.repository.interface";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 
 describe("PersonService", () => {
   let repository: jest.Mocked<IPersonRepository>;
@@ -61,7 +62,7 @@ describe("PersonService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("PERSON_NOT_FOUND");
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
     });
   });
 
