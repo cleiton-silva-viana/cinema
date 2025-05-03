@@ -5,94 +5,112 @@ import { MovieTitle } from "./value-object/movie.title";
 import { MovieDescription } from "./value-object/movie.description";
 import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
 import {
-  LanguageContent,
-  MultilingualInput,
-  SupportedLanguage,
+  ILanguageContent,
+  IMultilingualInput,
 } from "../../../shared/value-object/multilingual-content";
-import { Image } from "../../image/entity/image";
-import { MovieContributorInput } from "./value-object/movie.contributor";
-import { DisplayPeriod } from "./value-object/display.period";
+import {
+  DisplayPeriod,
+  ICreateDisplayPeriodInput,
+} from "./value-object/display.period";
 import { MovieDuration } from "./value-object/movie.duration";
-import { Assert } from "../../../shared/assert/assert";
-import { not } from "../../../shared/assert/not";
 import { MovieAdministrativeStatus } from "../type/movie.administrative.status";
 import { MovieContributors } from "./value-object/movie.contributors";
 import { AgeRating } from "./value-object/age.rating";
 import { TechnicalError } from "../../../shared/error/technical.error";
 import { isNull } from "../../../shared/validator/validator";
-
-export const MovieCodes = {
-  NULL_ARGUMENT: "NULL_ARGUMENT",
-  DATE_PERIOD_IS_INVERTED: "DATE_PERIOD_IS_INVERTED",
-  MOVIE_IMAGES_REQUIRED: "MOVIE_IMAGES_REQUIRED",
-  MOVIE_POSTER_REQUIRED: "MOVIE_POSTER_REQUIRED",
-  MOVIE_CANNOT_BE_ARCHIVED: "MOVIE_CANNOT_BE_ARCHIVED",
-  MOVIE_ARCHIVED: "MOVIE_ARCHIVED",
-  MOVIE_MISSING_DISPLAY_PERIOD: "MOVIE_MISSING_DISPLAY_PERIOD",
-  MOVIE_NOT_AVAILABLE_IN_PERIOD: "MOVIE_NOT_AVAILABLE_IN_PERIOD",
-  MOVIE_MISSING_POSTER: "MOVIE_MISSING_POSTER",
-  MOVIE_MISSING_AGE_RATING: "MOVIE_MISSING_AGE_RATING",
-  MOVIE_MISSING_DIRECTOR: "MOVIE_MISSING_DIRECTOR",
-  MOVIE_MISSING_GENDER: "MOVIE_MISSING_GENDER",
-  MOVIE_MISSING_DURATION: "MOVIE_MISSING_DURATION",
-  MOVIE_MISSING_TITLE: "MOVIE_MISSING_TITLE",
-  MOVIE_MISSING_DESCRIPTION: "MOVIE_MISSING_DESCRIPTION",
-};
+import { IMovieContributorInput } from "./value-object/movie.contributor";
+import { ImageUID } from "../../image/entity/value-object/image-uid.vo";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 
 /**
  * Interface que define os dados fundamentais necessários para criar uma entidade Movie.
  * Contém apenas os campos obrigatórios para a criação inicial de um filme.
+ *
+ * Exemplo:
+ * ```typescript
+ * const movieInput: ICreateMovieInput = {
+ *   title: [{ language: "pt-BR", text: "O Filme" }, { language: "en-US", text: "The Movie" }],
+ *   description: [{ language: "pt-BR", text: "Descrição do filme" }],
+ *   ageRating: "12",
+ *   imageUID: "IMG_12345",
+ *   contributors: [{ name: "Diretor", role: "DIRECTOR" }]
+ * };
+ * ```
  */
-export interface CreateMovieInput {
-  title: MultilingualInput[];
-  description: MultilingualInput[];
+export interface ICreateMovieInput {
+  title: IMultilingualInput[];
+  description: IMultilingualInput[];
   ageRating: string;
-  images: { poster: Image };
-  contributors: MovieContributorInput[];
+  imageUID: string;
+  contributors: IMovieContributorInput[];
 }
 
 /**
  * Interface que define os dados completos de um filme para hidratação.
  * Contém todos os campos possíveis de um filme, incluindo os opcionais.
  */
-export interface MovieHydrateInput {
+export interface IMovieHydrateInput {
   uid: string;
-  title: LanguageContent;
-  description: LanguageContent;
+  title: ILanguageContent;
+  description: ILanguageContent;
   duration?: number;
   ageRating: string;
   status: MovieAdministrativeStatus;
   genres?: string[];
-  images: {
-    banner?: Image;
-    poster: Image;
-  };
-  displayPeriod?: {
-    startDate: Date;
-    endDate: Date;
-  } | null;
-  contributors: MovieContributorInput[];
+  imageUID: string;
+  displayPeriod?: ICreateDisplayPeriodInput;
+  contributors: IMovieContributorInput[];
 }
 
 /**
  * Interface que define os dados necessários para atualizar as propriedades de um filme.
  * Todos os campos são opcionais, permitindo atualização parcial.
  */
-export interface MovieUpdateInput {
-  title?: MultilingualInput[];
-  description?: MultilingualInput[];
+export interface IMovieUpdateInput {
+  title?: IMultilingualInput[];
+  description?: IMultilingualInput[];
   duration?: number;
   ageRating?: string;
   genres?: string[];
-  images?: { banner?: Image; poster: Image };
-  displayPeriod?: { startDate: Date; endDate: Date }; // DisplayPeriodInput
-  contributors?: MovieContributorInput[];
+  imageUID?: string;
+  displayPeriod?: ICreateDisplayPeriodInput;
+  contributors?: IMovieContributorInput[];
 }
 
 /**
  * Representa a entidade Filme com suas propriedades e regras de negócio.
+ *
+ * Esta classe implementa o padrão de Value Object para garantir a imutabilidade
+ * e encapsular as regras de validação específicas para filmes no sistema de cinema.
+ *
+ * Um filme possui um ciclo de vida representado por diferentes status administrativos:
+ * - DRAFT: Rascunho inicial, com informações básicas
+ * - PENDING_REVIEW: Aguardando revisão, com informações essenciais preenchidas
+ * - APPROVED: Aprovado para exibição, com todas as informações necessárias
+ * - ARCHIVED: Arquivado, não disponível para novas exibições
+ *
+ * A classe oferece métodos para transições de estado que validam se o filme
+ * atende aos requisitos necessários para cada status.
  */
 export class Movie {
+  /**
+   * Construtor protegido para criar instâncias de Movie.
+   *
+   * Este construtor é protegido para garantir que novas instâncias sejam criadas
+   * apenas através dos métodos estáticos factory (create) ou de hidratação (hydrate),
+   * assegurando que todas as regras de negócio sejam aplicadas.
+   *
+   * @param uid Identificador único do filme
+   * @param title Título do filme em múltiplos idiomas
+   * @param description Descrição do filme em múltiplos idiomas
+   * @param duration Duração do filme em minutos
+   * @param ageRating Classificação etária do filme
+   * @param status Status administrativo atual do filme
+   * @param genre Gêneros do filme
+   * @param imageUID Identificador da imagem do poster do filme
+   * @param displayPeriod Período em que o filme estará disponível para exibição
+   * @param contributors Contribuidores do filme (diretores, atores, etc.)
+   */
   protected constructor(
     public readonly uid: MovieUID,
     public readonly title: MovieTitle,
@@ -101,10 +119,7 @@ export class Movie {
     public readonly ageRating: AgeRating,
     public readonly status: MovieAdministrativeStatus,
     public readonly genre: MovieGenre,
-    public readonly images: {
-      banner?: Image;
-      poster: Image;
-    },
+    public readonly imageUID: ImageUID,
     public readonly displayPeriod: DisplayPeriod | null,
     public readonly contributors: MovieContributors,
   ) {}
@@ -112,11 +127,21 @@ export class Movie {
   /**
    * Cria uma nova instância de Filme com valores padrão para campos opcionais.
    *
+   * Este método valida todos os dados de entrada e retorna um Result que pode
+   * conter a nova instância de Movie ou um conjunto de falhas de validação.
+   *
+   * Possíveis falhas incluem:
+   * - Validação de título (formato, comprimento)
+   * - Validação de descrição (formato, comprimento)
+   * - Classificação etária inválida
+   * - Problemas com contribuidores (formato, quantidade)
+   * - UID de imagem inválido
+   *
    * @param input Objeto contendo parte dos dados necessários para criar um filme
    * @returns Result<Movie> Um objeto Result contendo a nova instância de Movie ou
    * um array de falhas (SimpleFailure) caso a validação falhe.
    */
-  public static create(input: CreateMovieInput): Result<Movie> {
+  public static create(input: ICreateMovieInput): Result<Movie> {
     const failures: SimpleFailure[] = [];
 
     const titleResult = MovieTitle.create(input.title);
@@ -132,12 +157,8 @@ export class Movie {
     if (contributorsResult.invalid)
       failures.push(...contributorsResult.failures);
 
-    Assert.untilFirstFailure(
-      failures,
-      { field: "images" },
-      not.null(input.images, MovieCodes.MOVIE_IMAGES_REQUIRED),
-      not.null(input.images?.poster, MovieCodes.MOVIE_POSTER_REQUIRED),
-    );
+    const imageUIDResult = ImageUID.parse(input.imageUID);
+    if (imageUIDResult.invalid) failures.push(...imageUIDResult.failures);
 
     if (failures.length > 0) return failure(failures);
 
@@ -150,7 +171,7 @@ export class Movie {
         ageRatingsResult.value,
         MovieAdministrativeStatus.DRAFT,
         null,
-        input.images,
+        imageUIDResult.value,
         null,
         contributorsResult.value,
       ),
@@ -163,17 +184,13 @@ export class Movie {
    * @returns Movie Uma nova instância de Movie
    * @throws TechnicalError se os dados forem inválidos
    */
-  public static hydrate(input: MovieHydrateInput): Movie {
-    TechnicalError.if(isNull(input.uid), MovieCodes.NULL_ARGUMENT, {
-      message: "The movie UID cannot be null",
-    });
+  public static hydrate(input: IMovieHydrateInput): Movie {
+    TechnicalError.if(isNull(input.uid), FailureCode.NULL_ARGUMENT);
 
     const uid = MovieUID.hydrate(input.uid);
 
-    // TODO: idioma deve ser recuperado de uma env
     const title = MovieTitle.hydrate(input.title.language, input.title.text);
 
-    // TODO: idioma deve ser recuperado de uma env
     const description = MovieDescription.hydrate(
       input.description.language,
       input.description.text,
@@ -200,6 +217,8 @@ export class Movie {
         )
       : null;
 
+    const imageUID = ImageUID.hydrate(input.imageUID);
+
     return new Movie(
       uid,
       title,
@@ -208,7 +227,7 @@ export class Movie {
       ageRating,
       status,
       genres,
-      input.images,
+      imageUID,
       displayPeriod,
       contributors,
     );
@@ -221,7 +240,7 @@ export class Movie {
    * @param updates Objeto contendo os campos a serem atualizados
    * @returns Result<Movie> Um Result contendo a nova instância atualizada ou falhas
    */
-  public update(updates: MovieUpdateInput): Result<Movie> {
+  public update(updates: IMovieUpdateInput): Result<Movie> {
     const failures: SimpleFailure[] = [];
 
     let title: MovieTitle = this.title;
@@ -280,7 +299,7 @@ export class Movie {
             this.ageRating,
             this.status,
             genres,
-            this.images,
+            this.imageUID,
             displayPeriod,
             contributors,
           ),
@@ -331,44 +350,48 @@ export class Movie {
   }
 
   /**
-   * Verifica se o filme estará disponível para exibição em um determinado período
+   * Verifica se o filme estará disponível para exibição em um determinado período.
    *
-   * @param startDate Data de início do período
-   * @param endDate Data de fim do período
-   * @returns Result<boolean> Resultado indicando se o filme estará disponível
+   * Este método realiza as seguintes validações:
+   * 1. Verifica se o filme não está arquivado (filmes arquivados não podem ser agendados)
+   * 2. Verifica se o filme possui um período de exibição definido
+   * 3. Verifica se o período solicitado está dentro do período de exibição do filme
+   * 4. Verifica se a sequência de datas é válida (data inicial anterior à final)
+   *
+   * @param startDate Data de início do período solicitado
+   * @param endDate Data de fim do período solicitado
+   * @returns Result<boolean> Resultado indicando se o filme estará disponível.
+   * Em caso de falha, retorna o motivo específico da indisponibilidade.
    */
   public isAvailableForPeriod(startDate: Date, endDate: Date): Result<boolean> {
     if (this.status === MovieAdministrativeStatus.ARCHIVED)
       return failure({
-        // Filmes arquivados não podem ser agendados para exibição
-        code: MovieCodes.MOVIE_ARCHIVED,
+        code: FailureCode.RESOURCE_ARCHIVED,
       });
 
     if (!this.displayPeriod)
       return failure({
-        // O filme não possui período de exibição definido
-        code: MovieCodes.MOVIE_MISSING_DISPLAY_PERIOD,
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field: "displayPeriod",
+        },
       });
 
-    // Verifica se há sobreposição entre o período proposto e o período de exibição do filme
     const movieStart = this.displayPeriod.startDate.getTime();
     const movieEnd = this.displayPeriod.endDate.getTime();
     const periodStart = startDate.getTime();
     const periodEnd = endDate.getTime();
 
-    // Verifica se há alguma sobreposição
     const hasOverlap = !(periodEnd < movieStart || periodStart > movieEnd);
 
     if (periodStart > periodEnd)
       return failure({
-        // A data e início e término das exibições estão invertidas
-        code: MovieCodes.DATE_PERIOD_IS_INVERTED,
+        code: FailureCode.INVALID_DATE_SEQUENCE,
       });
 
     if (!hasOverlap)
       return failure({
-        // O período proposto não coincide com o período de exibição do filme
-        code: MovieCodes.MOVIE_NOT_AVAILABLE_IN_PERIOD,
+        code: FailureCode.MOVIE_NOT_AVAILABLE_IN_PERIOD,
         details: {
           proposedPeriodStart: startDate,
           proposedPeriodEnd: endDate,
@@ -380,6 +403,17 @@ export class Movie {
     return success(true);
   }
 
+  /**
+   * Cria uma nova instância do filme com o status administrativo atualizado.
+   *
+   * Este método implementa o padrão de imutabilidade, retornando uma nova
+   * instância com o status alterado em vez de modificar a instância atual.
+   * Se o novo status for igual ao atual, retorna a própria instância.
+   *
+   * @param status Novo status administrativo a ser aplicado
+   * @returns Movie Nova instância do filme com o status atualizado
+   * @private
+   */
   private withStatus(status: MovieAdministrativeStatus): Movie {
     if (this.status === status) return this;
 
@@ -391,7 +425,7 @@ export class Movie {
       this.ageRating,
       status,
       this.genre,
-      this.images,
+      this.imageUID,
       this.displayPeriod,
       this.contributors,
     );
@@ -408,34 +442,47 @@ export class Movie {
     const failures: SimpleFailure[] = [];
 
     if (!this.title) {
-      // Título da imagem é obrigatório
-      failures.push({ code: MovieCodes.MOVIE_MISSING_TITLE });
+      failures.push({
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field: "title",
+        },
+      });
     }
 
     if (!this.description) {
-      // Descrição da imagem é obrigatória
-      failures.push({ code: MovieCodes.MOVIE_MISSING_DESCRIPTION });
+      failures.push({
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field: "description",
+        },
+      });
     }
 
     if (!this.ageRating) {
       failures.push({
-        // Classificação etária é obrigatória
-        code: MovieCodes.MOVIE_MISSING_AGE_RATING,
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field: "ageRating",
+        },
       });
     }
 
-    // ??? Será mesmo necessário?
     if (this.contributors.getDirectors().length === 0) {
       failures.push({
-        // Diretor é obrigatório
-        code: MovieCodes.MOVIE_MISSING_DIRECTOR,
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field: "contributors",
+        },
       });
     }
 
-    if (!this.images.poster) {
+    if (!this.imageUID) {
       failures.push({
-        // Imagem do poster é obrigatória
-        code: MovieCodes.MOVIE_MISSING_POSTER,
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field: "imageUID",
+        },
       });
     }
 
@@ -463,16 +510,19 @@ export class Movie {
 
     if (!this.duration) {
       failures.push({
-        // Duração é obrigatória
-        code: MovieCodes.MOVIE_MISSING_DURATION,
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field: "duration",
+        },
       });
     }
 
-    // Será mesmo necessário???
     if (!this.genre || this.genre?.count === 0) {
       failures.push({
-        // Ao menos um gênero é obrigatório
-        code: MovieCodes.MOVIE_MISSING_GENDER,
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field: "genres",
+        },
       });
     }
     return failures.length > 0 ? failure(failures) : success(true);

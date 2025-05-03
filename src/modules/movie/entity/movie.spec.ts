@@ -1,20 +1,26 @@
-import { faker } from "@faker-js/faker/locale/pt_PT";
-import { CreateMovieInput, Movie, MovieCodes, MovieUpdateInput } from "./movie";
-import { MovieUID } from "./value-object/movie.uid";
-import { AgeRatingEnum } from "./value-object/age.rating";
-import { MovieAdministrativeStatus } from "../type/movie.administrative.status";
-import { Genre } from "./value-object/movie.genre";
-import { Image } from "../../image/entity/image";
-import { PersonRole } from "./value-object/movie.contributor";
+import { faker } from "@faker-js/faker";
 import {
-  LanguageContent,
+  Movie,
+  ICreateMovieInput,
+  IMovieUpdateInput,
+  IMovieHydrateInput,
+} from "./movie";
+import { MovieUID } from "./value-object/movie.uid";
+import {
+  ILanguageContent,
   SupportedLanguage,
 } from "../../../shared/value-object/multilingual-content";
-import { PersonUID } from "../../person/value-object/person.uid";
+import { AgeRatingEnum } from "./value-object/age.rating";
+import { PersonRole } from "./value-object/movie.contributor";
+import { PersonUID } from "../../person/entity/value-object/person.uid";
+import { Genre } from "./value-object/movie.genre";
+import { MovieAdministrativeStatus } from "../type/movie.administrative.status";
 import { DisplayPeriod } from "./value-object/display.period";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { v7 } from "uuid";
 
 describe("Movie", () => {
-  const createValidInput = (): CreateMovieInput => ({
+  const createValidInput = (): ICreateMovieInput => ({
     title: [
       { language: SupportedLanguage.PT, text: faker.lorem.words(6) },
       { language: SupportedLanguage.EN, text: faker.lorem.words(6) },
@@ -24,39 +30,33 @@ describe("Movie", () => {
       { language: SupportedLanguage.EN, text: faker.lorem.paragraph() },
     ],
     ageRating: AgeRatingEnum.L,
-    images: {
-      poster: {} as Image, // Mock da imagem
-    },
+    imageUID: "IMG." + v7(),
     contributors: [
       {
         personUid: PersonUID.create().value,
-        movieUid: MovieUID.create().value,
         role: PersonRole.DIRECTOR,
       },
     ],
   });
 
-  const createHydrateInput = (overrides = {}) => ({
+  const createHydrateInput = (overrides = {}): IMovieHydrateInput => ({
     uid: MovieUID.create().value,
     title: {
       text: faker.lorem.paragraph(),
       language: SupportedLanguage.EN,
-    } as LanguageContent,
+    } as ILanguageContent,
     description: {
       text: faker.lorem.paragraph(),
       language: SupportedLanguage.EN,
-    } as LanguageContent,
+    } as ILanguageContent,
     duration: 120,
     ageRating: AgeRatingEnum.L,
     status: MovieAdministrativeStatus.DRAFT,
     genres: [Genre.ACTION],
-    images: {
-      poster: {} as Image,
-    },
+    imageUID: "IMG." + v7(),
     contributors: [
       {
         personUid: PersonUID.create().value,
-        movieUid: MovieUID.create().value,
         role: PersonRole.DIRECTOR,
       },
     ],
@@ -89,11 +89,13 @@ describe("Movie", () => {
         const testCases = [
           {
             scenario: "título for inválido",
-            input: { ...createValidInput(), title: [] },
+            input: { ...createValidInput(), title: [] as Array<any> },
+            expectedField: "title",
           },
           {
             scenario: "descrição for inválida",
             input: { ...createValidInput(), description: [] },
+            expectedField: "description",
           },
           {
             scenario: "classificação etária for inválida",
@@ -101,14 +103,16 @@ describe("Movie", () => {
               ...createValidInput(),
               ageRating: "INVALID" as AgeRatingEnum,
             },
+            expectedField: "ageRating",
           },
           {
-            scenario: "não houver poster",
-            input: { ...createValidInput(), images: {} as any },
+            scenario: "não houver imageUID",
+            input: { ...createValidInput(), imageUID: null },
+            expectedField: "imageUID",
           },
         ];
 
-        testCases.forEach(({ scenario, input }) => {
+        testCases.forEach(({ scenario, input, expectedField }) => {
           it(scenario, () => {
             // Act
             const result = Movie.create(input);
@@ -132,8 +136,7 @@ describe("Movie", () => {
         expect(movie.status).toBe(input.status);
         expect(movie.duration.minutes).toBe(input.duration);
         expect(movie.genre.getGenres()).toEqual(input.genres);
-        expect(movie.images.poster).toBe(input.images.poster);
-        expect(movie.images.banner).not.toBeDefined();
+        expect(movie.imageUID.value).toBe(input.imageUID);
         expect(movie.displayPeriod).toBeNull();
       });
 
@@ -165,7 +168,7 @@ describe("Movie", () => {
 
       it("deve atualizar campos específicos mantendo os demais inalterados", () => {
         // Arrange
-        const updates: MovieUpdateInput = {
+        const updates: IMovieUpdateInput = {
           title: [
             { language: SupportedLanguage.PT, text: "Novo Título" },
             { language: SupportedLanguage.EN, text: "New Title" },
@@ -193,12 +196,12 @@ describe("Movie", () => {
         const testCases = [
           {
             scenario: "título é inválido",
-            updates: { title: [] as Array<LanguageContent> },
+            updates: { title: [] as Array<ILanguageContent> },
             expectedFailuresCount: 1,
           },
           {
             scenario: "descrição é inválida",
-            updates: { description: [] as Array<LanguageContent> },
+            updates: { description: [] as Array<ILanguageContent> },
             expectedFailuresCount: 1,
           },
           {
@@ -224,7 +227,7 @@ describe("Movie", () => {
           {
             scenario: "múltiplas propriedades são inválidas",
             updates: {
-              title: [] as Array<LanguageContent>,
+              title: [] as Array<ILanguageContent>,
               duration: -5,
               genres: ["GENERO_INEXISTENTE" as any],
             },
@@ -238,7 +241,7 @@ describe("Movie", () => {
             const movie = Movie.hydrate(createHydrateInput());
 
             // Act
-            const result = movie.update(updates as MovieUpdateInput);
+            const result = movie.update(updates as IMovieUpdateInput);
 
             // Assert
             expect(result.invalid).toBe(true);
@@ -291,7 +294,7 @@ describe("Movie", () => {
           expect(result.value.duration).toEqual(movie.duration);
           expect(result.value.ageRating).toEqual(movie.ageRating);
           expect(result.value.genre).toEqual(movie.genre);
-          expect(result.value.images).toEqual(movie.images);
+          expect(result.value.imageUID).toEqual(movie.imageUID);
           expect(result.value.displayPeriod).toEqual(movie.displayPeriod);
           expect(result.value.contributors).toEqual(movie.contributors);
         });
@@ -316,92 +319,67 @@ describe("Movie", () => {
       });
 
       describe("Cenários inválidos", () => {
-        // Utilizando createHydrateInput como base
-        const baseMovie = createHydrateInput({
-          status: MovieAdministrativeStatus.PENDING_REVIEW,
+        let baseMovie: IMovieHydrateInput;
+
+        beforeEach(() => {
+          baseMovie = createHydrateInput({
+            status: MovieAdministrativeStatus.PENDING_REVIEW,
+          });
         });
 
-        it("deve falhar quando o filme não tem duração definida", () => {
-          // Arrange
-          const movieData = { ...baseMovie };
-          delete movieData.duration;
-          const movie = Movie.hydrate(movieData);
-
-          // Act
-          const result = movie.toApprove();
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            MovieCodes.MOVIE_MISSING_DURATION,
-          );
-        });
-
-        it("deve falhar quando o filme não tem gênero definido", () => {
-          // Arrange
-          const movieData = { ...baseMovie };
-          delete movieData.genres;
-          const movie = Movie.hydrate(movieData);
-
-          // Act
-          const result = movie.toApprove();
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          //  expect(result.failures[0].code).toBe(MovieCodes.MOVIE_MISSING_GENRE);
-        });
-
-        it("deve falhar quando o filme não tem poster", () => {
-          // Arrange
-          const movieData = { ...baseMovie };
-          delete movieData.images.poster;
-          const movie = Movie.hydrate(movieData);
-
-          // Act
-          const result = movie.toApprove();
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(MovieCodes.MOVIE_MISSING_POSTER);
-        });
-
-        it("deve falhar quando o filme não tem classificação etária", () => {
-          // Arrange
-          const movieData = { ...baseMovie };
-          delete movieData.ageRating;
-          const movie = Movie.hydrate(movieData);
-
-          // Act
-          const result = movie.toApprove();
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            MovieCodes.MOVIE_MISSING_AGE_RATING,
-          );
-        });
-
-        it("deve falhar quando o filme não tem diretor", () => {
-          // Arrange
-          const movieData = { ...baseMovie };
-          delete movieData.contributors;
-          movieData.contributors = [
-            {
-              personUid: PersonUID.create().value,
-              movieUid: MovieUID.create().value,
-              role: PersonRole.ACTOR,
+        const cases = [
+          {
+            scenario: "não tem duração definida",
+            fn: (input: IMovieHydrateInput) => {
+              delete input.duration;
             },
-          ];
-          const movie = Movie.hydrate(movieData);
+            field: "duration",
+          },
+          {
+            scenario: "não tem gênero definido",
+            fn: (input: IMovieHydrateInput) => {
+              delete input.genres;
+            },
+            field: "genres",
+          },
+          {
+            scenario: "não tem age rating definido",
+            fn: (input: IMovieHydrateInput) => {
+              delete input.ageRating;
+            },
+            field: "ageRating",
+          },
+          {
+            scenario: "não tem um autor definido",
+            fn: (input: IMovieHydrateInput) => {
+              delete input.contributors;
+              input.contributors = [
+                {
+                  personUid: PersonUID.create().value,
+                  role: PersonRole.ACTOR,
+                },
+              ];
+            },
+            field: "contributors",
+          },
+        ];
+        cases.forEach(({ scenario, fn, field }) => {
+          it(`deve falhar quando ${scenario}`, () => {
+            // Arrange
+            const input = { ...baseMovie };
+            fn(input);
+            const movie = Movie.hydrate(input);
 
-          // Act
-          const result = movie.toApprove();
+            // Act
+            const result = movie.toApprove();
 
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            MovieCodes.MOVIE_MISSING_DIRECTOR,
-          );
+            // Assert
+            expect(result.invalid).toBe(true);
+            expect(result.failures[0].code).toBe(
+              FailureCode.MISSING_REQUIRED_DATA,
+            );
+            expect(result.failures[0].details.field).toBe(field);
+          });
         });
       });
     });
@@ -532,7 +510,7 @@ describe("Movie", () => {
 
           // Assert
           expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(MovieCodes.MOVIE_ARCHIVED);
+          expect(result.failures[0].code).toBe(FailureCode.RESOURCE_ARCHIVED);
         });
 
         it("deve falhar quando o filme não tem período de exibição definido", () => {
@@ -550,7 +528,7 @@ describe("Movie", () => {
           // Assert
           expect(result.invalid).toBe(true);
           expect(result.failures[0].code).toBe(
-            MovieCodes.MOVIE_MISSING_DISPLAY_PERIOD,
+            FailureCode.MISSING_REQUIRED_DATA,
           );
         });
 
@@ -566,7 +544,7 @@ describe("Movie", () => {
           // Assert
           expect(result.invalid).toBe(true);
           expect(result.failures[0].code).toBe(
-            MovieCodes.MOVIE_NOT_AVAILABLE_IN_PERIOD,
+            FailureCode.MOVIE_NOT_AVAILABLE_IN_PERIOD,
           );
         });
 
@@ -582,7 +560,7 @@ describe("Movie", () => {
           // Assert
           expect(result.invalid).toBe(true);
           expect(result.failures[0].code).toBe(
-            MovieCodes.MOVIE_NOT_AVAILABLE_IN_PERIOD,
+            FailureCode.MOVIE_NOT_AVAILABLE_IN_PERIOD,
           );
         });
 
@@ -598,7 +576,7 @@ describe("Movie", () => {
           // Assert
           expect(result.invalid).toBe(true);
           expect(result.failures[0].code).toBe(
-            MovieCodes.DATE_PERIOD_IS_INVERTED,
+            FailureCode.INVALID_DATE_SEQUENCE,
           );
         });
       });
