@@ -5,47 +5,100 @@ import { MovieGenre } from "./movie.genre";
 import { Assert } from "../../../../shared/assert/assert";
 import { not } from "../../../../shared/assert/not";
 import { isNull } from "../../../../shared/validator/validator";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
+/**
+ * Interface que define os parâmetros de entrada para filtrar filmes.
+ * Todos os campos são opcionais.
+ */
 export interface IMovieFilterInput {
+  /**
+   * Lista de códigos de gêneros para filtrar filmes
+   */
   genres?: string[];
+
+  /**
+   * Código de classificação etária para filtrar filmes
+   */
   ageRating?: string;
+
+  /**
+   * Intervalo de datas para filtrar filmes em exibição
+   */
   dateRange?: {
+    /**
+     * Data inicial do período de exibição
+     */
     startDate: Date;
+
+    /**
+     * Data final do período de exibição
+     */
     endDate: Date;
   };
 }
 
-export const MovieFilterCodes = {
-  DATE_CANNOT_BE_NULL: "DATE_CANNOT_BE_NULL",
-  DATE_MUST_BE_CURRENT_OR_FUTURE: "DATE_MUST_BE_CURRENT_OR_FUTURE",
-  DATE_MUST_BE_WITHIN_30_DAYS: "DATE_MUST_BE_WITHIN_30_DAYS",
-  START_DATE_BEFORE_END_DATE: "START_DATE_BEFORE_END_DATE",
-  END_DATE_MUST_BE_WITHIN_14_DAYS_OF_START_DATE:
-    "END_DATE_MUST_BE_WITHIN_14_DAYS_OF_START_DATE",
-};
-
+/**
+ * Value Object que representa um filtro para busca de filmes.
+ *
+ * Este filtro pode incluir:
+ * - Intervalo de datas para exibição
+ * - Classificação etária
+ * - Gêneros de filme
+ *
+ * Regras de negócio:
+ * - A data inicial não pode ser no passado
+ * - A data inicial não pode ser mais de 30 dias no futuro
+ * - O intervalo entre data inicial e final não pode ser maior que 14 dias
+ * - Se nenhum filtro for fornecido, um filtro padrão de 7 dias a partir de hoje é criado
+ */
 export class MovieFilter {
-
   /**
-   * Propriedade estática para definir o período máximo de dias no futuro
-   * Que a data inicial deve possuir
-   * */
-
+   * Número máximo de dias no futuro permitido para a data inicial do filtro (30 dias)
+   */
   public static readonly MAX_FUTURE_DAYS = 30;
+
   /**
-   * Propriedade estática para definir o período máximo entre data inicial e final
+   * Intervalo máximo em dias entre a data inicial e final do filtro (14 dias)
    */
   public static readonly MAX_DATE_RANGE_DAYS = 14;
 
+  /**
+   * Construtor privado. Use o método estático `create` para instanciar.
+   *
+   * @param dateRange Intervalo de datas para filtrar filmes em exibição
+   * @param ageRating Classificação etária para filtrar filmes
+   * @param genres Gêneros para filtrar filmes
+   * @private
+   */
   private constructor(
     public readonly dateRange?: {
-      startDate: Date;
-      endDate: Date;
+      readonly startDate: Date;
+      readonly endDate: Date;
     },
     public readonly ageRating?: AgeRating,
     public readonly genres?: MovieGenre,
   ) {}
 
+  /**
+   * Cria uma instância de MovieFilter com validação completa.
+   *
+   * Comportamentos:
+   * - Se input for nulo, cria um filtro padrão com período de 7 dias a partir de hoje
+   * - Se nenhum filtro válido for fornecido, também cria o filtro padrão
+   * - Valida cada componente do filtro individualmente
+   *
+   * Validações realizadas:
+   * - Data inicial não pode ser no passado
+   * - Data inicial não pode ser mais de MAX_FUTURE_DAYS no futuro
+   * - Data final não pode ser anterior à data inicial
+   * - Intervalo entre datas não pode ser maior que MAX_DATE_RANGE_DAYS
+   * - Classificação etária deve ser válida
+   * - Gêneros devem ser válidos
+   *
+   * @param input Objeto contendo os parâmetros do filtro
+   * @returns Result<MovieFilter> contendo a instância criada ou falhas de validação
+   */
   public static create(input: IMovieFilterInput): Result<MovieFilter> {
     if (isNull(input)) {
       const today = new Date();
@@ -79,16 +132,12 @@ export class MovieFilter {
       Assert.untilFirstFailure(
         failures,
         { field: "start_date" },
-        not.null(startDate, MovieFilterCodes.DATE_CANNOT_BE_NULL),
-        not.dateBefore(
-          startDate,
-          today,
-          MovieFilterCodes.DATE_MUST_BE_CURRENT_OR_FUTURE,
-        ), // <<< ponto de erro
+        not.null(startDate, FailureCode.NULL_ARGUMENT),
+        not.dateBefore(startDate, today, FailureCode.DATE_PAST_NOT_ALLOWED),
         not.dateAfter(
           startDate,
           maxFutureDate,
-          MovieFilterCodes.DATE_MUST_BE_WITHIN_30_DAYS,
+          FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
         ),
       );
 
@@ -101,17 +150,9 @@ export class MovieFilter {
         Assert.untilFirstFailure(
           failures,
           { field: "end_date" },
-          not.null(endDate, MovieFilterCodes.DATE_CANNOT_BE_NULL),
-          not.dateAfter(
-            startDate,
-            endDate,
-            MovieFilterCodes.START_DATE_BEFORE_END_DATE,
-          ),
-          not.dateAfter(
-            endDate,
-            maxEndDate,
-            MovieFilterCodes.END_DATE_MUST_BE_WITHIN_14_DAYS_OF_START_DATE,
-          ),
+          not.null(endDate, FailureCode.NULL_ARGUMENT),
+          not.dateAfter(startDate, endDate, FailureCode.INVALID_DATE_SEQUENCE),
+          not.dateAfter(endDate, maxEndDate, FailureCode.DATE_RANGE_TOO_LARGE),
         );
 
         if (failures.length === 0) dateRangeValue = input.dateRange;

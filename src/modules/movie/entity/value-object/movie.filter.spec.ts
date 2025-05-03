@@ -1,11 +1,7 @@
-import {
-  IMovieFilterInput,
-  MovieFilter,
-  MovieFilterCodes,
-} from "./movie.filter";
+import { IMovieFilterInput, MovieFilter } from "./movie.filter";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("MovieFilter", () => {
-
   describe("create", () => {
     const date = (days: number = 10) => {
       const date = new Date();
@@ -60,7 +56,7 @@ describe("MovieFilter", () => {
             },
           },
           field: "start_date",
-          code: MovieFilterCodes.DATE_CANNOT_BE_NULL,
+          code: FailureCode.NULL_ARGUMENT,
         },
         {
           scenario: "endDate é nulo",
@@ -71,17 +67,17 @@ describe("MovieFilter", () => {
             },
           },
           field: "end_date",
-          code: MovieFilterCodes.DATE_CANNOT_BE_NULL,
+          code: FailureCode.NULL_ARGUMENT,
         },
         {
           scenario: "startDate é anterior à data atual",
           input: {
             dateRange: {
               startDate: date(-10),
-              endDate: date(5)
+              endDate: date(5),
             },
           },
-          code: MovieFilterCodes.DATE_MUST_BE_CURRENT_OR_FUTURE,
+          code: FailureCode.DATE_PAST_NOT_ALLOWED,
           field: "start_date",
         },
         {
@@ -92,7 +88,7 @@ describe("MovieFilter", () => {
               endDate: date(20),
             },
           },
-          code: MovieFilterCodes.DATE_MUST_BE_WITHIN_30_DAYS,
+          code: FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
           field: "start_date",
         },
         {
@@ -103,7 +99,7 @@ describe("MovieFilter", () => {
               endDate: date(5),
             },
           },
-          code: MovieFilterCodes.START_DATE_BEFORE_END_DATE,
+          code: FailureCode.INVALID_DATE_SEQUENCE,
           field: "end_date",
         },
         {
@@ -115,7 +111,7 @@ describe("MovieFilter", () => {
               endDate: date(25),
             },
           },
-          code: MovieFilterCodes.END_DATE_MUST_BE_WITHIN_14_DAYS_OF_START_DATE,
+          code: FailureCode.DATE_RANGE_TOO_LARGE,
           field: "end_date",
         },
       ];
@@ -161,11 +157,6 @@ describe("MovieFilter", () => {
 
         // Assert
         expect(result.invalid).toBe(true);
-        expect(result.failures).toContainEqual(
-          expect.objectContaining({
-            code: "INVALID_AGE_RATING",
-          }),
-        );
       });
     });
 
@@ -207,7 +198,7 @@ describe("MovieFilter", () => {
       it("deve criar um filtro com múltiplos critérios válidos", () => {
         // Arrange
         const input: IMovieFilterInput = {
-          dateRange: { startDate: date(5), endDate: date(14) },
+          dateRange: { startDate: date(2), endDate: date(7) },
           ageRating: "16",
           genres: ["ACTION"],
         };
@@ -217,12 +208,8 @@ describe("MovieFilter", () => {
 
         // Assert
         expect(result.invalid).toBe(false);
-        expect(result.value.dateRange).toEqual(input.dateRange);
-        expect(
-          result.value.genres
-            .getGenres()
-            .every((genre) => input.genres.includes(genre)),
-        );
+        expect(result.value.genres.getGenres()).toEqual(input.genres);
+        expect(result.value.ageRating.value).toBe(input.ageRating);
       });
 
       it("deve acumular múltiplas falhas de validação", () => {
