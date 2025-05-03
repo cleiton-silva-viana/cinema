@@ -1,15 +1,64 @@
 {
-  "INVALID_UUID_FORMAT": {
+  "NULL_ARGUMENT": {
     "message": {
-      "pt": "O uuid fornecido para o {{resource}} está em formato inválido.",
-      "en": "The provided uuid for {{resource}} is in invalid format."
+      "pt": "Um argumento obrigatório não foi fornecido ou é nulo.",
+      "en": "A required argument was not provided or is null."
+    },
+    "statusCode": 400
+  },
+  "EMPTY_FIELD": {
+    "message": {
+      "pt": "Um campo obrigatório está vazio ou contém apenas espaços em branco.",
+      "en": "A required field is empty or contains only whitespace."
+    },
+    "statusCode": 400
+  },
+  "MISSING_REQUIRED_DATA": {
+    "message": {
+      "pt": "Não foram fornecidos dados necessários para realizar esta operação. Verifique se o objeto de dados não está vazio ou com valores nulos.",
+      "en": "No required data was provided to perform this operation. Please check if the data object is not empty or has null values."
+    },
+    "statusCode": 400
+  },
+  "INVALID_UUID": {
+    "message": {
+      "pt": "O identificador único fornecido está em formato inválido ou não corresponde ao tipo esperado.",
+      "en": "The provided unique identifier is in an invalid format or does not match the expected type."
+    },
+    "statusCode": 400
+  },
+  "INVALID_FIELD_SIZE": {
+    "message": {
+      "pt": "O campo fornecido possui um tamanho inválido. O tamanho deve estar entre os limites permitidos.",
+      "en": "The provided field has an invalid size. The size must be within the allowed limits."
+    },
+    "statusCode": 400
+  },
+  "INVALID_NAME_FORMAT": {
+    "message": {
+      "pt": "O nome fornecido contém caracteres inválidos. Use apenas letras e espaços.",
+      "en": "The provided name contains invalid characters. Use only letters and spaces."
+    },
+    "statusCode": 400
+  },
+  "INVALID_BIRTH_DATE_TOO_YOUNG": {
+    "message": {
+      "pt": "A data de nascimento indica que a pessoa é menor de idade. É necessário ter pelo menos 18 anos.",
+      "en": "The birth date indicates that the person is underage. Must be at least 18 years old."
+    },
+    "statusCode": 400
+  },
+  "INVALID_BIRTH_DATE_TOO_OLD": {
+    "message": {
+      "pt": "A data de nascimento fornecida é muito antiga. A data deve ser posterior a 1900.",
+      "en": "The provided birth date is too old. The date must be after 1900."
     },
     "statusCode": 400
   },
   "RESOURCE_NOT_FOUND": {
     "message": {
-      "pt": "O recurso {{resource}} solicitado não foi encontrado.",
-      "en": "The requested resource {{resource}} was not found."
+      "pt": "O recurso solicitado não foi encontrado.",
+      "en": "The requested resource was not found."
     },
     "statusCode": 404
   },
@@ -68,5 +117,159 @@
       "en": "There is a conflict with the current state of the resource."
     },
     "statusCode": 409
+  },
+  "CONTENT_INVALID_LANGUAGE": {
+    "message": {
+      "pt": "O idioma fornecido não é suportado pela aplicação.",
+      "en": "The provided language is not supported by the application."
+    },
+    "statusCode": 400
+  },
+  "CONTENT_INVALID_TYPE": {
+    "message": {
+      "pt": "O tipo de conteúdo fornecido é inválido.",
+      "en": "The provided content type is invalid."
+    },
+    "statusCode": 400
+  },
+  "CONTENT_DUPLICATE_LANGUAGE": {
+    "message": {
+      "pt": "Foi fornecido conteúdo duplicado para o mesmo idioma.",
+      "en": "Duplicate content was provided for the same language."
+    },
+    "statusCode": 400
+  },
+  "CONTENT_MISSING_REQUIRED_LANGUAGE": {
+    "message": {
+      "pt": "Um idioma obrigatório não foi fornecido.",
+      "en": "A required language was not provided."
+    },
+    "statusCode": 400
+  },
+  "CONTENT_INVALID_FORMAT": {
+    "message": {
+      "pt": "O formato do texto fornecido é inválido. Use apenas letras, números, espaços e caracteres básicos de pontuação.",
+      "en": "The provided text format is invalid. Use only letters, numbers, spaces and basic punctuation characters."
+    },
+    "statusCode": 400
+  },
+  "EMAIL_ALREADY_IN_USE": {
+    "message": {
+      "pt": "O endereço de e-mail fornecido já está em uso por outro cliente.",
+      "en": "The provided email address is already in use by another customer."
+    },
+    "statusCode": 409
+  },
+  "INVALID_CPF_FORMAT": {
+    "message": {
+      "pt": "O CPF fornecido está em formato inválido. O formato correto é 000.000.000-00.",
+      "en": "The provided CPF is in an invalid format. The correct format is 000.000.000-00."
+    },
+    "statusCode": 400
+  },
+  "INVALID_EMAIL_FORMAT": {
+    "message": {
+      "pt": "O endereço de e-mail fornecido está em formato inválido. Por favor, forneça um e-mail válido.",
+      "en": "The provided email address is in an invalid format. Please provide a valid email."
+    },
+    "statusCode": 400
+  },
+  "INVALID_GENRE": {
+    "message": {
+      "pt": "O gênero fornecido é inválido. Por favor, selecione um gênero válido.",
+      "en": "The provided genre is invalid. Please select a valid genre."
+    },
+    "statusCode": 400
+  },
+  "INVALID_GENRE_COUNT": {
+    "message": {
+      "pt": "O número de gêneros fornecido é inválido. O filme deve ter entre 1 e 5 gêneros.",
+      "en": "The number of genres provided is invalid. The movie must have between 1 and 5 genres."
+    },
+    "statusCode": 400
+  },
+  "DUPLICATE_GENRES": {
+    "message": {
+      "pt": "Foram fornecidos gêneros duplicados. Cada gênero deve ser único.",
+      "en": "Duplicate genres were provided. Each genre must be unique."
+    },
+    "statusCode": 400
+  },
+  "DATE_PAST_NOT_ALLOWED": {
+    "message": {
+      "pt": "A data fornecida está no passado. Por favor, selecione uma data atual ou futura.",
+      "en": "The provided date is in the past. Please select a current or future date."
+    },
+    "statusCode": 400
+  },
+  "DATE_EXCEEDS_MAX_FUTURE_LIMIT": {
+    "message": {
+      "pt": "A data fornecida excede o limite máximo permitido no futuro. Por favor, selecione uma data dentro do período permitido.",
+      "en": "The provided date exceeds the maximum allowed future limit. Please select a date within the allowed period."
+    },
+    "statusCode": 400
+  },
+  "INVALID_DATE_SEQUENCE": {
+    "message": {
+      "pt": "A sequência de datas é inválida. A data inicial deve ser anterior à data final.",
+      "en": "The date sequence is invalid. The start date must be before the end date."
+    },
+    "statusCode": 400
+  },
+  "DATE_RANGE_TOO_LARGE": {
+    "message": {
+      "pt": "O intervalo entre as datas é muito grande. Por favor, selecione um período menor.",
+      "en": "The date range is too large. Please select a smaller period."
+    },
+    "statusCode": 400
+  },
+  "INVALID_ENUM_VALUE": {
+    "message": {
+      "pt": "O valor fornecido não é válido. Por favor, selecione uma das opções permitidas.",
+      "en": "The provided value is invalid. Please select one of the allowed options."
+    },
+    "statusCode": 400
+  },
+  "MOVIE_MISSING_CONTRIBUTORS": {
+    "message": {
+      "pt": "O filme deve ter pelo menos um contribuidor. Por favor, adicione um ou mais contribuidores.",
+      "en": "The movie must have at least one contributor. Please add one or more contributors."
+    },
+    "statusCode": 400
+  },
+  "MOVIE_DIRECTOR_REQUIRED": {
+    "message": {
+      "pt": "O filme deve ter pelo menos um diretor. Por favor, adicione um diretor à lista de contribuidores.",
+      "en": "The movie must have at least one director. Please add a director to the contributors list."
+    },
+    "statusCode": 400
+  },
+  "MOVIE_DURATION_TOO_SHORT": {
+    "message": {
+      "pt": "A duração do filme é muito curta. A duração mínima permitida é de 60 minutos.",
+      "en": "The movie duration is too short. The minimum allowed duration is 60 minutes."
+    },
+    "statusCode": 400
+  },
+  "MOVIE_DURATION_TOO_LONG": {
+    "message": {
+      "pt": "A duração do filme é muito longa. A duração máxima permitida é de 300 minutos.",
+      "en": "The movie duration is too long. The maximum allowed duration is 300 minutes."
+    },
+    "statusCode": 400
+  },
+  "RESOURCE_ARCHIVED": {
+    "message": {
+      "pt": "O recurso solicitado está arquivado e não pode ser utilizado para esta operação.",
+      "en": "The requested resource is archived and cannot be used for this operation."
+    },
+    "statusCode": 400
+  },
+  "MOVIE_NOT_AVAILABLE_IN_PERIOD": {
+    "message": {
+      "pt": "O filme solicitado não está disponível no período especificado.",
+      "en": "The requested movie is not available in the specified period."
+    },
+    "statusCode": 400
   }
 }
