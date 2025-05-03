@@ -1,6 +1,7 @@
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { failure, Result, success } from "../../../../shared/result/result";
 import { isNull } from "../../../../shared/validator/validator";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 /**
  * Enumeração que representa a Classificação Etária dos Filmes de acordo com o padrão brasileiro.
@@ -36,7 +37,6 @@ export class AgeRating {
 
   private constructor(public readonly value: AgeRatingEnum) {}
 
-  // Tem que ser refatorado!
   /**
    * Cria uma instância de AgeRating a partir de uma string.
    * @param rating String representando a classificação etária
@@ -49,10 +49,11 @@ export class AgeRating {
 
     if (isInvalid) {
       return failure({
-        code: "INVALID_AGE_RATING",
+        code: FailureCode.INVALID_ENUM_VALUE,
         details: {
           value: rating,
           validOptions: Object.values(AgeRatingEnum),
+          field: "ageRating",
         },
       });
     }
@@ -60,9 +61,18 @@ export class AgeRating {
     return success(new AgeRating(rating as AgeRatingEnum));
   }
 
-  // Adicionar documentação
+  /**
+   * Cria uma instância de AgeRating a partir de uma string, sem validação.
+   * Usado para hidratar objetos do banco de dados.
+   *
+   * @param rating String representando a classificação etária
+   * @returns AgeRating
+   * @throws TechnicalError se o rating for nulo
+   */
   public static hydrate(rating: string): AgeRating {
-    TechnicalError.if(isNull(rating), "NULL_ARGUMENT", { field: "rating" });
+    TechnicalError.if(isNull(rating), FailureCode.NULL_ARGUMENT, {
+      field: "ageRating",
+    });
 
     return new AgeRating(rating as AgeRatingEnum);
   }

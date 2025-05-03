@@ -1,5 +1,6 @@
 import { AgeRating, AgeRatingEnum } from "./age.rating";
 import { TechnicalError } from "../../../../shared/error/technical.error";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("AgeRating", () => {
   describe("Static Methods", () => {
@@ -25,7 +26,7 @@ describe("AgeRating", () => {
 
         // Assert
         expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe("INVALID_AGE_RATING");
+        expect(result.failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE);
       });
     });
 
