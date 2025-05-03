@@ -1,16 +1,13 @@
-import {
-  DisplayPeriod,
-  DisplayPeriodCodes,
-  ScreeningStatus,
-} from "./display.period";
+import { DisplayPeriod, ScreeningStatus } from "./display.period";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("DisplayPeriod", () => {
   // Datas para testes
   const ONE_DAY = 1000 * 60 * 60 * 24;
-  const now = new Date();
-  const futureDate = new Date(Date.now() + 10 * ONE_DAY); // 10 dias no futuro
-  const farFutureDate = new Date(Date.now() + 20 * ONE_DAY); // 20 dias no futuro
-  const pastDate = new Date(Date.now() - 10 * ONE_DAY); // 10 dias no passado
+  const NOW = new Date();
+  const FUTURE_DATE = new Date(Date.now() + 10 * ONE_DAY); // 10 dias no futuro
+  const FAR_FUTURE_DATE = new Date(Date.now() + 20 * ONE_DAY); // 20 dias no futuro
+  const PAST_DATE = new Date(Date.now() - 10 * ONE_DAY); // 10 dias no passado
 
   let originalDateNow: () => number;
 
@@ -25,23 +22,23 @@ describe("DisplayPeriod", () => {
   describe("Métodos Estáticos", () => {
     describe("create", () => {
       describe("períodos válidos", () => {
-        const minEndDate = new Date(futureDate.getTime() + 14 * ONE_DAY); // 14 dias exatos
-        const midEndDate = new Date(futureDate.getTime() + 20 * ONE_DAY); // 20 dias (intermediário)
-        const maxEndDate = new Date(futureDate.getTime() + 30 * ONE_DAY); // 30 dias exatos
+        const minEndDate = new Date(FUTURE_DATE.getTime() + 14 * ONE_DAY); // 14 dias exatos
+        const midEndDate = new Date(FUTURE_DATE.getTime() + 20 * ONE_DAY); // 20 dias (intermediário)
+        const maxEndDate = new Date(FUTURE_DATE.getTime() + 30 * ONE_DAY); // 30 dias exatos
 
         const successCases = [
           {
-            startDate: futureDate,
+            startDate: FUTURE_DATE,
             endDate: minEndDate,
             scenario: "com diferença mínima exata de 14 dias",
           },
           {
-            startDate: futureDate,
+            startDate: FUTURE_DATE,
             endDate: midEndDate,
             scenario: "com diferença intermediária de 20 dias",
           },
           {
-            startDate: futureDate,
+            startDate: FUTURE_DATE,
             endDate: maxEndDate,
             scenario: "com diferença máxima exata de 30 dias",
           },
@@ -64,40 +61,40 @@ describe("DisplayPeriod", () => {
       describe("deve retornar um erro quando o período é inválido", () => {
         const failureCases = [
           {
-            startDate: pastDate,
-            endDate: farFutureDate,
+            startDate: PAST_DATE,
+            endDate: FAR_FUTURE_DATE,
             scenario: "com data de início no passado",
-            errorCode: DisplayPeriodCodes.PAST_START_DATE,
+            errorCode: FailureCode.DATE_PAST_NOT_ALLOWED,
           },
           {
             startDate: null,
-            endDate: farFutureDate,
+            endDate: FAR_FUTURE_DATE,
             scenario: "com data de início nula",
-            errorCode: DisplayPeriodCodes.DATE_IS_NOT_PROVIDED,
+            errorCode: FailureCode.NULL_ARGUMENT,
           },
           {
-            startDate: futureDate,
+            startDate: FUTURE_DATE,
             endDate: null,
             scenario: "com data de término nula",
-            errorCode: DisplayPeriodCodes.DATE_IS_NOT_PROVIDED,
+            errorCode: FailureCode.NULL_ARGUMENT,
           },
           {
-            startDate: futureDate,
-            endDate: futureDate,
+            startDate: FUTURE_DATE,
+            endDate: FUTURE_DATE,
             scenario: "com data de término igual à data de início",
-            errorCode: DisplayPeriodCodes.INVALID_DATE_RANGE,
+            errorCode: FailureCode.INVALID_DATE_SEQUENCE,
           },
           {
-            startDate: now,
-            endDate: futureDate,
+            startDate: NOW,
+            endDate: FUTURE_DATE,
             scenario: "com data de término anterior ao mínimo (14 dias)",
-            errorCode: DisplayPeriodCodes.INVALID_DATE_RANGE,
+            errorCode: FailureCode.INVALID_DATE_SEQUENCE,
           },
           {
-            startDate: futureDate,
+            startDate: FUTURE_DATE,
             endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60), // 60 dias no futuro
             scenario: "com data de término muito distante",
-            errorCode: DisplayPeriodCodes.LONG_TERM_FOR_END_DATE,
+            errorCode: FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
           },
         ];
 
@@ -117,22 +114,22 @@ describe("DisplayPeriod", () => {
     describe("hydrate", () => {
       it("deve hidratar um período corretamente", () => {
         // Act
-        const hydrated = DisplayPeriod.hydrate(futureDate, farFutureDate);
+        const hydrated = DisplayPeriod.hydrate(FUTURE_DATE, FAR_FUTURE_DATE);
 
         // Assert
-        expect(hydrated.startDate).toBe(futureDate);
-        expect(hydrated.endDate).toBe(farFutureDate);
+        expect(hydrated.startDate).toBe(FUTURE_DATE);
+        expect(hydrated.endDate).toBe(FAR_FUTURE_DATE);
       });
 
       it.each([
         {
           scenario: "startDate inválido",
           startDate: null,
-          endDate: farFutureDate,
+          endDate: FAR_FUTURE_DATE,
         },
         {
           scenario: "endDate inválido",
-          startDate: futureDate,
+          startDate: FUTURE_DATE,
           endDate: undefined,
         },
         {
@@ -141,8 +138,9 @@ describe("DisplayPeriod", () => {
           endDate: null,
         },
       ])("deve lançar erro técnico se $scenario", ({ startDate, endDate }) => {
-        // Assert
-        expect(() => DisplayPeriod.hydrate(startDate, endDate)).toThrow();
+        expect(() => DisplayPeriod.hydrate(startDate, endDate)).toThrow(
+          FailureCode.NULL_ARGUMENT,
+        );
       });
     });
   });
@@ -153,8 +151,8 @@ describe("DisplayPeriod", () => {
         {
           scenario:
             "deve retornar PRESALE quando a data atual é anterior à data de início",
-          startDate: futureDate,
-          endDate: farFutureDate,
+          startDate: FUTURE_DATE,
+          endDate: FAR_FUTURE_DATE,
           expectedStatus: ScreeningStatus.PRESALE,
         },
         {
@@ -175,6 +173,7 @@ describe("DisplayPeriod", () => {
 
       testCases.forEach(({ scenario, startDate, endDate, expectedStatus }) => {
         it(scenario, () => {
+          // Arrange
           const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
           // Act
@@ -203,8 +202,8 @@ describe("DisplayPeriod", () => {
       const testCases = [
         {
           scenario: "deve retornar false quando o período ainda não começou",
-          startDate: futureDate,
-          endDate: farFutureDate,
+          startDate: FUTURE_DATE,
+          endDate: FAR_FUTURE_DATE,
         },
         {
           scenario: "deve retornar false quando o período já terminou",
@@ -215,6 +214,7 @@ describe("DisplayPeriod", () => {
 
       testCases.forEach(({ scenario, startDate, endDate }) => {
         it(scenario, () => {
+          // Arrange
           const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
           // Act
@@ -244,6 +244,7 @@ describe("DisplayPeriod", () => {
 
       testCases.forEach(({ scenario, startDate, endDate, expected }) => {
         it(scenario, () => {
+          // Arrange
           const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
           // Act
@@ -259,8 +260,8 @@ describe("DisplayPeriod", () => {
       const testCases = [
         {
           scenario: "deve retornar true quando o período ainda não começou",
-          startDate: futureDate,
-          endDate: farFutureDate,
+          startDate: FUTURE_DATE,
+          endDate: FAR_FUTURE_DATE,
           expected: true,
         },
         {
@@ -273,6 +274,7 @@ describe("DisplayPeriod", () => {
 
       testCases.forEach(({ scenario, startDate, endDate, expected }) => {
         it(scenario, () => {
+          // Arrange
           const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
           // Act
@@ -290,32 +292,32 @@ describe("DisplayPeriod", () => {
           {
             scenario:
               "quando o período solicitado se sobrepõe ao início do período de exibição",
-            rangeStart: new Date(futureDate.getTime() - ONE_DAY),
-            rangeEnd: new Date(futureDate.getTime() + ONE_DAY),
+            rangeStart: new Date(FUTURE_DATE.getTime() - ONE_DAY),
+            rangeEnd: new Date(FUTURE_DATE.getTime() + ONE_DAY),
           },
           {
             scenario:
               "quando o período solicitado se sobrepõe ao fim do período de exibição",
-            rangeStart: new Date(farFutureDate.getTime() - ONE_DAY),
-            rangeEnd: new Date(farFutureDate.getTime() + ONE_DAY),
+            rangeStart: new Date(FAR_FUTURE_DATE.getTime() - ONE_DAY),
+            rangeEnd: new Date(FAR_FUTURE_DATE.getTime() + ONE_DAY),
           },
           {
             scenario:
               "quando o período solicitado está totalmente contido no período de exibição",
-            rangeStart: new Date(futureDate.getTime() + ONE_DAY),
-            rangeEnd: new Date(farFutureDate.getTime() - ONE_DAY),
+            rangeStart: new Date(FUTURE_DATE.getTime() + ONE_DAY),
+            rangeEnd: new Date(FAR_FUTURE_DATE.getTime() - ONE_DAY),
           },
           {
             scenario:
               "quando o período de exibição está totalmente contido no período solicitado",
-            rangeStart: new Date(futureDate.getTime() - ONE_DAY),
-            rangeEnd: new Date(farFutureDate.getTime() + ONE_DAY),
+            rangeStart: new Date(FUTURE_DATE.getTime() - ONE_DAY),
+            rangeEnd: new Date(FAR_FUTURE_DATE.getTime() + ONE_DAY),
           },
           {
             scenario:
               "quando os períodos têm exatamente as mesmas datas de início e fim",
-            rangeStart: futureDate,
-            rangeEnd: farFutureDate,
+            rangeStart: FUTURE_DATE,
+            rangeEnd: FAR_FUTURE_DATE,
           },
         ];
 
@@ -323,8 +325,8 @@ describe("DisplayPeriod", () => {
           it(`deve retornar true ${scenario}`, () => {
             // Arrange
             const displayPeriod = DisplayPeriod.hydrate(
-              futureDate,
-              farFutureDate,
+              FUTURE_DATE,
+              FAR_FUTURE_DATE,
             );
 
             // Act
@@ -343,23 +345,23 @@ describe("DisplayPeriod", () => {
           {
             scenario:
               "quando o período solicitado é anterior ao período de exibição",
-            rangeStart: pastDate,
-            rangeEnd: new Date(pastDate.getTime() + ONE_DAY),
+            rangeStart: PAST_DATE,
+            rangeEnd: new Date(PAST_DATE.getTime() + ONE_DAY),
           },
           {
             scenario:
               "quando o período solicitado é posterior período de exibição",
-            rangeStart: new Date(farFutureDate.getTime() + ONE_DAY),
-            rangeEnd: new Date(farFutureDate.getTime() + 2 * ONE_DAY),
+            rangeStart: new Date(FAR_FUTURE_DATE.getTime() + ONE_DAY),
+            rangeEnd: new Date(FAR_FUTURE_DATE.getTime() + 2 * ONE_DAY),
           },
           {
             scenario: "quando a data inicial é inválida",
             rangeStart: null,
-            rangeEnd: farFutureDate,
+            rangeEnd: FAR_FUTURE_DATE,
           },
           {
             scenario: "quando a data final é inválida",
-            rangeStart: futureDate,
+            rangeStart: FUTURE_DATE,
             rangeEnd: undefined,
           },
         ];
@@ -368,8 +370,8 @@ describe("DisplayPeriod", () => {
           it(`deve retornar false ${scenario}`, () => {
             // Arrange
             const displayPeriod = DisplayPeriod.hydrate(
-              futureDate,
-              farFutureDate,
+              FUTURE_DATE,
+              FAR_FUTURE_DATE,
             );
 
             // Act

@@ -4,26 +4,60 @@ import { TechnicalError } from "../../../../shared/error/technical.error";
 import { isNull } from "../../../../shared/validator/validator";
 import { Assert } from "../../../../shared/assert/assert";
 import { not } from "../../../../shared/assert/not";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
+/**
+ * Enum que representa os possíveis estados de exibição de um filme
+ */
 export enum ScreeningStatus {
+  /**
+   * Filme em pré-venda, ainda não começou a ser exibido
+   */
   PRESALE = "presale",
+
+  /**
+   * Filme em exibição atualmente
+   */
   SHOWING = "showing",
+
+  /**
+   * Filme com exibição encerrada
+   */
   ENDED = "ended",
 }
 
-export const DisplayPeriodCodes = {
-  DATE_IS_NOT_PROVIDED: "DATE_IS_NOT_PROVIDED",
-  PAST_START_DATE: "MOVIE_DISPLAY_PERIOD_PAST_START",
-  LONG_TERM_FOR_END_DATE: "LONG_TERM_FOR_END_DATE",
-  INVALID_DATE_RANGE: "MOVIE_DISPLAY_PERIOD_INVALID_RANGE",
-};
-
 /**
  * Value Object que representa o período de exibição de um filme
+ *
+ * Regras de negócio:
+ * - A data de início não pode ser no passado
+ * - A data de início não pode ser mais de 2 meses no futuro
+ * - A data de término deve ser pelo menos 14 dias após a data de início
+ * - A data de término não pode ser mais de 30 dias após a data de início
  */
 export class DisplayPeriod {
   private static readonly MIN_DATE_FOR_DISPLAY_PERIOD: Date = new Date();
 
+  /**
+   * Número máximo de meses no futuro para a data de início
+   */
+  private static readonly MAX_START_DATE_MONTHS_AHEAD: number = 2;
+
+  /**
+   * Número mínimo de dias entre a data de início e a data de término
+   */
+  private static readonly MIN_DISPLAY_PERIOD_DAYS: number = 14;
+
+  /**
+   * Número máximo de dias entre a data de início e a data de término
+   */
+  private static readonly MAX_DISPLAY_PERIOD_DAYS: number = 30;
+
+  /**
+   * Construtor privado. Use os métodos estáticos `create` ou `hydrate` para instanciar.
+   * @param startDate Data de início da exibição
+   * @param endDate Data de término da exibição
+   */
   private constructor(
     public readonly startDate: Date,
     public readonly endDate: Date,
@@ -31,52 +65,63 @@ export class DisplayPeriod {
 
   /**
    * Cria uma instância de DisplayPeriod com validação
+   *
+   * Regras de validação:
+   * - A data de início não pode ser nula
+   * - A data de início não pode ser no passado
+   * - A data de início não pode ser mais de 2 meses no futuro
+   * - A data de término não pode ser nula
+   * - A data de término deve ser pelo menos 14 dias após a data de início
+   * - A data de término não pode ser mais de 30 dias após a data de início
+   *
    * @param startDate Data de início da exibição
    * @param endDate Data de término da exibição
-   * @returns Result<DisplayPeriod>
+   * @returns Result<DisplayPeriod> com sucesso ou falhas de validação
    */
   public static create(startDate: Date, endDate: Date): Result<DisplayPeriod> {
     const failures: SimpleFailure[] = [];
 
     const maxStartDate = new Date();
-    maxStartDate.setMonth(maxStartDate.getMonth() + 2); // máximo de 2 meses
+    maxStartDate.setMonth(
+      maxStartDate.getMonth() + DisplayPeriod.MAX_START_DATE_MONTHS_AHEAD,
+    ); // máximo de 2 meses
 
     Assert.untilFirstFailure(
       failures,
       { field: "startDate" },
-      not.null(startDate, DisplayPeriodCodes.DATE_IS_NOT_PROVIDED),
+      not.null(startDate, FailureCode.NULL_ARGUMENT),
       not.dateBefore(
         startDate,
         DisplayPeriod.MIN_DATE_FOR_DISPLAY_PERIOD,
-        DisplayPeriodCodes.PAST_START_DATE,
+        FailureCode.DATE_PAST_NOT_ALLOWED,
       ),
       not.dateAfter(
         startDate,
         maxStartDate,
-        DisplayPeriodCodes.LONG_TERM_FOR_END_DATE,
+        FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
       ),
     );
 
     if (failures.length === 0 && startDate) {
       const minEndDate = new Date(startDate.getTime());
-      minEndDate.setDate(minEndDate.getDate() + 14); // minimum 2 weeks from start
+      minEndDate.setDate(
+        minEndDate.getDate() + DisplayPeriod.MIN_DISPLAY_PERIOD_DAYS,
+      );
 
       const maxEndDate = new Date(startDate.getTime());
-      maxEndDate.setDate(maxEndDate.getDate() + 30); // maximum 1 month from start
+      maxEndDate.setDate(
+        maxEndDate.getDate() + DisplayPeriod.MAX_DISPLAY_PERIOD_DAYS,
+      );
 
       Assert.untilFirstFailure(
         failures,
         { field: "endDate" },
-        not.null(endDate, DisplayPeriodCodes.DATE_IS_NOT_PROVIDED),
-        not.dateBefore(
-          endDate,
-          minEndDate,
-          DisplayPeriodCodes.INVALID_DATE_RANGE,
-        ),
+        not.null(endDate, FailureCode.NULL_ARGUMENT),
+        not.dateBefore(endDate, minEndDate, FailureCode.INVALID_DATE_SEQUENCE),
         not.dateAfter(
           endDate,
           maxEndDate,
-          DisplayPeriodCodes.LONG_TERM_FOR_END_DATE,
+          FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
         ),
       );
     }
@@ -94,10 +139,9 @@ export class DisplayPeriod {
    */
   public static hydrate(startDate: Date, endDate: Date): DisplayPeriod {
     TechnicalError.if(
-      isNull(startDate),
-      "startDate cannot be null or undefined",
+      isNull(startDate) || isNull(endDate),
+      FailureCode.NULL_ARGUMENT,
     );
-    TechnicalError.if(isNull(endDate), "endDate cannot be null or undefined");
     return new DisplayPeriod(startDate, endDate);
   }
 
@@ -145,10 +189,10 @@ export class DisplayPeriod {
   }
 
   /**
-   * Checks if the movie is available for screening within the given date range
-   * @param rangeStart Start date of the range to check
-   * @param rangeEnd End date of the range to check
-   * @returns boolean
+   * Verifica se o filme está disponível para exibição dentro do intervalo de datas fornecido
+   * @param rangeStart Data de início do intervalo a verificar
+   * @param rangeEnd Data de término do intervalo a verificar
+   * @returns boolean indicando se está disponível no intervalo
    */
   public isAvailableInRange(rangeStart: Date, rangeEnd: Date): boolean {
     return isNull(rangeStart) || isNull(rangeEnd)
