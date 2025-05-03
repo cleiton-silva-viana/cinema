@@ -1,4 +1,5 @@
-import { MovieDuration, DurationCodes } from "./movie.duration";
+import { MovieDuration } from "./movie.duration";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("MovieDuration", () => {
   describe("Static Methods", () => {
@@ -49,7 +50,7 @@ describe("MovieDuration", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(DurationCodes.DURATION_NULL);
+        expect(result.failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
       });
 
       it("deve falhar ao criar com duração menor que o mínimo permitido", () => {
@@ -62,7 +63,7 @@ describe("MovieDuration", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(DurationCodes.DURATION_TOO_SHORT);
+        expect(result.failures[0].code).toBe(FailureCode.MOVIE_DURATION_TOO_SHORT);
       });
 
       it("deve falhar ao criar com duração maior que o máximo permitido", () => {
@@ -75,7 +76,7 @@ describe("MovieDuration", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(DurationCodes.DURATION_TOO_LONG)
+        expect(result.failures[0].code).toBe(FailureCode.MOVIE_DURATION_TOO_LONG);
       });
     });
 
@@ -98,7 +99,7 @@ describe("MovieDuration", () => {
         // Act & Assert
         expect(() => {
           MovieDuration.hydrate(minutes);
-        }).toThrow();
+        }).toThrow(FailureCode.NULL_ARGUMENT);
       });
     });
   });
