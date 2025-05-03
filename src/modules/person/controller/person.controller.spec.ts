@@ -11,6 +11,7 @@ import { IPersonRepository } from "../repository/person.repository.interface";
 import { faker } from "@faker-js/faker/.";
 import { UpdatePersonDTO } from "./dto/update.person.dto";
 import { v4 } from "uuid";
+import { PERSON_REPOSITORY } from "../constant/person.constant";
 
 describe("PersonController", () => {
   let controller: PersonController;
@@ -31,7 +32,7 @@ describe("PersonController", () => {
       providers: [
         PersonService,
         {
-          provide: "PersonRepository",
+          provide: PERSON_REPOSITORY,
           useValue: repositoryMock,
         },
       ],
