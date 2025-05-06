@@ -5,7 +5,7 @@ import { Flow } from "../assert/assert";
 
 class TestValidator extends BaseValidator<TestValidator> {
   constructor(value: any) {
-    super();
+    super(value);
     this._value = value;
   }
 

@@ -2,23 +2,7 @@ import { SimpleFailure } from "../failure/simple.failure.type";
 import { isEqual, isNull } from "./validator";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { Flow } from "../assert/assert";
-import { StringValidator } from "./string.validator";
-import { NumberValidator } from "./number.validator";
-import { BooleanValidator } from "./boolean.validator";
-import { ArrayValidator } from "./array.validator";
-import { DateValidator } from "./date.validator";
-import { ObjectValidator } from "./object.valdiator";
 
-/*
-export const validate = {
-  string: (value: string) => new StringValidator(value),
-  number: (value: number) => new NumberValidator(value),
-  boolean: (value: boolean) => new BooleanValidator(value),
-  object: (value: object) => new ObjectValidator(value),
-  array: (value: any[]) => new ArrayValidator(value),
-  date: (value: Date) => new DateValidator(value), 
-}
-*/
 
 /**
  * Classe base abstrata para validação de propriedades.
@@ -71,7 +55,9 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   /**
    * Construtor protegido para ser usado apenas por classes derivadas
    */
-  protected constructor() {}
+  protected constructor(value: any) {
+    this._value = value
+  }
 
   /**
    * Define o nome do campo para as mensagens de erro
