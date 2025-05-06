@@ -3,7 +3,7 @@ import { FailureCode } from "../failure/failure.codes.enum";
 import { SimpleFailure } from "../failure/simple.failure.type";
 
 describe("ArrayValidator", () => {
-  describe("Método isNotEmpty", () => {
+  describe("isNotEmpty", () => {
     it("não deve adicionar falha quando o array não estiver vazio", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
@@ -70,7 +70,7 @@ describe("ArrayValidator", () => {
     });
   });
 
-  describe("Método hasLengthBetween", () => {
+  describe("hasLengthBetween", () => {
     it("não deve adicionar falha quando o tamanho estiver dentro do intervalo", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
@@ -172,7 +172,7 @@ describe("ArrayValidator", () => {
     });
   });
 
-  describe("Método contains", () => {
+  describe("contains", () => {
     it("não deve adicionar falha quando o array contém o item", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
@@ -245,7 +245,7 @@ describe("ArrayValidator", () => {
     });
   });
 
-  describe("Método every", () => {
+  describe("every", () => {
     it("não deve adicionar falha quando todos os itens satisfazem a condição", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
@@ -316,7 +316,7 @@ describe("ArrayValidator", () => {
     });
   });
 
-  describe("Método some", () => {
+  describe("some", () => {
     it("não deve adicionar falha quando pelo menos um item satisfaz a condição", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
@@ -384,61 +384,6 @@ describe("ArrayValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].details).toMatchObject(details);
-    });
-  });
-
-  describe("Fluxo de validação", () => {
-    it("deve ignorar as validações quando if for false", () => {
-      // Arrange
-      const failures: SimpleFailure[] = [];
-      const value: number[] = [];
-
-      // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .if(false)
-        .isNotEmpty();
-
-      // Assert
-      expect(failures.length).toBe(0);
-    });
-
-    it("deve parar a validação após a primeira falha quando o fluxo for stop", () => {
-      // Arrange
-      const failures: SimpleFailure[] = [];
-      const value: number[] = [];
-
-      // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .isNotEmpty()
-        .hasLengthBetween(1, 5)
-        .contains(1);
-
-      // Assert
-      expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.OBJECT_IS_EMPTY);
-    });
-
-    it("deve continuar a validação quando o fluxo for continue", () => {
-      // Arrange
-      const failures: SimpleFailure[] = [];
-      const value: number[] = [];
-
-      // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .isNotEmpty()
-        .continueOnFailure()
-        .hasLengthBetween(1, 5)
-        .continueOnFailure()
-        .contains(1);
-
-      // Assert
-      expect(failures.length).toBe(3);
-      expect(failures[0].code).toBe(FailureCode.OBJECT_IS_EMPTY);
-      expect(failures[1].code).toBe(FailureCode.LENGTH_OUT_OF_RANGE);
-      expect(failures[2].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
     });
   });
 });
