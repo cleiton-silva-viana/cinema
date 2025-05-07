@@ -129,4 +129,27 @@ export class StringValidator extends BaseValidator<StringValidator> {
       },
     });
   }
+
+  /**
+   * Verifica se a string está contida em um enum
+   * @param enumType O enum para verificação
+   * @param code Código de erro opcional
+   * @param details Detalhes adicionais para a mensagem de erro
+   */
+  public isInEnum(
+    enumType: Record<string, string | number>,
+    code: string = FailureCode.INVALID_ENUM_VALUE,
+    details: Record<string, any> = {},
+  ): StringValidator {
+    const enumValues = Object.values(enumType);
+    
+    return this.validate(() => !enumValues.includes(this._value), {
+      code,
+      details: {
+        providedValue: this._value,
+        allowedValues: enumValues,
+        ...details,
+      },
+    });
+  }
 }

@@ -467,4 +467,73 @@ describe("StringValidator", () => {
       expect(failures[0].details.actualLength).toBe(value.length);
     });
   });
+
+  describe("isInEnum", () => {
+    it("não deve adicionar falha quando o valor estiver no enum", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      const enumType = { A: "a", B: "b", C: "c" };
+      const value = "b";
+
+      // Act
+      new StringValidator(value).failures(failures).isInEnum(enumType);
+
+      // Assert
+      expect(failures.length).toBe(0);
+    });
+
+    it("deve adicionar falha quando o valor não estiver no enum", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      const enumType = { A: "a", B: "b", C: "c" };
+      const value = "d";
+
+      // Act
+      new StringValidator(value).failures(failures).field("tipo").isInEnum(enumType);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE);
+      expect(failures[0].details.providedValue).toBe(value);
+      expect(failures[0].details.allowedValues).toEqual(Object.values(enumType));
+    });
+
+    it("deve usar o código de erro personalizado", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      const enumType = { A: "a", B: "b", C: "c" };
+      const value = "d";
+      const code = FailureCode.CONTENT_INVALID_TYPE;
+
+      // Act
+      new StringValidator(value)
+        .failures(failures)
+        .field("tipo")
+        .isInEnum(enumType, code);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].code).toBe(code);
+    });
+
+    it("deve incluir detalhes adicionais na falha", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      const enumType = { A: "a", B: "b", C: "c" };
+      const value = "d";
+      const details = { message: "Valor não permitido" };
+
+      // Act
+      new StringValidator(value)
+        .failures(failures)
+        .field("tipo")
+        .isInEnum(enumType, FailureCode.INVALID_ENUM_VALUE, details);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].details.message).toBe(details.message);
+      expect(failures[0].details.providedValue).toBe(value);
+      expect(failures[0].details.allowedValues).toEqual(Object.values(enumType));
+    });
+  });
 });

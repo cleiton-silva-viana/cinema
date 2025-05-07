@@ -195,11 +195,16 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * ```
    */
   protected validate(expression: () => boolean, failure: SimpleFailure): V {
+    if(this._flow === Flow.stop && this.hasFailure) return this as unknown as V;
+
     if (this._flow === Flow.continue) {
-      this._flow = Flow.stop;
       if (expression()) {
         this.hasFailure = true;
-        this._failures.push(failure);
+        this._failures.push({
+          code: failure.code,
+          details: { field: this._field, ...failure.details },
+        });
+        this._flow = Flow.stop;
       }
     }
     return this as unknown as V;
