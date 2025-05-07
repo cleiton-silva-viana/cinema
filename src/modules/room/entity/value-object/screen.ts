@@ -1,10 +1,8 @@
-import { not } from "../../../../shared/assert/not";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
-import { is } from "../../../../shared/assert/is";
 import { TechnicalError } from "../../../../shared/error/technical.error";
-import { Assert } from "../../../../shared/assert/assert";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { Result, failure, success } from "../../../../shared/result/result";
+import { Validate } from "../../../../shared/validator/validate";
 
 /**
  * Tipos de tela suportados pelo cinema
@@ -13,7 +11,11 @@ import { Result, failure, success } from "../../../../shared/result/result";
  * - 3D: Tela que suporta apenas projeções tridimensionais
  * - 2D_3D: Tela que suporta ambos os tipos de projeção
  */
-export type ScreenType = "2D" | "3D" | "2D_3D";
+export enum ScreenType {
+  "2D" = "2D",
+  "3D" = "3D",
+  "2D_3D" = "2D_3D",
+}
 
 /**
  * Representa a tela de projeção de uma sala de cinema.
@@ -66,36 +68,21 @@ export class Screen {
    */
   public static create(size: number, type: string): Result<Screen> {
     const failures: SimpleFailure[] = [];
-    type = type?.toUpperCase();
 
-    Assert.untilFirstFailure(
-      failures,
-      { field: "size" },
-      not.null(size, FailureCode.MISSING_REQUIRED_DATA),
-      is.number(size, FailureCode.CONTENT_INVALID_TYPE),
-      is.between(
-        size,
-        Screen.MIN_SIZE_IN_METERS,
-        Screen.MAX_SIZE_IN_METERS,
-        FailureCode.INVALID_FIELD_SIZE,
-      ),
-    );
+    Validate.number(size)
+      .field("size")
+      .failures(failures)
+      .isRequired()
+      .isInteger()
+      .isInRange(Screen.MIN_SIZE_IN_METERS, Screen.MAX_SIZE_IN_METERS);
 
-    const validTypes: ScreenType[] = ["2D", "3D", "2D_3D"];
+    const upperType = type?.trim().toUpperCase();
 
-    Assert.untilFirstFailure(
-      failures,
-      { field: "screenType" },
-      not.null(type, FailureCode.MISSING_REQUIRED_DATA),
-      is.true(
-        validTypes.includes(type as ScreenType),
-        FailureCode.INVALID_ENUM_VALUE,
-        {
-          providedValue: type,
-          expectValues: Object.values(validTypes),
-        },
-      ),
-    );
+    Validate.string(upperType)
+      .field("type")
+      .failures(failures)
+      .isRequired()
+      .isInEnum(ScreenType);
 
     if (failures.length > 0) return failure(failures);
 
@@ -113,10 +100,14 @@ export class Screen {
    * @throws {TechnicalError} Se size ou type forem nulos
    * @returns Nova instância de Screen com os dados fornecidos
    */
-  public static hydrate(size: number, type: ScreenType): Screen {
-    TechnicalError.if(!size, FailureCode.NULL_ARGUMENT, { field: "size" });
-    TechnicalError.if(!type, FailureCode.NULL_ARGUMENT, { field: "type" });
-    return new Screen(size, type);
+  public static hydrate(size: number, type: string): Screen {
+    TechnicalError.if(!size, FailureCode.MISSING_REQUIRED_DATA, {
+      field: "size",
+    });
+    TechnicalError.if(!type, FailureCode.MISSING_REQUIRED_DATA, {
+      field: "type",
+    });
+    return new Screen(size, type.trim().toUpperCase() as ScreenType);
   }
 
   /**
