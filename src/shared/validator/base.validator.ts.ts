@@ -3,7 +3,6 @@ import { isEqual, isNull } from "./validator";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { Flow } from "../assert/assert";
 
-
 /**
  * Classe base abstrata para validação de propriedades.
  *
@@ -56,7 +55,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * Construtor protegido para ser usado apenas por classes derivadas
    */
   protected constructor(value: any) {
-    this._value = value
+    this._value = value;
   }
 
   /**

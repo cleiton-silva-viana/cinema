@@ -10,9 +10,7 @@ describe("ObjectValidator", () => {
       const value = { nome: "teste", idade: 25 };
 
       // Act
-      new ObjectValidator(value)
-        .failures(failures)
-        .hasProperty("nome");
+      new ObjectValidator(value).failures(failures).hasProperty("nome");
 
       // Assert
       expect(failures.length).toBe(0);
@@ -62,7 +60,7 @@ describe("ObjectValidator", () => {
         .hasProperty(
           "idade" as keyof typeof value,
           FailureCode.OBJECT_MISSING_PROPERTY,
-          details
+          details,
         );
 
       // Assert

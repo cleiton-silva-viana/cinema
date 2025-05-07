@@ -37,7 +37,6 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
     code: string = FailureCode.LENGTH_OUT_OF_RANGE,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
-
     return this.validate(
       () => {
         const length = this._value.length;
@@ -66,7 +65,7 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
     code: string = FailureCode.MISSING_REQUIRED_DATA,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
-    return this.validate(() => !(this._value.includes(item)), {
+    return this.validate(() => !this._value.includes(item), {
       code,
       details: {
         item,
@@ -86,7 +85,10 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
     code: string = FailureCode.CONTENT_INVALID_ITEMS,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
-    return this.validate(() => !(this._value.every(predicate)), { code, details });
+    return this.validate(() => !this._value.every(predicate), {
+      code,
+      details,
+    });
   }
 
   /**
@@ -100,6 +102,6 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
     code: string = FailureCode.MISSING_VALID_ITEM,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
-    return this.validate(() => !(this._value.some(predicate)), { code, details });
+    return this.validate(() => !this._value.some(predicate), { code, details });
   }
 }

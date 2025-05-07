@@ -41,7 +41,7 @@ export class DateValidator extends BaseValidator<DateValidator> {
     code: string = FailureCode.DATE_NOT_BEFORE_LIMIT,
     details: Record<string, any> = {},
   ): DateValidator {
-    return this.validate(() =>  !(this._value.getTime() < limitDate.getTime()), {
+    return this.validate(() => !(this._value.getTime() < limitDate.getTime()), {
       code,
       details: {
         value: this._value.toISOString(),

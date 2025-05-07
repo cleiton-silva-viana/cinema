@@ -10,10 +10,7 @@ describe("ArrayValidator", () => {
       const value = [1, 2, 3];
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .isNotEmpty();
+      new ArrayValidator(value).failures(failures).field("itens").isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -25,10 +22,7 @@ describe("ArrayValidator", () => {
       const value: number[] = [];
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .isNotEmpty();
+      new ArrayValidator(value).failures(failures).field("itens").isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(1);
