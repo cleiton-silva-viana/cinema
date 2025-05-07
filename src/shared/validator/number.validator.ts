@@ -20,7 +20,7 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
     min: number,
     max: number,
     code: string = FailureCode.VALUE_OUT_OF_RANGE,
-    details: Record<string, any> = {}
+    details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value >= min && this._value <= max), {
       code,
@@ -28,8 +28,8 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
         minValue: min,
         maxValue: max,
         value: this._value,
-        ...details
-      }
+        ...details,
+      },
     });
   }
 
@@ -42,15 +42,15 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
   public isAtMost(
     max: number,
     code: FailureCode = FailureCode.VALUE_GREATER_THAN_MAX,
-    details: Record<string, any> = {}
+    details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value <= max), {
       code,
       details: {
         value: this._value,
         maxValue: max,
-        ...details
-      }
+        ...details,
+      },
     });
   }
 
@@ -63,15 +63,15 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
   public isAtLeast(
     min: number,
     code: string = FailureCode.VALUE_LESS_THAN_MIN,
-    details: Record<string, any> = {}
+    details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value >= min), {
       code,
       details: {
         value: this._value,
         minValue: min,
-        ...details
-      }
+        ...details,
+      },
     });
   }
 
@@ -82,14 +82,14 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
    */
   public isPositive(
     code: string = FailureCode.VALUE_NOT_POSITIVE,
-    details: Record<string, any> = {}
+    details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value > 0), {
       code,
       details: {
         value: this._value,
-        ...details
-      }
+        ...details,
+      },
     });
   }
 
@@ -100,14 +100,14 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
    */
   public isNegative(
     code: string = FailureCode.VALUE_CANNOT_BE_NEGATIVE,
-    details: Record<string, any> = {}
+    details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value < 0), {
       code,
       details: {
         value: this._value,
-        ...details
-      }
+        ...details,
+      },
     });
   }
 
@@ -118,14 +118,14 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
    */
   public isInteger(
     code: string = FailureCode.VALUE_NOT_INTEGER,
-    details: Record<string, any> = {}
+    details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !Number.isInteger(this._value), {
       code,
       details: {
         value: this._value,
-        ...details
-      }
+        ...details,
+      },
     });
   }
 }
