@@ -12,30 +12,23 @@ export class Validate {
    * Inicia a validação de uma string
    * @param value Valor a ser validado
    */
-  public static string(value: any): StringValidator {
-    return new StringValidator(
-      typeof value === "string" ? value : String(value),
-    );
+  public static string(value: string): StringValidator {
+    return new StringValidator(value);
   }
 
   /**
    * Inicia a validação de um número
    * @param value Valor a ser validado
    */
-  public static number(value: any): NumberValidator {
-    return new NumberValidator(
-      typeof value === "number" ? value : Number(value),
-    );
+  public static number(value: number): NumberValidator {
+    return new NumberValidator(value);
   }
 
   /**
    * Inicia a validação de uma data
    * @param value Valor a ser validado
    */
-  public static date(value: any): DateValidator {
-    if (value instanceof Date) {
-      return new DateValidator(value);
-    }
+  public static date(value: Date): DateValidator {
     return new DateValidator(new Date(value));
   }
 
