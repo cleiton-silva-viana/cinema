@@ -5,23 +5,23 @@ import { FailureCode } from "../failure/failure.codes.enum";
 
 describe("Name", () => {
   describe("create", () => {
-    describe("should create a valid", () => {
+    describe("deve criar um nome válido", () => {
       const successCases = [
-        { name: "john", scenario: "with minimum length" },
-        { name: "mark", scenario: "with another valid name" },
-        { name: "Sérgio", scenario: "with brazillian name" },
+        { name: "john", scenario: "com comprimento mínimo" },
+        { name: "mark", scenario: "com outro nome válido" },
+        { name: "Sérgio", scenario: "com nome brasileiro" },
         {
           name: "Mary Jane Watson Parker",
-          scenario: "with multiple compound name",
+          scenario: "com múltiplos nomes compostos",
         },
         {
           name: faker.string.alpha(50),
-          scenario: "with maximum length",
+          scenario: "com comprimento máximo",
         },
       ];
 
       successCases.forEach(({ name, scenario }) => {
-        it(`Name object ${scenario}`, () => {
+        it(`objeto Name ${scenario}`, () => {
           // Act
           const result = Name.create(name);
 
@@ -31,47 +31,47 @@ describe("Name", () => {
       });
     });
 
-    describe("should fail to create an invalid", () => {
+    describe("deve falhar ao criar um nome inválido", () => {
       const failureCases = [
         {
           name: null as unknown as string,
-          scenario: "when name is null",
-          errorCodeExpected: FailureCode.NULL_ARGUMENT,
+          scenario: "quando o nome é nulo",
+          errorCodeExpected: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
           name: undefined as unknown as string,
-          scenario: "when name is undefined",
-          errorCodeExpected: FailureCode.NULL_ARGUMENT,
+          scenario: "quando o nome é indefinido",
+          errorCodeExpected: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
           name: "",
-          scenario: "when name is empty",
-          errorCodeExpected: FailureCode.EMPTY_FIELD,
+          scenario: "quando o nome está vazio",
+          errorCodeExpected: FailureCode.STRING_CANNOT_BE_EMPTY,
         },
         {
           name: "ab",
-          scenario: "when name is too short",
-          errorCodeExpected: FailureCode.INVALID_FIELD_SIZE,
+          scenario: "quando o nome é muito curto",
+          errorCodeExpected: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
         },
         {
           name: faker.string.alphanumeric(51),
-          scenario: "when name is too long",
-          errorCodeExpected: FailureCode.INVALID_FIELD_SIZE,
+          scenario: "quando o nome é muito longo",
+          errorCodeExpected: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
         },
         {
           name: "john123",
-          scenario: "when name contains invalid characters",
+          scenario: "quando o nome contém caracteres inválidos",
           errorCodeExpected: FailureCode.INVALID_NAME_FORMAT,
         },
         {
           name: "John #$$",
-          scenario: "when name contains special characters",
+          scenario: "quando o nome contém caracteres especiais",
           errorCodeExpected: FailureCode.INVALID_NAME_FORMAT,
         },
       ];
 
       failureCases.forEach(({ name, scenario, errorCodeExpected }) => {
-        it(`Name object ${scenario}`, () => {
+        it(`objeto Name ${scenario}`, () => {
           // Act
           const result = Name.create(name);
           const failures = result.failures;
@@ -85,7 +85,7 @@ describe("Name", () => {
   });
 
   describe("hydrate", () => {
-    it("should create a Name object without validation", () => {
+    it("deve criar um objeto Name sem validação", () => {
       // Arrange
       const nameString = faker.person.firstName();
 
@@ -97,7 +97,7 @@ describe("Name", () => {
       expect(result.value).toBe(nameString);
     });
 
-    it("should throw an error when name is null or undefined", () => {
+    it("deve lançar um erro quando o nome é nulo ou indefinido", () => {
       // Arrange
       const values: any[] = [null, undefined];
 
@@ -109,7 +109,7 @@ describe("Name", () => {
   });
 
   describe("equal", () => {
-    it("should return true when names are equal", () => {
+    it("deve retornar verdadeiro quando os nomes são iguais", () => {
       // Arrange
       const nameString = faker.person.firstName();
       const result1 = Name.create(nameString);
@@ -119,7 +119,7 @@ describe("Name", () => {
       expect(result1.value.equal(result2.value)).toBe(true);
     });
 
-    it("should return false when names are different", () => {
+    it("deve retornar falso quando os nomes são diferentes", () => {
       // Arrange
       const result1 = Name.create(faker.person.firstName());
       const result2 = Name.create(faker.person.firstName());
@@ -128,7 +128,7 @@ describe("Name", () => {
       expect(result1.value.equal(result2.value)).toBe(false);
     });
 
-    it("should return false when comparing with non-Name object", () => {
+    it("deve retornar falso quando comparado com um objeto que não é Name", () => {
       // Arrange
       const result = Name.create("john");
       const notNameObject = { name: "john" };

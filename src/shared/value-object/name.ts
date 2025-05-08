@@ -5,6 +5,8 @@ import { is } from "../assert/is";
 import { SimpleFailure } from "../failure/simple.failure.type";
 import { TechnicalError } from "../error/technical.error";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { Validate } from "../validator/validate";
+import { isNull } from "../validator/validator";
 
 /**
  * Representa um nome válido encapsulado com validações de formato e tamanho.
@@ -34,21 +36,13 @@ export class Name {
   public static create(name: string): Result<Name> {
     const failures: SimpleFailure[] = [];
 
-    Assert.all(
-      failures,
-      { field: "name" },
-      not.null(name, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
-      not.empty(name, FailureCode.EMPTY_FIELD, {}, Flow.stop),
-      is.between(
-        name,
-        Name.MIN_NAME_LENGTH,
-        Name.MAX_NAME_LENGTH,
-        FailureCode.INVALID_FIELD_SIZE,
-        {},
-        Flow.stop,
-      ),
-      is.match(name, Name.NAME_FORMAT_REGEX, FailureCode.INVALID_NAME_FORMAT),
-    );
+    Validate.string(name)
+      .field("name")
+      .failures(failures)
+      .isRequired()
+      .isNotEmpty()
+      .hasLengthBetween(Name.MIN_NAME_LENGTH, Name.MAX_NAME_LENGTH)
+      .matchesPattern(Name.NAME_FORMAT_REGEX, FailureCode.INVALID_NAME_FORMAT);
 
     return failures.length > 0 ? failure(failures) : success(new Name(name));
   }
@@ -59,7 +53,9 @@ export class Name {
    * @throws TechnicalError se o nome for nulo ou vazio
    */
   public static hydrate(name: string): Name {
-    TechnicalError.if(!name, FailureCode.NULL_ARGUMENT);
+    TechnicalError.if(isNull(name), FailureCode.MISSING_REQUIRED_DATA, {
+      field: name,
+    });
     return new Name(name);
   }
 
