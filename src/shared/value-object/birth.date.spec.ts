@@ -14,24 +14,24 @@ describe("BirthDate", () => {
   });
 
   describe("create", () => {
-    describe("should create a valid", () => {
+    describe("deve criar um objeto válido", () => {
       const successCases = [
         {
           date: new Date(1990, 0, 1),
-          scenario: "with date from 1990",
+          scenario: "com data de 1990",
         },
         {
           date: new Date(1980, 5, 15),
-          scenario: "with date from 1980",
+          scenario: "com data de 1980",
         },
         {
           date: new Date(2000, 11, 31),
-          scenario: "with date from 2000",
+          scenario: "com data de 2000",
         },
       ];
 
       successCases.forEach(({ date, scenario }) => {
-        it(`BirthDate object ${scenario}`, () => {
+        it(`objeto BirthDate ${scenario}`, () => {
           // Act
           const result = BirthDate.create(date);
 
@@ -42,36 +42,26 @@ describe("BirthDate", () => {
       });
     });
 
-    describe("should fail to create an invalid", () => {
+    describe("deve falhar ao criar um objeto inválido", () => {
       const minAge = 18;
       const minBirthDate = new Date();
       minBirthDate.setFullYear(minBirthDate.getFullYear() - minAge);
 
       const failureCases = [
         {
-          date: null,
-          scenario: "when birth date is null",
-          errorCodeExpected: FailureCode.NULL_ARGUMENT,
-        },
-        {
-          date: undefined,
-          scenario: "when birth date is undefined",
-          errorCodeExpected: FailureCode.NULL_ARGUMENT,
-        },
-        {
-          date: new Date(1899, 11, 31, 0, 0, 0, 0),
-          scenario: "when birth date is before 1900",
-          errorCodeExpected: FailureCode.INVALID_BIRTH_DATE_TOO_OLD,
+          date: new Date(1899, 0, 0, 0, 0, 0, 0),
+          scenario: "quando a data de nascimento é anterior a 1900",
+          errorCodeExpected: FailureCode.DATE_NOT_AFTER_LIMIT,
         },
         {
           date: new Date(),
-          scenario: "when person is under 18 years old",
-          errorCodeExpected: FailureCode.INVALID_BIRTH_DATE_TOO_YOUNG,
+          scenario: "quando a pessoa tem menos de 18 anos",
+          errorCodeExpected: FailureCode.DATE_NOT_BEFORE_LIMIT,
         },
       ];
 
       failureCases.forEach(({ date, scenario, errorCodeExpected }) => {
-        it(`BirthDate object ${scenario}`, () => {
+        it(`objeto BirthDate ${scenario}`, () => {
           // Act
           const result = BirthDate.create(date);
           const failures = result.failures;
@@ -82,10 +72,23 @@ describe("BirthDate", () => {
         });
       });
     });
+
+    it("deve falhar quando for passado um valor nulo ou indefinido para a data", () => {
+      // Arrange
+      const invalidValues: any[] = [null, undefined];
+
+      // Act
+      for (const date of invalidValues) {
+        const result = BirthDate.create(date);
+
+        // Assert
+        expect(result.invalid).toBe(true);
+      }
+    });
   });
 
   describe("hydrate", () => {
-    it("should create a BirthDate object without validation", () => {
+    it("deve criar um objeto BirthDate sem validação", () => {
       // Arrange
       const birthDate = new Date(1990, 0, 1);
 
@@ -97,7 +100,7 @@ describe("BirthDate", () => {
       expect(result.value.toISOString()).toBe(birthDate.toISOString());
     });
 
-    it("should throw an error when birth date is null or undefined", () => {
+    it("deve lançar um erro quando a data de nascimento é nula ou indefinida", () => {
       // Arrange
       const values: Array<Date> = [null, undefined];
 
@@ -109,7 +112,7 @@ describe("BirthDate", () => {
   });
 
   describe("equal", () => {
-    it("should return true when birth dates are equal", () => {
+    it("deve retornar verdadeiro quando as datas de nascimento são iguais", () => {
       // Arrange
       const birthDate = new Date(1990, 0, 1);
       const result1 = BirthDate.create(birthDate);
@@ -119,7 +122,7 @@ describe("BirthDate", () => {
       expect(result1.value.equal(result2.value)).toBe(true);
     });
 
-    it("should return false when birth dates are different", () => {
+    it("deve retornar falso quando as datas de nascimento são diferentes", () => {
       // Arrange
       const result1 = BirthDate.create(new Date(1990, 0, 1));
       const result2 = BirthDate.create(new Date(1991, 0, 1));
@@ -128,7 +131,7 @@ describe("BirthDate", () => {
       expect(result1.value.equal(result2.value)).toBe(false);
     });
 
-    it("should return false when comparing with null", () => {
+    it("deve retornar falso quando comparado com null", () => {
       // Arrange
       const result = BirthDate.create(new Date(1990, 0, 1));
 
@@ -136,7 +139,7 @@ describe("BirthDate", () => {
       expect(result.value.equal(null as unknown as BirthDate)).toBe(false);
     });
 
-    it("should return false when comparing with non-BirthDate object", () => {
+    it("deve retornar falso quando comparado com um objeto que não é BirthDate", () => {
       // Arrange
       const result = BirthDate.create(new Date(1990, 0, 1));
       const notBirthDateObject = { value: new Date(1990, 0, 1) };

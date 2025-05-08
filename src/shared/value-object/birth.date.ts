@@ -1,11 +1,9 @@
-import { Assert, Flow } from "../assert/assert";
-import { not } from "../assert/not";
 import { failure, Result, success } from "../result/result";
 import { SimpleFailure } from "../failure/simple.failure.type";
 import { TechnicalError } from "../error/technical.error";
 import { isNull } from "../validator/validator";
-import { is } from "../assert/is";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { Validate } from "../validator/validate";
 
 /**
  * Representa uma data de nascimento válida com regras de negócio aplicadas.
@@ -18,7 +16,13 @@ export class BirthDate {
   private constructor(private readonly _value: Date) {}
 
   private static MIN_BIRTH_DATE = new Date(
-    new Date().getFullYear() - 18, 0, 0, 0, 0, 0);
+    new Date().getFullYear() - 18,
+    0,
+    0,
+    0,
+    0,
+    0,
+  );
 
   private static MAX_BIRTH_DATE = new Date(1900, 0, 0, 0, 0, 0, 0);
 
@@ -37,23 +41,12 @@ export class BirthDate {
   public static create(birthDate: Date): Result<BirthDate> {
     const failures: SimpleFailure[] = [];
 
-    Assert.all(
-      failures,
-      { field: "birth date" },
-      not.null(birthDate, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
-      is.true(
-        birthDate < BirthDate.MIN_BIRTH_DATE,
-        FailureCode.INVALID_BIRTH_DATE_TOO_YOUNG,
-        {},
-        Flow.stop,
-      ),
-      is.true(
-        birthDate > BirthDate.MAX_BIRTH_DATE,
-        FailureCode.INVALID_BIRTH_DATE_TOO_OLD,
-        {},
-        Flow.stop,
-      ),
-    );
+    Validate.date(birthDate)
+      .field("birthDate")
+      .failures(failures)
+      .isRequired()
+      .isAfter(BirthDate.MAX_BIRTH_DATE)
+      .isBefore(BirthDate.MIN_BIRTH_DATE);
 
     return failures.length > 0
       ? failure(failures)
@@ -67,7 +60,7 @@ export class BirthDate {
    * @throws TechnicalError se a data for nula ou undefined
    */
   public static hydrate(birthDate: Date): BirthDate {
-    TechnicalError.if(isNull(birthDate), FailureCode.NULL_ARGUMENT);
+    TechnicalError.if(isNull(birthDate), FailureCode.MISSING_REQUIRED_DATA);
     return new BirthDate(birthDate);
   }
 
