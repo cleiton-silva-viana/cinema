@@ -10,6 +10,7 @@ import { ROOM_REPOSITORY } from "../constant/room.constant";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { failure, Result, success } from "../../../shared/result/result";
 import { isNull } from "../../../shared/validator/validator";
+import { IRoomService } from "./room.service.interface";
 
 /**
  * Serviço responsável por gerenciar operações relacionadas às salas de cinema.
@@ -18,7 +19,7 @@ import { isNull } from "../../../shared/validator/validator";
  * busca e exclusão de salas, além de operações específicas como fechamento.
  */
 @Injectable()
-export class RoomService {
+export class RoomService implements IRoomService {
   constructor(
     @Inject(ROOM_REPOSITORY)
     private readonly repository: IRoomRepository,
