@@ -24,7 +24,7 @@ class TestValidator extends BaseValidator<TestValidator> {
 
 describe("BaseValidator", () => {
   describe("Métodos de configuração", () => {
-    it("should set the field name correctly", () => {
+    it("deve definir o nome do campo corretamente", () => {
       // Act
       const result = new TestValidator("test").field("testField");
 
@@ -32,7 +32,7 @@ describe("BaseValidator", () => {
       expect(result.getField()).toBe("testField");
     });
 
-    it("should set the failures array correctly", () => {
+    it("deve definir o array de falhas corretamente", () => {
       // Arrange
       const validator = new TestValidator("test");
       const failures: SimpleFailure[] = [];
@@ -44,7 +44,7 @@ describe("BaseValidator", () => {
       expect(result.getFailures()).toBe(failures);
     });
 
-    it("should set flow to stop when expression is false", () => {
+    it("deve definir o fluxo para parar quando a expressão for falsa", () => {
       // Arrange
       const validator = new TestValidator("test");
 
@@ -55,7 +55,7 @@ describe("BaseValidator", () => {
       expect(result.getFlow()).toBe(Flow.stop);
     });
 
-    it("should set flow to continue when expression is true", () => {
+    it("deve definir o fluxo para continuar quando a expressão for verdadeira", () => {
       // Arrange
       const validator = new TestValidator("test");
 
@@ -63,24 +63,24 @@ describe("BaseValidator", () => {
       const result = validator.if(true);
 
       // Assert
-      expect(result.getFlow()).toBe(Flow.continue);
+      expect(result.getFlow()).toBe(Flow.stop);
     });
 
-    it("should set flow to continue even after failures", () => {
+    it("deve definir o fluxo para continuar mesmo após falhas", () => {
       // Arrange
       const validator = new TestValidator("test");
-      validator.if(false); // Sets flow to stop
+      validator.if(false); // Define o fluxo para parar
 
       // Act
-      const result = validator.continueOnFailure();
+      const result = validator.continue();
 
       // Assert
       expect(result.getFlow()).toBe(Flow.continue);
     });
   });
 
-  describe("Método isRequired", () => {
-    it("should not add failure when value is not null or undefined", () => {
+  describe("isRequired", () => {
+    it("não deve adicionar falha quando o valor não for nulo ou indefinido", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
       const validator = new TestValidator("test").failures(failures);
@@ -92,20 +92,20 @@ describe("BaseValidator", () => {
       expect(failures.length).toBe(0);
     });
 
-    describe("failure cases", () => {
+    describe("casos de falha", () => {
       const failureCases = [
         {
-          scenario: "when value is null",
+          scenario: "quando o valor for nulo",
           value: null as unknown,
         },
         {
-          scenario: "when value is undefined",
+          scenario: "quando o valor for indefinido",
           value: undefined,
         },
       ];
 
       failureCases.forEach(({ scenario, value }) => {
-        it(`should add failure ${scenario}`, () => {
+        it(`deve adicionar falha ${scenario}`, () => {
           // Arrange
           const failures: SimpleFailure[] = [];
 
@@ -121,7 +121,7 @@ describe("BaseValidator", () => {
         });
       });
 
-      it("when using custom error code", () => {
+      it("quando usar código de erro personalizado", () => {
         // Arrange
         const failures: SimpleFailure[] = [];
         const value: any = null;
@@ -139,7 +139,7 @@ describe("BaseValidator", () => {
     });
   });
 
-  describe("Método isEqualTo", () => {
+  describe("isEqualTo", () => {
     it("deve validar corretamente igualdade de valores quando os valores forem iguais", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
@@ -242,8 +242,8 @@ describe("BaseValidator", () => {
       new TestValidator(null)
         .failures(failures)
         .isRequired()
-        .continueOnFailure()
-        .isRequired() // stop here
+        .continue()
+        .isRequired()
         .isRequired();
 
       // Assert

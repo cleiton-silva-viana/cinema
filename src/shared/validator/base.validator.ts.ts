@@ -34,7 +34,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   /**
    * Controla o fluxo de validação (continuar ou parar após falha)
    */
-  protected _flow: Flow = Flow.continue;
+  protected _flow: Flow = Flow.stop;
 
   /**
    * O valor sendo validado
@@ -106,21 +106,24 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * ```
    */
   public if(expression: boolean): V {
-    if (!expression) this._flow = Flow.stop;
+    if (!expression) {
+      this._flow = Flow.stop;
+      this.hasFailure = true;
+    }
     return this as unknown as V;
   }
 
   /**
-   * Configura o validador para continuar validando mesmo após encontrar erros
+   * Configura o validador para continuar validando mesmo após a validação imediatamente anterior encontrar erros
    *
    * @returns A instância do validador para encadeamento
    *
    * @example
    * ```typescript
-   * validator.continueOnFailure()
+   * validator.continue()
    * ```
    */
-  public continueOnFailure(): V {
+  public continue(): V {
     this._flow = Flow.continue;
     return this as unknown as V;
   }
@@ -195,18 +198,19 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * ```
    */
   protected validate(expression: () => boolean, failure: SimpleFailure): V {
-    if(this._flow === Flow.stop && this.hasFailure) return this as unknown as V;
-
-    if (this._flow === Flow.continue) {
-      if (expression()) {
-        this.hasFailure = true;
-        this._failures.push({
-          code: failure.code,
-          details: { field: this._field, ...failure.details },
-        });
-        this._flow = Flow.stop;
-      }
+    if (this._flow === Flow.stop && this.hasFailure) {
+      return this as unknown as V;
     }
+
+    if (expression()) {
+      this.hasFailure = true;
+      this._failures.push({
+        code: failure.code,
+        details: { field: this._field, ...failure.details },
+      });
+    }
+
+    this._flow = Flow.stop;
     return this as unknown as V;
   }
 }
