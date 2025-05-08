@@ -1,5 +1,6 @@
 import { BaseValidator } from "./base.validator.ts";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { TechnicalError } from "../error/technical.error";
 
 /**
  * Validador para datas
@@ -20,11 +21,26 @@ export class DateValidator extends BaseValidator<DateValidator> {
     code: string = FailureCode.DATE_NOT_AFTER_LIMIT,
     details: Record<string, any> = {},
   ): DateValidator {
-    return this.validate(() => !(this._value.getTime() > limitDate.getTime()), {
+    TechnicalError.if(
+      !(limitDate instanceof Date),
+      FailureCode.CONTENT_INVALID_TYPE,
+      {
+        field: "limitDate",
+      },
+    );
+
+    const isValid =
+      this._value instanceof Date && !isNaN(this._value.getTime());
+
+    const date = isValid
+      ? this._value
+      : new Date(new Date(limitDate).setDate(limitDate.getDate() - 10000));
+
+    return this.validate(() => date < limitDate, {
       code,
       details: {
-        value: this._value.toISOString(),
-        limitDate: limitDate?.toISOString(),
+        value: isValid ? date.toISOString() : "N/A",
+        limitDate: limitDate.toISOString(),
         ...details,
       },
     });
@@ -41,10 +57,25 @@ export class DateValidator extends BaseValidator<DateValidator> {
     code: string = FailureCode.DATE_NOT_BEFORE_LIMIT,
     details: Record<string, any> = {},
   ): DateValidator {
-    return this.validate(() => !(this._value.getTime() < limitDate.getTime()), {
+    TechnicalError.if(
+      !(limitDate instanceof Date),
+      FailureCode.CONTENT_INVALID_TYPE,
+      {
+        field: "limitDate",
+      },
+    );
+
+    const isValid =
+      this._value instanceof Date && !isNaN(this._value.getTime());
+
+    const date = isValid
+      ? this._value
+      : new Date(new Date(limitDate).setDate(limitDate.getDate() + 10000));
+
+    return this.validate(() => date > limitDate, {
       code,
       details: {
-        value: this._value.toISOString(),
+        value: isValid ? date.toISOString() : "N/A",
         limitDate: limitDate?.toISOString(),
         ...details,
       },
@@ -64,10 +95,38 @@ export class DateValidator extends BaseValidator<DateValidator> {
     code: string = FailureCode.DATE_OUT_OF_RANGE,
     details: Record<string, any> = {},
   ): DateValidator {
+    const fails: string[] = [];
+
+    if (!startDate || !(startDate instanceof Date)) fails.push("startDate");
+    if (!endDate || !(endDate instanceof Date)) fails.push("endDate");
+
+    TechnicalError.if(fails.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
+      field: fails.toString(),
+    });
+
+    if (startDate > endDate)
+      return this.validate(() => true, {
+        code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
+        details: {
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString(),
+        },
+      });
+
+    const isValid =
+      this._value instanceof Date && !isNaN(this._value.getTime());
+
+    const isValueValid =
+      this._value instanceof Date && !isNaN(this._value.getTime());
+
+    const date = isValueValid
+      ? this._value.getTime()
+      : new Date(new Date(startDate).setDate(startDate.getDate() + 10000));
+
     return this.validate(
       () => {
         const time = this._value.getTime();
-        return !(time >= startDate.getTime() && time <= endDate.getTime());
+        return !(time >= startDate && time <= endDate);
       },
       {
         code,
