@@ -1,0 +1,1 @@
+export const ROOM_REPOSITORY = 'ROOM_REPOSITORY'
