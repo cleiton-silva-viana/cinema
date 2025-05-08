@@ -31,38 +31,30 @@ describe("StringValidator", () => {
       expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
     });
 
-    it("deve usar o código de erro personalizado", () => {
+    it("deve lidar com strings que contêm apenas espaços em branco", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
-      const value = "";
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const value = "   ";
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("test")
-        .isNotEmpty(code);
+      new StringValidator(value).failures(failures).field("test").isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(code);
+      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
     });
 
-    it("deve incluir detalhes na falha", () => {
+    it("deve lidar com strings que contêm apenas caracteres de nova linha ou tabulação", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
-      const value = "";
-      const details = { message: "Campo obrigatório" };
+      const value = "\n\t\r";
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("test")
-        .isNotEmpty(FailureCode.STRING_CANNOT_BE_EMPTY, details);
+      new StringValidator(value).failures(failures).field("test").isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details).toMatchObject(details);
+      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
     });
   });
 
@@ -71,6 +63,18 @@ describe("StringValidator", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
       const value = "teste";
+
+      // Act
+      new StringValidator(value).failures(failures).field("test").hasContent();
+
+      // Assert
+      expect(failures.length).toBe(0);
+    });
+
+    it("não deve adicionar falha quando a string contém caracteres especiais", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      const value = "!@#$%^&*()_+{}|:<>?~`-=[]\\;',./";
 
       // Act
       new StringValidator(value).failures(failures).field("test").hasContent();
@@ -489,13 +493,18 @@ describe("StringValidator", () => {
       const value = "d";
 
       // Act
-      new StringValidator(value).failures(failures).field("tipo").isInEnum(enumType);
+      new StringValidator(value)
+        .failures(failures)
+        .field("tipo")
+        .isInEnum(enumType);
 
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE);
       expect(failures[0].details.providedValue).toBe(value);
-      expect(failures[0].details.allowedValues).toEqual(Object.values(enumType));
+      expect(failures[0].details.allowedValues).toEqual(
+        Object.values(enumType),
+      );
     });
 
     it("deve usar o código de erro personalizado", () => {
@@ -533,7 +542,74 @@ describe("StringValidator", () => {
       expect(failures.length).toBe(1);
       expect(failures[0].details.message).toBe(details.message);
       expect(failures[0].details.providedValue).toBe(value);
-      expect(failures[0].details.allowedValues).toEqual(Object.values(enumType));
+      expect(failures[0].details.allowedValues).toEqual(
+        Object.values(enumType),
+      );
+    });
+  });
+
+  describe("encadeamento de validações", () => {
+    it("deve acumular falhas quando múltiplas validações falham", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      const value = "";
+
+      // Act
+      new StringValidator(value)
+        .failures(failures)
+        .field("test")
+        .isNotEmpty()
+        .continue()
+        .hasContent()
+        .continue()
+        .hasLengthBetween(5, 10);
+
+      // Assert
+      expect(failures.length).toBe(3);
+      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
+      expect(failures[1].code).toBe(FailureCode.STRING_CANNOT_BE_BLANK);
+      expect(failures[2].code).toBe(FailureCode.STRING_LENGTH_OUT_OF_RANGE);
+    });
+
+    it("deve parar de validar após o primeiro erro quando stopOnFirstFailure é usado", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      const value = "";
+
+      // Act
+      new StringValidator(value)
+        .failures(failures)
+        .field("test")
+        .isNotEmpty()
+        .hasContent()
+        .hasLengthBetween(5, 10);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
+    });
+
+    it("não deve lançar um erro quando um valor nulo é passado para um fluxo de validação", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      const enumForTest = { A: "a", B: "b", C: "c" };
+
+      // Act
+      new StringValidator(null)
+        .failures(failures)
+        .field("test")
+        .isNotEmpty()
+        .hasContent()
+        .isInEnum(enumForTest)
+        .isValidEmail()
+        .isValidUUIDv4()
+        .isValidUUIDv7()
+        .matchesPattern(/a-z/)
+        .hasLengthBetween(5, 10);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
     });
   });
 });

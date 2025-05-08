@@ -19,7 +19,8 @@ export class StringValidator extends BaseValidator<StringValidator> {
     code: string = FailureCode.STRING_CANNOT_BE_EMPTY,
     details: Record<string, any> = {},
   ): StringValidator {
-    return this.validate(() => this._value.trim().length === 0, {
+    const value = this._value?.trim().length || 0;
+    return this.validate(() => value === 0, {
       code,
       details,
     });
@@ -34,9 +35,9 @@ export class StringValidator extends BaseValidator<StringValidator> {
     code: string = FailureCode.STRING_CANNOT_BE_BLANK,
     details: Record<string, any> = {},
   ): StringValidator {
-    const value = this._value ?? "";
+    const value = this._value?.trim().length || 0;
 
-    return this.validate(() => value.trim().length === 0, {
+    return this.validate(() => value === 0, {
       code,
       details,
     });
@@ -117,14 +118,14 @@ export class StringValidator extends BaseValidator<StringValidator> {
     code: string = FailureCode.STRING_LENGTH_OUT_OF_RANGE,
     details: Record<string, any> = {},
   ): StringValidator {
-    const length = this._value.length;
+    const length = this._value?.length || 0;
 
     return this.validate(() => !(length >= min && length <= max), {
       code,
       details: {
         minLength: min,
         maxLength: max,
-        actualLength: this._value.length,
+        actualLength: length,
         ...details,
       },
     });
@@ -142,7 +143,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
     details: Record<string, any> = {},
   ): StringValidator {
     const enumValues = Object.values(enumType);
-    
+
     return this.validate(() => !enumValues.includes(this._value), {
       code,
       details: {
