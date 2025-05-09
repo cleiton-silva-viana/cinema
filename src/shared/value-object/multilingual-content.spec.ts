@@ -63,22 +63,22 @@ describe("MultilingualContent", () => {
           {
             contents: [pt],
             scenario: "quando EN está faltando",
-            errorCode: FailureCode.CONTENT_MISSING_REQUIRED_LANGUAGE,
+            errorCode: FailureCode.TEXT_LANGUAGE_REQUIRED,
           },
           {
             contents: [{ language: "pt", text: "Bonjour" }, pt, en],
             scenario: "quando PT está duplicado",
-            errorCode: FailureCode.CONTENT_DUPLICATE_LANGUAGE,
+            errorCode: FailureCode.TEXT_DUPLICATED_FOR_LANGUAGE,
           },
           {
             contents: [],
             scenario: "quando o array está vazio",
-            errorCode: FailureCode.EMPTY_FIELD,
+            errorCode: FailureCode.OBJECT_IS_EMPTY,
           },
           {
             contents: [fr],
             scenario: "quando o idioma é inválido",
-            errorCode: FailureCode.CONTENT_INVALID_LANGUAGE,
+            errorCode: FailureCode.INVALID_LANGUAGE,
           },
         ];
 
@@ -108,7 +108,7 @@ describe("MultilingualContent", () => {
           // Assert
           expect(result.invalid).toBe(true);
           expect(result.failures[0].code).toBe(
-            FailureCode.CONTENT_INVALID_FORMAT,
+            FailureCode.STRING_INVALID_FORMAT,
           );
         });
 
@@ -125,7 +125,7 @@ describe("MultilingualContent", () => {
           // Assert
           expect(result.invalid).toBe(true);
           expect(result.failures[0].code).toBe(
-            FailureCode.CONTENT_INVALID_FORMAT,
+            FailureCode.STRING_INVALID_FORMAT,
           );
         });
       });

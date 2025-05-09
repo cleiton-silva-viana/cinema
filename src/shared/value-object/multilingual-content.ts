@@ -1,10 +1,8 @@
 import { SimpleFailure } from "../failure/simple.failure.type";
 import { failure, Result, success } from "../result/result";
-import { Assert, Flow } from "../assert/assert";
-import { is } from "../assert/is";
-import { not } from "../assert/not";
 import { TechnicalError } from "../error/technical.error";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { Validate } from "../validator/validate";
 
 /**
  * Idiomas suportados pela aplicação
@@ -127,13 +125,17 @@ export abstract class MultilingualContent {
     lang: string,
     value: string,
   ): T {
-    TechnicalError.if(
-      !lang?.trim() || !value?.trim(),
-      FailureCode.NULL_ARGUMENT,
-    );
+    const fields: string[] = [];
+
+    if (!lang) fields.push("language");
+    if (!value) fields.push("value");
+
+    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
+      fields: fields,
+    });
 
     const langEnum = this.toSupportedLanguage(lang);
-    TechnicalError.if(!langEnum, FailureCode.NULL_ARGUMENT);
+    TechnicalError.if(!langEnum, FailureCode.INVALID_ENUM_VALUE);
 
     const contentMap = new Map<SupportedLanguage, string>();
     contentMap.set(langEnum, value);
@@ -196,7 +198,7 @@ export abstract class MultilingualContent {
     );
     if (!languageEnum) {
       failures.push({
-        code: FailureCode.CONTENT_INVALID_LANGUAGE,
+        code: FailureCode.INVALID_LANGUAGE,
         details: {
           providedLanguage: content.language,
           supportedLanguages: Object.values(SupportedLanguage),
@@ -216,16 +218,14 @@ export abstract class MultilingualContent {
    * @param failures Array para armazenar os erros encontrados
    */
   private static validateContentArray(
-    contents: any,
+    contents: any[],
     failures: SimpleFailure[],
   ): void {
-    Assert.all(
-      failures,
-      { field: "contents" },
-      not.null(contents, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
-      is.array(contents, FailureCode.CONTENT_INVALID_TYPE, {}, Flow.stop),
-      not.empty(contents, FailureCode.EMPTY_FIELD),
-    );
+    Validate.array(contents)
+      .field("contents")
+      .failures(failures)
+      .isRequired()
+      .isNotEmpty();
   }
 
   /**
@@ -244,44 +244,30 @@ export abstract class MultilingualContent {
   ): boolean {
     const flag = failures.length;
 
-    Assert.all(
-      failures,
-      { field: "language" },
-      not.null(content, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
-      not.null(content.language, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
-      is.string(
-        content.language,
-        FailureCode.CONTENT_INVALID_TYPE,
-        {},
-        Flow.stop,
-      ),
-      is.string(content.text, FailureCode.CONTENT_INVALID_TYPE, {}, Flow.stop),
-      is.contains(
-        Object.values(SupportedLanguage),
-        content.language.toLowerCase(),
-        FailureCode.CONTENT_INVALID_LANGUAGE,
-        {},
-        Flow.stop,
-      ),
-      is.between(
-        content.text,
-        this.MIN_LENGTH,
-        this.MAX_LENGTH,
-        FailureCode.INVALID_FIELD_SIZE,
-        { actual: content.text.length },
-        Flow.stop,
-      ),
-      is.match(
-        content.text,
-        this.FORMAT_REGEX,
-        FailureCode.CONTENT_INVALID_FORMAT,
-        {
-          language: content.language,
-          value: content.text,
-        },
-        Flow.stop,
-      ),
-    );
+    Validate.object(content)
+      .field("content")
+      .failures(failures)
+      .isRequired()
+      .isNotEmpty()
+      .hasProperty("text")
+      .hasProperty("language");
+
+    if (flag > failures.length) return false;
+
+    Validate.string(content.text)
+      .field("text")
+      .failures(failures)
+      .isRequired()
+      .isNotEmpty()
+      .hasLengthBetween(this.MIN_LENGTH, this.MAX_LENGTH)
+      .matchesPattern(this.FORMAT_REGEX);
+
+    Validate.string(content.language)
+      .field("language")
+      .failures(failures)
+      .isRequired()
+      .isNotEmpty()
+      .isInEnum(SupportedLanguage);
 
     return failures.length === flag;
   }
@@ -303,7 +289,7 @@ export abstract class MultilingualContent {
 
       if (seenLanguages.has(content.language)) {
         failures.push({
-          code: FailureCode.CONTENT_DUPLICATE_LANGUAGE,
+          code: FailureCode.TEXT_DUPLICATED_FOR_LANGUAGE,
           details: { language: content.language },
         });
         continue;
@@ -325,16 +311,17 @@ export abstract class MultilingualContent {
   ): void {
     const languages = new Set(contents.map((content) => content.language));
 
+    Validate.array(contents).field("contents").failures(failures);
+
     for (const requiredLang of this.REQUIRED_LANGUAGES) {
-      Assert.all(
-        failures,
-        {},
-        is.true(
-          languages.has(requiredLang),
-          FailureCode.CONTENT_MISSING_REQUIRED_LANGUAGE,
-          { requiredLanguage: requiredLang },
-        ),
-      );
+      if (!languages.has(requiredLang)) {
+        failures.push({
+          code: FailureCode.TEXT_LANGUAGE_REQUIRED,
+          details: {
+            requiredLanguage: requiredLang,
+          },
+        });
+      }
     }
   }
 }
