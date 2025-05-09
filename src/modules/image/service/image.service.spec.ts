@@ -1,10 +1,9 @@
-import { ImageService } from "./image.service";
 import { IImageHandler } from "../handler/image.handler.interface";
 import { IStorageService } from "../../storage/storage.service.interface";
 import { IImageRepository } from "../repository/image.repository.interface";
 import { failure, success } from "../../../shared/result/result";
-import { Image, textContent } from "../entity/image";
-import { v4 } from "uuid";
+import { Image, ItextContent } from "../entity/image";
+import { v7 } from "uuid";
 import {
   AspectRatio,
   CompressionType,
@@ -12,6 +11,7 @@ import {
   ImageHandlerConfig,
 } from "../handler/types/image.handler.config";
 import { ImageUID } from "../entity/value-object/image-uid.vo";
+import { ImageService } from "./image.service";
 
 describe("ImageService", () => {
   let service: ImageService;
@@ -19,11 +19,12 @@ describe("ImageService", () => {
   let storageMock: jest.Mocked<IStorageService>;
   let repositoryMock: jest.Mocked<IImageRepository>;
 
-  const mockTitle: textContent[] = [
+  const uid = ImageUID.create().value;
+  const mockTitle: ItextContent[] = [
     { language: "pt", text: "Título de teste" },
     { language: "en", text: "Title for test" },
   ];
-  const mockDescription: textContent[] = [
+  const mockDescription: ItextContent[] = [
     { language: "pt", text: "Descrição de teste" },
     { language: "en", text: "Description for test" },
   ];
@@ -31,17 +32,14 @@ describe("ImageService", () => {
     small: "http://example.com/small.jpg",
     normal: "http://example.com/normal.jpg",
     large: "http://example.com/large.jpg",
-    uid: v4(),
+    uid: uid,
   };
-
-  const uid = ImageUID.create().value;
-  const mockImage = {
-    uid: { value: uid },
-    title: mockTitle,
-    description: mockDescription,
-    urls: savedUrlsMock,
-  } as unknown as Image;
-
+  const mockImage = Image.hydrate({
+    uid: uid,
+    title: mockTitle[0],
+    description: mockDescription[0],
+    sizes: savedUrlsMock,
+  });
   const mockFile = {
     buffer: Buffer.from("test"),
     mimetype: "image/jpeg",
@@ -53,7 +51,6 @@ describe("ImageService", () => {
     filename: "",
     path: "",
   } as Express.Multer.File;
-
   const mockConfig: ImageHandlerConfig = {
     compress: CompressionType.Lossy,
     extension: ImageExtension.JPEG,
@@ -84,6 +81,56 @@ describe("ImageService", () => {
     service = new ImageService(handlerMock, storageMock, repositoryMock);
   });
 
+  describe("findById", () => {
+    it("deve retornar uma imagem quando encontrada no repositório", async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(mockImage);
+
+      // Act
+      const result = await service.findById(uid);
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(result.invalid).toBe(false);
+      expect(result.value).toEqual(mockImage);
+    });
+
+    it("deve retornar falha quando a imagem não é encontrada", async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null);
+
+      // Act
+      const result = await service.findById(uid);
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(result.invalid).toBe(true);
+      expect(result.failures).toBeDefined();
+    });
+
+    it("deve retornar falha quando o UID é inválido", async () => {
+      // Arrange
+      const uid = v7();
+
+      // Act
+      const result = await service.findById(uid);
+
+      // Assert
+      expect(repositoryMock.findById).not.toHaveBeenCalled();
+      expect(result.invalid).toBe(true);
+      expect(result.failures).toBeDefined();
+    });
+
+    it("deve retornar falha quando ocorre um erro no repositório", async () => {
+      // Arrange
+      const error = new Error("Erro no banco de dados");
+      repositoryMock.findById.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(service.findById(uid)).rejects.toThrow(error);
+    });
+  });
+
   describe("create", () => {
     const processedImages = {
       small: Buffer.from("small"),
@@ -106,14 +153,14 @@ describe("ImageService", () => {
       );
 
       // Assert
+      expect(result.invalid).toBe(false);
+      expect(result.value).toEqual(mockImage);
       expect(handlerMock.process).toHaveBeenCalledWith(mockFile, mockConfig);
       expect(storageMock.save).toHaveBeenCalledWith(
         "./storage/image/",
         processedImages,
       );
       expect(repositoryMock.create).toHaveBeenCalledTimes(1);
-      expect(result.invalid).toBe(false);
-      expect(result.value).toEqual(mockImage);
     });
 
     it("deve retornar falha quando o processamento da imagem falha", async () => {
@@ -165,7 +212,7 @@ describe("ImageService", () => {
 
     it("deve limpar o storage e retornar falha quando a criação da entidade Image falha", async () => {
       // Arrange
-      const title: textContent[] = [
+      const title: ItextContent[] = [
         { language: "pt", text: "Um texto válido" },
         { language: "en", text: "A invalid text with special characters ‡┴" },
       ];
@@ -236,18 +283,41 @@ describe("ImageService", () => {
     });
   });
 
-  describe("findById", () => {
-    it("deve retornar uma imagem quando encontrada no repositório", async () => {
+  describe("update", () => {
+    const mockUpdateParams = {
+      title: [
+        { language: "pt", text: "Título atualizado" },
+        { language: "en", text: "Updated title" },
+      ],
+      description: [
+        { language: "pt", text: "Descrição atualizada" },
+        { language: "en", text: "Updated description" },
+      ],
+    };
+
+    const updatedImage = {
+      ...mockImage,
+      title: mockUpdateParams.title,
+      description: mockUpdateParams.description,
+    } as unknown as Image;
+
+    beforeEach(() => {
+      repositoryMock.update = jest.fn();
+    });
+
+    it("deve atualizar uma imagem com sucesso quando todos os passos são bem-sucedidos", async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(mockImage);
+      repositoryMock.update.mockResolvedValue(updatedImage);
 
       // Act
-      const result = await service.findById(uid);
+      const result = await service.update(uid, mockUpdateParams);
 
       // Assert
       expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.update).toHaveBeenCalledTimes(1);
       expect(result.invalid).toBe(false);
-      expect(result.value).toEqual(mockImage);
+      expect(result.value).toEqual(updatedImage);
     });
 
     it("deve retornar falha quando a imagem não é encontrada", async () => {
@@ -255,34 +325,74 @@ describe("ImageService", () => {
       repositoryMock.findById.mockResolvedValue(null);
 
       // Act
-      const result = await service.findById(uid);
+      const result = await service.update(uid, mockUpdateParams);
 
       // Assert
       expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.update).not.toHaveBeenCalled();
       expect(result.invalid).toBe(true);
-      expect(result.failures).toBeDefined()
+      expect(result.failures).toBeDefined();
     });
 
     it("deve retornar falha quando o UID é inválido", async () => {
       // Arrange
-      const uid = v4();
+      const invalidUid = "invalid-uid";
 
       // Act
-      const result = await service.findById(uid);
+      const result = await service.update(invalidUid, mockUpdateParams);
 
       // Assert
       expect(repositoryMock.findById).not.toHaveBeenCalled();
-      expect(result.invalid).toBe(true)
-      expect(result.failures).toBeDefined()
+      expect(repositoryMock.update).not.toHaveBeenCalled();
+      expect(result.invalid).toBe(true);
+      expect(result.failures).toBeDefined();
     });
 
-    it("deve retornar falha quando ocorre um erro no repositório", async () => {
+    it("deve retornar falha quando os parâmetros de atualização são inválidos", async () => {
       // Arrange
-      const error = new Error("Erro no banco de dados");
-      repositoryMock.findById.mockRejectedValue(error);
+      const invalidParams = {
+        title: [
+          { language: "pt", text: "Título válido" },
+          { language: "en", text: "Invalid title with special characters ‡┴" },
+        ],
+      };
+      repositoryMock.findById.mockResolvedValue(mockImage);
+
+      // Act
+      const result = await service.update(uid, invalidParams);
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.update).not.toHaveBeenCalled();
+      expect(result.invalid).toBe(true);
+      expect(result.failures).toBeDefined();
+    });
+
+    it("deve retornar falha quando o repositório falha ao atualizar", async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(mockImage);
+      repositoryMock.update.mockResolvedValue(null);
+
+      // Act
+      const result = await service.update(uid, mockUpdateParams);
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledTimes(1);
+      expect(repositoryMock.update).toHaveBeenCalledTimes(1);
+      expect(result.invalid).toBe(true);
+      expect(result.failures).toBeDefined();
+    });
+
+    it("deve lançar exceção quando ocorre um erro inesperado", async () => {
+      // Arrange
+      const unexpectedError = new Error("Erro inesperado na atualização");
+      repositoryMock.findById.mockResolvedValue(mockImage);
+      repositoryMock.update.mockRejectedValue(unexpectedError);
 
       // Act & Assert
-      await expect(service.findById(uid)).rejects.toThrow(error);
+      await expect(service.update(uid, mockUpdateParams)).rejects.toThrow(
+        unexpectedError,
+      );
     });
   });
 
@@ -315,7 +425,7 @@ describe("ImageService", () => {
       expect(storageMock.delete).not.toHaveBeenCalled();
       expect(repositoryMock.delete).not.toHaveBeenCalled();
       expect(result.invalid).toBe(true);
-      expect(result.failures).toBeDefined()
+      expect(result.failures).toBeDefined();
     });
 
     it("deve retornar falha quando a exclusão do storage falha", async () => {
@@ -337,13 +447,13 @@ describe("ImageService", () => {
 
     it("deve retornar falha quando a exclusão no repositório falha", async () => {
       // Arrange
-      const error = new Error('error for test')
+      const error = new Error("error for test");
       repositoryMock.findById.mockResolvedValue(mockImage);
       storageMock.delete.mockResolvedValue(success(null));
       repositoryMock.delete.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(() => service.delete(uid)).rejects.toThrow(error)
+      await expect(() => service.delete(uid)).rejects.toThrow(error);
     });
   });
 });

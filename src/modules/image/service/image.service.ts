@@ -1,38 +1,90 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { failure, Result, success } from "../../../shared/result/result";
-import { Image, textContent } from "../entity/image";
+import { Image, ItextContent, IUpdateImageParams } from "../entity/image";
 import { IImageRepository } from "../repository/image.repository.interface";
 import { IImageHandler } from "../handler/image.handler.interface";
 import { IStorageService } from "../../storage/storage.service.interface";
 import { ImageHandlerConfig } from "../handler/types/image.handler.config";
 import { ImageUID } from "../entity/value-object/image-uid.vo";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { ResourceTypes } from "../../../shared/constant/resource.types";
+import { IMAGE_HANDLER, IMAGE_REPOSITORY } from "../constant/image.constant";
+import { IImageService } from "./image.service.interface";
 
+/**
+ * Serviço de aplicação para operações relacionadas a imagens.
+ *
+ * Este serviço orquestra o fluxo da aplicação, coordenando chamadas entre
+ * serviços de domínio, repositórios e serviços de infraestrutura.
+ */
 @Injectable()
-export class ImageService {
+export class ImageService implements IImageService {
   constructor(
-    private readonly handler: IImageHandler,
-    private readonly storage: IStorageService,
-    private readonly repository: IImageRepository,
+    @Inject(IMAGE_HANDLER) private readonly handler: IImageHandler,
+    @Inject() private readonly storage: IStorageService,
+    @Inject(IMAGE_REPOSITORY) private readonly repository: IImageRepository,
   ) {}
 
+  /**
+   * Busca uma imagem pelo seu identificador único.
+   *
+   * @param uid - Identificador único da imagem
+   * @returns Result contendo a entidade Image ou falha
+   */
+  public async findById(uid: string): Promise<Result<Image>> {
+    const uidResult = ImageUID.parse(uid);
+    if (uidResult.invalid) return failure(uidResult.failures);
+
+    const image = await this.repository.findById(uidResult.value);
+
+    return image === null
+      ? failure({
+          code: FailureCode.RESOURCE_NOT_FOUND,
+          details: {
+            resource: ResourceTypes.IMAGE,
+          },
+        })
+      : success(image);
+  }
+
+  /**
+   * Cria uma nova imagem no sistema.
+   *
+   * Este método orquestra todo o processo de criação de uma imagem:
+   * 1. Processa o arquivo de imagem
+   * 2. Salva os arquivos processados no armazenamento
+   * 3. Cria a entidade de domínio com os metadados
+   * 4. Persiste a entidade no repositório
+   *
+   * @param title - Títulos da imagem em diferentes idiomas
+   * @param description - Descrições da imagem em diferentes idiomas
+   * @param image - Arquivo de imagem a ser processado
+   * @param configs - Configurações para o processamento da imagem
+   * @returns Result contendo a entidade Image criada ou falhas
+   */
   public async create(
-    title: textContent[],
-    description: textContent[],
+    title: ItextContent[],
+    description: ItextContent[],
     image: Express.Multer.File,
     configs: ImageHandlerConfig,
   ): Promise<Result<Image>> {
     const processResult = await this.handler.process(image, configs);
     if (processResult.invalid) return failure(processResult.failures);
 
-    const path = "./storage/image/"; // TODO: mudar para uma env
+    const path = "./storage/image/"; // TODO: recuperar este valor de uma variável de ambiente
     const saveResult = await this.storage.save(path, processResult.value);
     if (saveResult.invalid) return failure(saveResult.failures);
-    const url = saveResult.value
+    const url = saveResult.value;
 
-    const imageResult = Image.create(url.uid, title, description, {
-      small: url.small,
-      normal: url.normal,
-      large: url.large,
+    const imageResult = Image.create({
+      uid: url.uid,
+      title,
+      description,
+      sizes: {
+        small: url.small,
+        normal: url.normal,
+        large: url.large,
+      },
     });
 
     if (imageResult.invalid) {
@@ -44,27 +96,64 @@ export class ImageService {
       const image = await this.repository.create(imageResult.value);
       if (!image) {
         await this.storage.delete(saveResult.value.uid);
-        return failure({ code: 'SAVE_ON_SAVE_IMAGE' });
+        return failure({ code: FailureCode.FAILURE_TO_PERSIST_DATA });
       }
-        return success(image);
-    } catch (e){
-        await this.storage.delete(saveResult.value.uid);
-        throw e
+      return success(image);
+    } catch (e) {
+      await this.storage.delete(saveResult.value.uid);
+      throw e;
     }
   }
 
-  public async findById(uid: string): Promise<Result<Image>> {
-    const uidResult = ImageUID.parse(uid)
-    if (uidResult.invalid) return failure(uidResult.failures);
+  /**
+   * Atualiza os metadados de uma imagem existente.
+   *
+   * Este método orquestra todo o processo de atualização:
+   * 1. Verifica se a imagem existe
+   * 2. Atualiza a entidade com os novos dados
+   * 3. Persiste a entidade atualizada no repositório
+   *
+   * @param uid - Identificador único da imagem
+   * @param params - Parâmetros para atualização da imagem
+   * @returns Result contendo a entidade Image atualizada ou falhas
+   */
+  public async update(
+    uid: string,
+    params: IUpdateImageParams,
+  ): Promise<Result<Image>> {
+    const findImageResult = await this.findById(uid);
+    if (findImageResult.invalid) return failure(findImageResult.failures);
+    const image = findImageResult.value;
 
-    const image = await this.repository.findById(uidResult.value);
-    return image
-      ? success(image)
-      : failure({ code: 'RESOURCE_NOT_FOUND', details: { resourceId: uid } })
+    // Atualiza a entidade com os novos dados
+    const updateResult = image.update(params);
+    if (updateResult.invalid) return failure(updateResult.failures);
+
+    // Persiste a entidade atualizada no repositório
+    try {
+      const updatedImage = await this.repository.update(updateResult.value);
+      if (!updatedImage) {
+        return failure({ code: FailureCode.FAILURE_TO_PERSIST_DATA });
+      }
+      return success(updatedImage);
+    } catch (e) {
+      throw e;
+    }
   }
 
+  /**
+   * Remove uma imagem do sistema.
+   *
+   * Este método orquestra todo o processo de remoção:
+   * 1. Verifica se a imagem existe
+   * 2. Remove os arquivos do armazenamento
+   * 3. Remove a entidade do repositório
+   *
+   * @param uid - Identificador único da imagem
+   * @returns Result indicando sucesso ou falha
+   */
   public async delete(uid: string): Promise<Result<null>> {
-    const findImageResult = await this.findById(uid)
+    const findImageResult = await this.findById(uid);
     if (findImageResult.invalid) return failure(findImageResult.failures);
     const imageUID = findImageResult.value.uid;
 
@@ -72,7 +161,6 @@ export class ImageService {
     if (storageResult.invalid) return failure(storageResult.failures);
 
     await this.repository.delete(imageUID);
-
-    return success(null)
+    return success(null);
   }
 }
