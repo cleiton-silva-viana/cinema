@@ -114,6 +114,17 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   }
 
   /**
+   * Executa validações adicionais apenas se não houver falhas até o momento
+   * @param validator Função que contém as validações a serem executadas
+   */
+  public then(validator: () => void): this {
+    if (this._failures.length === 0) {
+      validator();
+    }
+    return this;
+  }
+
+  /**
    * Executa validações apenas se a condição for verdadeira
    * @param condition Condição que deve ser verdadeira para executar as validações
    * @param validator Função que contém as validações a serem executadas

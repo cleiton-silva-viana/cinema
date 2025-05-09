@@ -79,6 +79,59 @@ describe("BaseValidator", () => {
     });
   });
 
+  describe("then", () => {
+    it("deve executar o validador quando não há falhas", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      let wasExecuted = false;
+
+      // Act
+      new TestValidator("test").failures(failures).then(() => {
+        wasExecuted = true;
+      });
+
+      // Assert
+      expect(wasExecuted).toBe(true);
+    });
+
+    it("não deve executar o validador quando há falhas", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      let wasExecuted = false;
+
+      // Act
+      new TestValidator(null)
+        .failures(failures)
+        .isRequired()
+        .then(() => {
+          wasExecuted = true;
+        });
+
+      // Assert
+      expect(wasExecuted).toBe(false);
+      expect(failures.length).toBe(1);
+    });
+
+    it("deve permitir encadeamento de validações", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      let executionsCounter = 0;
+
+      // Act
+      new TestValidator("test")
+        .failures(failures)
+        .then(() => {
+          executionsCounter++;
+        })
+        .then(() => {
+          executionsCounter++;
+        });
+
+      // Assert
+      expect(executionsCounter).toBe(2);
+    });
+  });
+
   describe("when", () => {
     it("deve executar o validador quando a condição for verdadeira", () => {
       // Arrange
