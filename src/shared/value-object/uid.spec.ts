@@ -3,12 +3,16 @@ import { v4, v7 } from "uuid";
 import { TechnicalError } from "../error/technical.error";
 import { FailureCode } from "../failure/failure.codes.enum";
 
+const PREFIX = "TEST";
+const SEPARATOR = ".";
+
 class TestUID extends UID {
-  protected static readonly PREFIX: string = "TEST";
+  protected static readonly PREFIX: string = PREFIX;
+  protected static readonly SEPARATOR: string = SEPARATOR;
 }
 
 describe("UID", () => {
-  const UID_STRING = `TEST.${v7()}`;
+  const UID_STRING = `${PREFIX}${SEPARATOR}${v7()}`;
 
   describe("create", () => {
     it("deve criar um UID válido com UUID v7", () => {
@@ -56,7 +60,7 @@ describe("UID", () => {
 
           // Assert
           expect(failures.length).toBe(1);
-          expect(failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
+          expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
         });
       });
     });
@@ -67,7 +71,7 @@ describe("UID", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(FailureCode.EMPTY_FIELD);
+      expect(result.failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
     });
 
     describe("deve falhar ao criar um UID com formato inválido", () => {

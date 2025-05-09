@@ -1,12 +1,10 @@
 import { v7 } from "uuid";
 import { failure, Result, success } from "../result/result";
 import { SimpleFailure } from "../failure/simple.failure.type";
-import { Assert, Flow } from "../assert/assert";
-import { not } from "../assert/not";
-import { is } from "../assert/is";
-import { isBlank, isNull, isUIDv7 } from "../validator/validator";
+import { isBlank, isNull } from "../validator/validator";
 import { TechnicalError } from "../error/technical.error";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { Validate } from "../validator/validate";
 
 /**
  * Classe base abstrata para valores de identificação únicos (UIDs)
@@ -27,11 +25,6 @@ export abstract class UID {
    * Separador entre prefixo e o valor UUID
    */
   protected static readonly SEPARATOR: string = ".";
-
-  /**
-   * Comprimento padrão para UUIDs
-   */
-  private static readonly UUID_LENGTH: number = 36;
 
   /**
    * Parte contendo a string em formato uuid v7
@@ -66,8 +59,18 @@ export abstract class UID {
   /**
    * @throws TechnicalError se o valor for nulo ou vazio
    */
+  /**
+   * Cria uma instância de UID a partir de um valor conhecido como válido
+   * Usado principalmente para hidratar entidades da persistência
+   *
+   * @param value String contendo o UID completo (ex: "USER.123e4567-e89b-12d3-a456-426614174000")
+   * @throws TechnicalError se o valor for nulo, vazio ou não corresponder ao formato esperado
+   * @returns Nova instância de UID
+   */
   public static hydrate(value: string): UID {
-    TechnicalError.if(isBlank(value), FailureCode.NULL_ARGUMENT);
+    TechnicalError.if(isBlank(value), FailureCode.MISSING_REQUIRED_DATA, {
+      field: "uid",
+    });
     const uid = UID.extractUuidPart(value, this);
     return new (this as any)(uid);
   }
@@ -81,32 +84,27 @@ export abstract class UID {
    */
   public static parse(value: string): Result<UID> {
     const failures: SimpleFailure[] = [];
+    const concreteClass = this as typeof UID;
+    const prefix = concreteClass.PREFIX + concreteClass.SEPARATOR;
+    let uuidPart: string;
 
-    Assert.all(
-      failures,
-      { field: "uid" },
-      not.null(value, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
-      not.empty(value, FailureCode.EMPTY_FIELD, {}, Flow.stop),
-      is.true(
-        value?.startsWith(this.PREFIX),
-        FailureCode.INVALID_UUID,
-        {},
-        Flow.stop,
-      ),
-      is.equal(
-        value?.length,
-        UID.UUID_LENGTH + this.PREFIX.length + this.SEPARATOR.length,
-        FailureCode.INVALID_UUID,
-        {},
-        Flow.stop,
-      ),
-      is.true(UID.validateUuidPart(value, this), FailureCode.INVALID_UUID),
-    );
+    Validate.string(value)
+      .field("uid")
+      .failures(failures)
+      .isRequired()
+      .isNotEmpty()
+      .startsWith(prefix, FailureCode.INVALID_UUID)
+      .then(() => {
+        uuidPart = UID.extractUuidPart(value, concreteClass);
+        Validate.string(uuidPart)
+          .field("uid")
+          .failures(failures)
+          .isValidUUIDv7();
+      });
 
-    if (failures.length > 0) return failure(failures);
-
-    const uuidPart = UID.extractUuidPart(value, this);
-    return success(new (this as any)(uuidPart));
+    return failures.length > 0
+      ? failure(failures)
+      : success(new (this as any)(uuidPart));
   }
 
   /**
@@ -122,7 +120,9 @@ export abstract class UID {
   /**
    * Extrai a parte UUID de um valor completo de UID
    * @param value String contendo o UID completo
-   * @returns A parte UUID do valor
+   * @param concreteClass Referência à classe concreta que está realizando a extração
+   * @returns A parte UUID do valor ou string vazia se o formato for inválido
+   * @private
    */
   private static extractUuidPart(
     value: string,
@@ -133,25 +133,5 @@ export abstract class UID {
       return value.substring(prefixWithSeparator.length);
     }
     return "";
-  }
-
-  /**
-   * Valida a parte UUID do UID. Subclasses podem sobrescrever para alterar a lógica de validação.
-   * @param uid - Valor completo do UID
-   * @param concreteClass - Classe concreta que extende UID
-   * @returns true se válido, false caso contrário
-   * @example
-   * class CustomUID extends UID {
-   *   protected static validateUuidPart(uid: string, concreteClass: typeof UID): boolean {
-   *     return super.validateUuidPart(uid, concreteClass) && customValidation(uid);
-   *   }
-   * }
-   */
-  protected static validateUuidPart(
-    uid: string,
-    concreteClass: typeof UID,
-  ): boolean {
-    const uidPart = this.extractUuidPart(uid, concreteClass);
-    return isUIDv7(uidPart);
   }
 }
