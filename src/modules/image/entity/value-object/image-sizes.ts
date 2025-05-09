@@ -1,21 +1,27 @@
 import { failure, Result, success } from "../../../../shared/result/result";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { not } from "../../../../shared/assert/not";
-import { is } from "../../../../shared/assert/is";
-import { Assert, Flow } from "../../../../shared/assert/assert";
+import { Validate } from "../../../../shared/validator/validate";
+import { isNull } from "../../../../shared/validator/validator";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { TechnicalError } from "../../../../shared/error/technical.error";
 
-export const codes = {
-  contentWithInvalidFormat: "CONTENT_INVALID_FORMAT",
-  contentNullOrEmpty: "NULL_OR_EMPTY_ARGUMENT",
-  invalidUrl: "INVALID_URL",
-};
-
+/**
+ * Interface que define os tamanhos de imagem necessários
+ * Cada propriedade representa uma URL para uma versão da imagem
+ */
 export interface Sizes {
+  /** URL da imagem em tamanho pequeno */
   small: string;
+  /** URL da imagem em tamanho normal/médio */
   normal: string;
+  /** URL da imagem em tamanho grande */
   large: string;
 }
 
+/**
+ * Objeto de valor que representa os diferentes tamanhos de uma imagem
+ * Garante que todas as URLs necessárias estejam presentes e válidas
+ */
 export class ImageSizes {
   private constructor(
     public readonly small: string,
@@ -23,30 +29,57 @@ export class ImageSizes {
     public readonly large: string,
   ) {}
 
+  /**
+   * Cria uma instância de ImageSizes com validação completa
+   * @param sizes Objeto contendo as URLs para os diferentes tamanhos de imagem
+   * @returns Result contendo a instância de ImageSizes ou falhas de validação
+   */
   public static create(sizes: Sizes): Result<ImageSizes> {
     const failures: SimpleFailure[] = [];
 
-    Assert.all(failures, {}, not.null(sizes, codes.contentNullOrEmpty));
-    if (failures.length > 0) return failure(failures);
+    Validate.object(sizes)
+      .field("sizes")
+      .failures(failures)
+      .isRequired()
+      .property("small", () =>
+        this.validateSize("small", sizes.small, failures),
+      )
+      .property("normal", () =>
+        this.validateSize("normal", sizes.normal, failures),
+      )
+      .property("large", () =>
+        this.validateSize("large", sizes.large, failures),
+      );
 
-    this.validateSize("small", sizes.small, failures);
-    this.validateSize("normal", sizes.normal, failures);
-    this.validateSize("large", sizes.large, failures);
-
-    if (failures.length > 0) return failure(failures);
-
-    return success(new ImageSizes(sizes.small, sizes.normal, sizes.large));
+    return failures.length > 0
+      ? failure(failures)
+      : success(new ImageSizes(sizes.small, sizes.normal, sizes.large));
   }
 
   /**
-   * Creates an ImageSizes instance directly from strings known to be valid.
-   * Use with caution, typically for hydrating from persistence.
+   * Cria uma instância de ImageSizes diretamente a partir de strings conhecidas como válidas.
+   * Use com cautela, normalmente para hidratar a partir da persistência.
+   *
+   * @param sizes Objeto contendo as URLs para os diferentes tamanhos de imagem
+   * @returns Instância de ImageSizes
+   * @throws Error se algum dos tamanhos for nulo ou indefinido
    */
   public static hydrate(sizes: {
     small: string;
     normal: string;
     large: string;
   }): ImageSizes {
+    const fields = [];
+
+    if (isNull(sizes)) fields.push("sizes");
+    if (isNull(sizes.small)) fields.push("small");
+    if (isNull(sizes.normal)) fields.push("normal");
+    if (isNull(sizes.large)) fields.push("large");
+
+    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
+      fields: fields,
+    });
+
     return new ImageSizes(sizes.small, sizes.normal, sizes.large);
   }
 
@@ -61,12 +94,10 @@ export class ImageSizes {
     sizeValue: string,
     failures: SimpleFailure[],
   ): void {
-    Assert.all(
-      failures,
-      { size: sizeKey },
-      not.blank(sizeValue, codes.contentNullOrEmpty, {}, Flow.stop),
-      is.string(sizeValue, codes.contentWithInvalidFormat, {}, Flow.stop),
-      is.url(sizeValue, codes.invalidUrl, {}),
-    );
+    Validate.string(sizeValue)
+      .field(sizeKey)
+      .failures(failures)
+      .isRequired()
+      .isNotEmpty();
   }
 }

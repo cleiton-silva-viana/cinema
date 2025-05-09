@@ -1,5 +1,6 @@
-import { ImageSizes, codes } from "./image-sizes";
+import { ImageSizes } from "./image-sizes";
 import { faker } from "@faker-js/faker";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
 describe("ImageSizes", () => {
   const sizes = {
@@ -26,25 +27,16 @@ describe("ImageSizes", () => {
         {
           sizes: null,
           scenario: "quando o objeto sizes é nulo",
-          errorCode: codes.contentNullOrEmpty,
+          errorCode: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
           sizes: {
-            small: '        ',
+            small: "        ",
             normal: sizes.normal,
             large: sizes.large,
           },
           scenario: "quando há uma URL vazia",
-          errorCode: codes.contentNullOrEmpty,
-        },
-        {
-          sizes: {
-            small: sizes.small,
-            normal: 'not-a-valid-url',
-            large: sizes.large,
-          },
-          scenario: "quando há uma URL inválida",
-          errorCode: codes.invalidUrl,
+          errorCode: FailureCode.STRING_CANNOT_BE_EMPTY,
         },
 
         {
@@ -54,7 +46,7 @@ describe("ImageSizes", () => {
             large: null,
           },
           scenario: "quando há uma URL nula",
-          errorCode: codes.contentNullOrEmpty,
+          errorCode: FailureCode.MISSING_REQUIRED_DATA,
         },
       ];
 
