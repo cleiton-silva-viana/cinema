@@ -118,7 +118,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * @param validator Função que contém as validações a serem executadas
    */
   public then(validator: () => void): this {
-    if (this._failures.length === 0) {
+    if (this._failures.length === 0 && this.hasFailure === false) {
       validator();
     }
     return this;
@@ -132,6 +132,18 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   public when(condition: boolean, validator: () => void): this {
     if (condition) {
       validator();
+    }
+    return this;
+  }
+
+  /**
+   * Permite que as validações subsequentes sejam executadas apenas se a função de callback retornar true
+   * @param expression Função que deve retornar true para permitir validações subsequentes
+   */
+  public guard(expression: () => boolean): this {
+    if (!expression()) {
+      this._flow = Flow.stop;
+      this.hasFailure = true;
     }
     return this;
   }

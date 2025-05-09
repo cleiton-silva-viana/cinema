@@ -177,6 +177,86 @@ describe("BaseValidator", () => {
     });
   });
 
+  describe("guard", () => {
+    it("deve permitir validações subsequentes quando a expressão retornar true", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      let wasExecuted = false;
+
+      // Act
+      new TestValidator(null)
+        .failures(failures)
+        .guard(() => true)
+        .then(() => {
+          wasExecuted = true;
+        });
+
+      // Assert
+      expect(wasExecuted).toBe(true);
+      expect(failures.length).toBe(0);
+    });
+
+    it("deve impedir validações subsequentes quando a expressão retornar false", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      let wasExecuted = false;
+
+      // Act
+      new TestValidator("test")
+        .failures(failures)
+        .guard(() => false)
+        .then(() => {
+          wasExecuted = true;
+        });
+
+      // Assert
+      expect(wasExecuted).toBe(false);
+      expect(failures.length).toBe(0);
+    });
+
+    it("deve definir o fluxo para parar quando a expressão retornar false", () => {
+      // Arrange
+      const validator = new TestValidator("test");
+
+      // Act
+      const result = validator.guard(() => false);
+
+      // Assert
+      expect(result.getFlow()).toBe(Flow.stop);
+    });
+
+    it("deve marcar que há uma falha quando a expressão retornar false", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      new TestValidator("test")
+        .failures(failures)
+        .guard(() => false)
+        .isRequired(); // Esta validação não deve ser executada
+
+      // Assert
+      expect(failures.length).toBe(0); // Não deve adicionar falhas, apenas impedir validações subsequentes
+    });
+
+    it("deve permitir encadeamento de validações quando a expressão retornar true", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+      let executionsCounter = 0;
+
+      // Act
+      new TestValidator(null)
+        .failures(failures)
+        .guard(() => true)
+        .then(() => executionsCounter++)
+        .guard(() => true)
+        .then(() => executionsCounter++);
+
+      // Assert
+      expect(executionsCounter).toBe(2);
+    });
+  });
+
   describe("isRequired", () => {
     it("não deve adicionar falha quando o valor não for nulo ou indefinido", () => {
       // Arrange
