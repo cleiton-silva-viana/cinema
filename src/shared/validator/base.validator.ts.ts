@@ -114,6 +114,18 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   }
 
   /**
+   * Executa validações apenas se a condição for verdadeira
+   * @param condition Condição que deve ser verdadeira para executar as validações
+   * @param validator Função que contém as validações a serem executadas
+   */
+  public when(condition: boolean, validator: () => void): this {
+    if (condition) {
+      validator();
+    }
+    return this;
+  }
+
+  /**
    * Configura o validador para continuar validando mesmo após a validação imediatamente anterior encontrar erros
    *
    * @returns A instância do validador para encadeamento

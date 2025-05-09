@@ -79,6 +79,51 @@ describe("BaseValidator", () => {
     });
   });
 
+  describe("when", () => {
+    it("deve executar o validador quando a condição for verdadeira", () => {
+      // Arrange
+      let wasExecuted = false;
+
+      // Act
+      new TestValidator("test").when(true, () => {
+        wasExecuted = true;
+      });
+
+      // Assert
+      expect(wasExecuted).toBe(true);
+    });
+
+    it("não deve executar o validador quando a condição for falsa", () => {
+      // Arrange
+      let wasExecuted = false;
+
+      // Act
+      new TestValidator("test").when(false, () => {
+        wasExecuted = true;
+      });
+
+      // Assert
+      expect(wasExecuted).toBe(false);
+    });
+
+    it("deve permitir encadeamento de validações", () => {
+      // Arrange
+      let executionsCounter = 0;
+
+      // Act
+      new TestValidator("test")
+        .when(true, () => {
+          executionsCounter++;
+        })
+        .when(true, () => {
+          executionsCounter++;
+        });
+
+      // Assert
+      expect(executionsCounter).toBe(2);
+    });
+  });
+
   describe("isRequired", () => {
     it("não deve adicionar falha quando o valor não for nulo ou indefinido", () => {
       // Arrange
