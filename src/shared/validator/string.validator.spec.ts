@@ -5,6 +5,10 @@ import { faker } from "@faker-js/faker";
 import { v4, v7 } from "uuid";
 
 describe("StringValidator", () => {
+  const FIELD = "field";
+  const PERSONAL_CODE = FailureCode.CONTENT_INVALID_FORMAT;
+  const PERSONAL_DETAILS = { message: "mensagem personalizada..." };
+
   describe("isNotEmpty", () => {
     it("não deve adicionar falha quando a string não estiver vazia", () => {
       // Arrange
@@ -610,6 +614,80 @@ describe("StringValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
+    });
+  });
+
+  describe("startsWith", () => {
+    const PREFIX = "APT";
+    const VALUE_WITH_PREFIX = "APTout";
+    const VALUE_WITHOUT_PREFIX = "out";
+
+    it("não deve adicionar falha quando a string começa com o prefixo especificado", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      new StringValidator(VALUE_WITH_PREFIX)
+        .failures(failures)
+        .startsWith(PREFIX);
+
+      // Assert
+      expect(failures.length).toBe(0);
+    });
+
+    it("deve adicionar falha quando a string não começa com o prefixo especificado", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      new StringValidator(VALUE_WITHOUT_PREFIX)
+        .failures(failures)
+        .field(FIELD)
+        .startsWith(PREFIX);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].code).toBe(FailureCode.STRING_INVALID_FORMAT);
+      expect(failures[0].details.field).toBe(FIELD);
+      expect(failures[0].details.expectedPrefix).toBe(PREFIX);
+    });
+
+    it("deve usar o código de erro personalizado", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      new StringValidator(VALUE_WITHOUT_PREFIX)
+        .failures(failures)
+        .field(FIELD)
+        .startsWith(PREFIX, PERSONAL_CODE);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].code).toBe(PERSONAL_CODE);
+      expect(failures[0].details.field).toBe(FIELD);
+      expect(failures[0].details.expectedPrefix).toBe(PREFIX);
+    });
+
+    it("deve incluir detalhes adicionais na falha", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      new StringValidator(VALUE_WITHOUT_PREFIX)
+        .failures(failures)
+        .field(FIELD)
+        .startsWith(
+          PREFIX,
+          FailureCode.STRING_INVALID_FORMAT,
+          PERSONAL_DETAILS,
+        );
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].details.message).toBe(PERSONAL_DETAILS.message);
+      expect(failures[0].details.field).toBe(FIELD);
+      expect(failures[0].details.expectedPrefix).toBe(PREFIX);
     });
   });
 });

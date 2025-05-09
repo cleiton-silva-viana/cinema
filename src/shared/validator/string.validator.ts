@@ -81,7 +81,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
    * @param details Detalhes adicionais para a mensagem de erro
    */
   public isValidUUIDv4(
-    code: string = FailureCode.INVALID_UUID_V4,
+    code: string = FailureCode.INVALID_UUID,
     details: Record<string, any> = {},
   ): StringValidator {
     return this.validate(() => !isUIDv4(this._value), {
@@ -96,7 +96,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
    * @param details Detalhes adicionais para a mensagem de erro
    */
   public isValidUUIDv7(
-    code: string = FailureCode.INVALID_UUID_V7,
+    code: string = FailureCode.INVALID_UUID,
     details: Record<string, any> = {},
   ): StringValidator {
     return this.validate(() => !isUIDv7(this._value), {
@@ -149,6 +149,26 @@ export class StringValidator extends BaseValidator<StringValidator> {
       details: {
         providedValue: this._value,
         allowedValues: enumValues,
+        ...details,
+      },
+    });
+  }
+
+  /**
+   * Verifica se a string começa com o prefixo especificado
+   * @param prefix Prefixo que a string deve conter
+   * @param code Código de erro opcional
+   * @param details Detalhes adicionais para a mensagem de erro
+   */
+  public startsWith(
+    prefix: string,
+    code: FailureCode = FailureCode.STRING_INVALID_FORMAT,
+    details: Record<string, any> = {},
+  ): StringValidator {
+    return this.validate(() => !this._value.startsWith(prefix), {
+      code,
+      details: {
+        expectedPrefix: prefix,
         ...details,
       },
     });
