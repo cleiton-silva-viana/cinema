@@ -7,6 +7,7 @@ import { isNull } from "../../../shared/validator/validator";
 import { TechnicalError } from "../../../shared/error/technical.error";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { RoomUID } from "./value-object/room.uid";
+import { RoomIdentifier } from "./value-object/room.identifier";
 
 export interface ICreateRoomInput {
   id: number;
@@ -79,7 +80,7 @@ export class Room {
    * Construtor privado para garantir que instâncias sejam criadas apenas através dos métodos factory.
    *
    * @param roomUID Identificador único da sala
-   * @param id Número da sala
+   * @param identifier Número da sala
    * @param rows Número de fileiras de assentos
    * @param columns Array com as colunas disponíveis em cada fileira
    * @param preferentialSeats Lista de identificadores de assentos preferenciais
@@ -89,7 +90,7 @@ export class Room {
    */
   private constructor(
     public readonly roomUID: RoomUID,
-    public readonly id: number, // número da sala
+    public readonly identifier: RoomIdentifier,
     public readonly rows: number,
     public readonly columns: string[],
     public readonly preferentialSeats: string[],
@@ -105,14 +106,7 @@ export class Room {
       .field("params")
       .failures(failures)
       .isRequired()
-      .property("id", () => {
-        Validate.number(params.id)
-          .field("id")
-          .failures(failures)
-          .isRequired()
-          .isInteger()
-          .isInRange(1, 100);
-      })
+      .property("id", () => {})
       .continue()
       .property("status", () => {
         Validate.string(params.status)
@@ -138,6 +132,9 @@ export class Room {
           .property("type", () => {});
       });
     if (failures.length > 0) return failure(failures);
+
+    const identifierResult = RoomIdentifier.create(params.id);
+    if (identifierResult.invalid) failures.push(...identifierResult.failures);
 
     const screenResult = Screen.create(params.screen.size, params.screen.type);
     if (screenResult.invalid) failures.push(...screenResult.failures);
@@ -169,7 +166,7 @@ export class Room {
     return success(
       new Room(
         RoomUID.create(),
-        params.id,
+        identifierResult.value,
         rows,
         columns,
         preferentialSeats,
@@ -200,7 +197,7 @@ export class Room {
 
     return new Room(
       RoomUID.hydrate(params.roomUID),
-      params.id,
+      RoomIdentifier.hydrate(params.id),
       params.rows,
       params.columns,
       params.preferentialSeats,
@@ -309,7 +306,7 @@ export class Room {
       : success(
           new Room(
             this.roomUID,
-            this.id,
+            this.identifier,
             this.rows,
             this.columns,
             this.preferentialSeats,

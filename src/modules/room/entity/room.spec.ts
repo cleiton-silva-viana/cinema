@@ -54,7 +54,7 @@ describe("Room", () => {
 
         // Assert
         expect(result.invalid).toBe(false);
-        expect(result.value.id).toBe(PARAMS.id);
+        expect(result.value.identifier.value).toBe(PARAMS.id);
         expect(result.value.rows).toBe(PARAMS.seatConfig.length);
         expect(result.value.capacity).toBe(15);
         expect(result.value.status).toBe(RoomStatus.AVAILABLE);
@@ -65,21 +65,6 @@ describe("Room", () => {
 
       describe("deve falhar quando os dados de entrada são inválidos", () => {
         const testCases = [
-          {
-            scenario: "ID for inválido",
-            input: { id: -1 },
-            field: "id",
-          },
-          {
-            scenario: "ID é exatamente o valor máximo permitido + 1",
-            input: { id: 101 },
-            field: "id",
-          },
-          {
-            scenario: "ID é um número decimal",
-            input: { id: 1.5 },
-            field: "id",
-          },
           {
             scenario: "configuração de assentos for vazia",
             input: { seatConfig: [] as ISeatRowConfiguration[] },
@@ -144,7 +129,7 @@ describe("Room", () => {
 
         // Assert
         expect(room).toBeInstanceOf(Room);
-        expect(room.id).toBe(PARAMS.id);
+        expect(room.identifier.value).toBe(PARAMS.id);
         expect(room.rows).toBe(PARAMS.rows);
         expect(room.status).toBe(PARAMS.status);
         expect(room.capacity).toBe(PARAMS.capacity);
