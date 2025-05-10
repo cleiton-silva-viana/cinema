@@ -214,6 +214,30 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   }
 
   /**
+   * Verifica se uma expressão booleana é verdadeira
+   *
+   * @param expression - Expressão booleana que deve ser verdadeira
+   * @param code - Código de erro a ser usado se a validação falhar
+   * @param details - Detalhes adicionais para a mensagem de erro
+   * @returns A instância do validador para encadeamento
+   *
+   * @example
+   * ```typescript
+   * validator.isTrue(idade >= 18, "IDADE_MINIMA_NAO_ATINGIDA", { idadeMinima: 18 })
+   * ```
+   */
+  public isTrue(
+    expression: boolean,
+    code: FailureCode,
+    details: Record<string, any> = {},
+  ): V {
+    return this.validate(() => !expression, {
+      code,
+      details,
+    });
+  }
+
+  /**
    * Método protegido para executar validações
    *
    * Este método avalia uma expressão e, se ela retornar true, adiciona

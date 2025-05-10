@@ -23,6 +23,9 @@ class TestValidator extends BaseValidator<TestValidator> {
 }
 
 describe("BaseValidator", () => {
+  const CUSTOM_CODE = FailureCode.CONTENT_INVALID_TYPE;
+  const CUSTOM_DETAILS = { message: "message" };
+
   describe("Métodos de configuração", () => {
     it("deve definir o nome do campo corretamente", () => {
       // Act
@@ -382,6 +385,50 @@ describe("BaseValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].details).toMatchObject(details);
+    });
+  });
+
+  describe("isTrue", () => {
+    it("não deve adicionar falha quando a expressão for verdadeira", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      new TestValidator("test")
+        .failures(failures)
+        .isTrue(true, FailureCode.CONTENT_INVALID_TYPE);
+
+      // Assert
+      expect(failures.length).toBe(0);
+    });
+
+    it("deve adicionar falha quando a expressão for falsa", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      new TestValidator("test")
+        .field("testField")
+        .failures(failures)
+        .isTrue(false, CUSTOM_CODE);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].code).toBe(CUSTOM_CODE);
+    });
+
+    it("deve incluir detalhes na falha", () => {
+      // Arrange
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      new TestValidator("test")
+        .failures(failures)
+        .isTrue(false, FailureCode.CONTENT_INVALID_TYPE, CUSTOM_DETAILS);
+
+      // Assert
+      expect(failures.length).toBe(1);
+      expect(failures[0].details).toMatchObject(CUSTOM_DETAILS);
     });
   });
 
