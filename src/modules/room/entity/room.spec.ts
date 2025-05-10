@@ -3,10 +3,14 @@ import {
   RoomStatus,
   ISeatRowConfiguration,
   ICreateScreenInput,
+  ICreateRoomInput,
+  IHydrateRoomInput,
 } from "./room";
 import { Screen, ScreenType } from "./value-object/screen";
 import { Seat } from "./value-object/seat";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { RoomUID } from "./value-object/room.uid";
+import { TechnicalError } from "../../../shared/error/technical.error";
 
 describe("Room", () => {
   const createValidSeatConfig = (): ISeatRowConfiguration[] => [
@@ -37,39 +41,26 @@ describe("Room", () => {
 
   describe("Métodos Estáticos", () => {
     describe("create", () => {
-      it("deve criar uma sala válida com valores mínimos", () => {
-        // Arrange
-        const id = 1;
-        const seatConfig = createValidSeatConfig();
-        const screenInput = createValidScreenInput();
+      const PARAMS: ICreateRoomInput = {
+        id: 1,
+        seatConfig: createValidSeatConfig(),
+        screen: createValidScreenInput(),
+        status: RoomStatus.AVAILABLE,
+      };
 
+      it("deve criar uma sala válida com valores mínimos", () => {
         // Act
-        const result = Room.create(id, seatConfig, screenInput);
+        const result = Room.create(PARAMS);
 
         // Assert
         expect(result.invalid).toBe(false);
-        expect(result.value.id).toBe(id);
-        expect(result.value.rows).toBe(seatConfig.length);
+        expect(result.value.id).toBe(PARAMS.id);
+        expect(result.value.rows).toBe(PARAMS.seatConfig.length);
         expect(result.value.capacity).toBe(15);
         expect(result.value.status).toBe(RoomStatus.AVAILABLE);
         expect(result.value.preferentialSeats).toContain("A1");
         expect(result.value.preferentialSeats).toContain("B1");
         expect(result.value.preferentialSeats).toContain("C2");
-      });
-
-      it("deve criar uma sala com status personalizado", () => {
-        // Arrange
-        const id = 2;
-        const seatConfig = createValidSeatConfig();
-        const screenInput = createValidScreenInput();
-        const status = RoomStatus.MAINTENANCE;
-
-        // Act
-        const result = Room.create(id, seatConfig, screenInput, status);
-
-        // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value.status).toBe(status);
       });
 
       describe("deve falhar quando os dados de entrada são inválidos", () => {
@@ -101,7 +92,7 @@ describe("Room", () => {
           },
           {
             scenario: "configuração de tela for inválida",
-            input: { screenInput: { size: -10, type: "2d" } },
+            input: { screen: { size: -10, type: "2d" } },
             field: "size",
           },
           {
@@ -120,19 +111,11 @@ describe("Room", () => {
 
         testCases.forEach(({ scenario, input, field }) => {
           it(scenario, () => {
+            // Arrange
+            const params: ICreateRoomInput = { ...PARAMS, ...input };
+
             // Act
-            const testInput = {
-              id: 1,
-              seatConfig: createValidSeatConfig(),
-              screenInput: createValidScreenInput(),
-              ...input,
-            };
-            const result = Room.create(
-              testInput.id,
-              testInput.seatConfig,
-              testInput.screenInput,
-              testInput.status,
-            );
+            const result = Room.create(params);
 
             // Assert
             expect(result.invalid).toBe(true);
@@ -144,124 +127,100 @@ describe("Room", () => {
     });
 
     describe("hydrate", () => {
-      it("deve criar uma sala válida a partir de dados primitivos", () => {
-        // Arrange
-        const id = 1;
-        const rows = 3;
-        const columns = ["ABC", "ABCD", "ABCDE"];
-        const preferentialSeats = ["A1", "B1", "C2"];
-        const capacity = 12;
-        const screen = createValidScreen();
-        const status = RoomStatus.AVAILABLE;
+      const PARAMS: IHydrateRoomInput = {
+        roomUID: RoomUID.create().value,
+        id: 1,
+        rows: 3,
+        columns: ["ABC", "ABCD", "ABCDE"],
+        preferentialSeats: ["A1", "B1", "C2"],
+        capacity: 12,
+        screen: createValidScreen(),
+        status: RoomStatus.AVAILABLE,
+      };
 
+      it("deve criar uma sala válida a partir de dados primitivos", () => {
         // Act
-        const room = Room.hydrate(
-          id,
-          rows,
-          columns,
-          preferentialSeats,
-          capacity,
-          screen,
-          status,
-        );
+        const room = Room.hydrate(PARAMS);
 
         // Assert
         expect(room).toBeInstanceOf(Room);
-        expect(room.id).toBe(id);
-        expect(room.rows).toBe(rows);
-        expect(room.columns).toEqual(columns);
-        expect(room.preferentialSeats).toEqual(preferentialSeats);
-        expect(room.capacity).toBe(capacity);
-        expect(room.screen).toBe(screen);
-        expect(room.status).toBe(status);
+        expect(room.id).toBe(PARAMS.id);
+        expect(room.rows).toBe(PARAMS.rows);
+        expect(room.status).toBe(PARAMS.status);
+        expect(room.capacity).toBe(PARAMS.capacity);
+        expect(room.columns).toEqual(PARAMS.columns);
+        expect(room.screen).toEqual(PARAMS.screen);
+        expect(room.preferentialSeats).toEqual(PARAMS.preferentialSeats);
       });
 
-      it("deve lançar erro técnico quando dados obrigatórios estiverem ausentes", () => {
-        // Arrange
-        const id = 1;
-        const rows = 3;
-        const columns = ["ABC", "ABCD", "ABCDE"];
-        const preferentialSeats = ["A1", "B1", "C2"];
-        const capacity = 12;
-        const screen = createValidScreen();
+      it("deve lançar erro técnico quando o parâmeto `params` é um objeto nulo", () => {
+        expect(() => Room.hydrate(null)).toThrow(TechnicalError);
+      });
 
-        // Act & Assert
-        expect(() => {
-          Room.hydrate(
-            null as any,
-            rows,
-            columns,
-            preferentialSeats,
-            capacity,
-            screen,
-          );
-        }).toThrow();
+      describe("deve lançar erro técnico quando dados obrigatórios estiverem ausentes", () => {
+        const failureCases = [
+          {
+            scenario: "id é nulo",
+            params: { id: null as unknown as number },
+          },
+          {
+            scenario: "room uid é nulo",
+            params: { roomUID: null as unknown as string },
+          },
+          {
+            scenario: "rows é nulo",
+            params: { rows: null as unknown as number },
+          },
+          {
+            scenario: "columns é nulo",
+            params: { columns: null as Array<any> },
+          },
+          {
+            scenario: "preferential seats é nulo",
+            params: { preferentialSeats: null as unknown as Array<any> },
+          },
+          {
+            scenario: "capacity é nulo",
+            params: { capacity: null as unknown as number },
+          },
+          {
+            scenario: "screen é nulo",
+            params: { screen: null as any },
+          },
+          {
+            scenario: "status é nulo",
+            params: { status: null as unknown as string },
+          },
+        ];
 
-        expect(() => {
-          Room.hydrate(
-            id,
-            null as any,
-            columns,
-            preferentialSeats,
-            capacity,
-            screen,
-          );
-        }).toThrow();
+        failureCases.forEach(({ scenario, params }) => {
+          // Arrange
+          it(scenario, () => {
+            const input: IHydrateRoomInput = { ...PARAMS, ...params };
 
-        expect(() => {
-          Room.hydrate(
-            id,
-            rows,
-            null as any,
-            preferentialSeats,
-            capacity,
-            screen,
-          );
-        }).toThrow();
-
-        expect(() => {
-          Room.hydrate(id, rows, columns, null as any, capacity, screen);
-        }).toThrow();
-
-        expect(() => {
-          Room.hydrate(
-            id,
-            rows,
-            columns,
-            preferentialSeats,
-            null as any,
-            screen,
-          );
-        }).toThrow();
-
-        expect(() => {
-          Room.hydrate(
-            id,
-            rows,
-            columns,
-            preferentialSeats,
-            capacity,
-            null as any,
-          );
-        }).toThrow();
+            // Act & Assert
+            expect(() => Room.hydrate(input)).toThrow();
+          });
+        });
       });
     });
   });
 
   describe("Métodos de Instância", () => {
-    let room: Room;
+    let ROOM: Room;
+    const PARAMS: IHydrateRoomInput = {
+      roomUID: RoomUID.create().value,
+      id: 1,
+      rows: 3,
+      columns: ["ABC", "ABCD", "ABCDE"],
+      preferentialSeats: ["A1", "B1", "C2"],
+      capacity: 12,
+      screen: createValidScreen(),
+      status: RoomStatus.AVAILABLE,
+    };
 
     beforeEach(() => {
-      const screen = createValidScreen();
-      room = Room.hydrate(
-        1,
-        3,
-        ["ABC", "ABCD", "ABCDE"],
-        ["A1", "B1", "C2"],
-        12,
-        screen,
-        RoomStatus.AVAILABLE,
-      );
+      ROOM = Room.hydrate(PARAMS);
     });
 
     describe("getSeat", () => {
@@ -336,7 +295,7 @@ describe("Room", () => {
           }) => {
             it(scenario, () => {
               // Act
-              const result = room.getSeat(column, row);
+              const result = ROOM.getSeat(column, row);
 
               // Assert
               expect(result.invalid).toBe(false);
@@ -411,7 +370,7 @@ describe("Room", () => {
         failureCases.forEach(({ scenario, column, row, expectedCode }) => {
           it(scenario, () => {
             // Act
-            const result = room.getSeat(column, row);
+            const result = ROOM.getSeat(column, row);
 
             // Assert
             expect(result.invalid).toBe(true);
@@ -424,10 +383,10 @@ describe("Room", () => {
     describe("getAllSeats", () => {
       it("deve retornar uma matriz com todos os assentos da sala", () => {
         // Act
-        const allSeats = room.getAllSeats();
+        const allSeats = ROOM.getAllSeats();
 
         // Assert
-        expect(allSeats.length).toBe(room.rows);
+        expect(allSeats.length).toBe(ROOM.rows);
         expect(allSeats[0].length).toBe(3); // Primeira fileira tem 3 colunas (ABC)
         expect(allSeats[1].length).toBe(4); // Segunda fileira tem 4 colunas (ABCD)
         expect(allSeats[2].length).toBe(5); // Terceira fileira tem 5 colunas (ABCDE)
@@ -463,16 +422,11 @@ describe("Room", () => {
         successCases.forEach(({ scenario, initialStatus, newStatus }) => {
           it(scenario, () => {
             // Arrange
-            const screen = createValidScreen();
-            const testRoom = Room.hydrate(
-              1,
-              3,
-              ["ABC", "ABCD", "ABCDE"],
-              ["A1", "B1", "C2"],
-              12,
-              screen,
-              initialStatus,
-            );
+            const input: IHydrateRoomInput = {
+              ...PARAMS,
+              status: initialStatus,
+            };
+            const testRoom = Room.hydrate(input);
 
             // Act
             const result = testRoom.changeStatus(newStatus);
@@ -500,7 +454,7 @@ describe("Room", () => {
         nullCases.forEach(({ scenario, status }) => {
           it(scenario, () => {
             // Act
-            const result = room.changeStatus(status);
+            const result = ROOM.changeStatus(status);
 
             // Assert
             expect(result.invalid).toBe(true);
@@ -513,7 +467,7 @@ describe("Room", () => {
 
         it("deve falhar ao tentar alterar para um status inválido", () => {
           // Act
-          const result = room.changeStatus("INVALID_STATUS");
+          const result = ROOM.changeStatus("INVALID_STATUS");
 
           // Assert
           expect(result.invalid).toBe(true);
@@ -574,7 +528,7 @@ describe("Room", () => {
       cases.forEach(({ scenario, column, row, expected }) => {
         it(scenario, () => {
           // Act & Assert
-          expect(room.isPreferentialSeat(column, row)).toBe(expected);
+          expect(ROOM.isPreferentialSeat(column, row)).toBe(expected);
         });
       });
     });
