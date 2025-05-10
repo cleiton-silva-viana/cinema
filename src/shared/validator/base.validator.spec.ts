@@ -25,14 +25,15 @@ class TestValidator extends BaseValidator<TestValidator> {
 describe("BaseValidator", () => {
   const CUSTOM_CODE = FailureCode.CONTENT_INVALID_TYPE;
   const CUSTOM_DETAILS = { message: "message" };
+  const FIELD = "field";
 
   describe("Métodos de configuração", () => {
     it("deve definir o nome do campo corretamente", () => {
       // Act
-      const result = new TestValidator("test").field("testField");
+      const result = new TestValidator("test").field(FIELD);
 
       // Assert
-      expect(result.getField()).toBe("testField");
+      expect(result.getField()).toBe(FIELD);
     });
 
     it("deve definir o array de falhas corretamente", () => {
@@ -291,13 +292,11 @@ describe("BaseValidator", () => {
           const failures: SimpleFailure[] = [];
 
           // Act
-          new TestValidator(value)
-            .field("test")
-            .failures(failures)
-            .isRequired();
+          new TestValidator(value).field(FIELD).failures(failures).isRequired();
 
           // Assert
           expect(failures.length).toBe(1);
+          expect(failures[0].details.field).toBe(FIELD);
           expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
         });
       });
@@ -309,13 +308,14 @@ describe("BaseValidator", () => {
 
         // Act
         new TestValidator(value)
-          .field("test")
+          .field(FIELD)
           .failures(failures)
-          .isRequired({}, FailureCode.VALUES_NOT_EQUAL);
+          .isRequired({}, CUSTOM_CODE);
 
         // Assert
         expect(failures.length).toBe(1);
-        expect(failures[0].code).toBe(FailureCode.VALUES_NOT_EQUAL);
+        expect(failures[0].details.field).toBe(FIELD);
+        expect(failures[0].code).toBe(CUSTOM_CODE);
       });
     });
   });
@@ -328,10 +328,7 @@ describe("BaseValidator", () => {
       const target = "aaa";
 
       // Act
-      new TestValidator(value)
-        .failures(failures)
-        .field("test")
-        .isEqualTo(target);
+      new TestValidator(value).failures(failures).isEqualTo(target);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -346,11 +343,12 @@ describe("BaseValidator", () => {
       // Act
       new TestValidator(value)
         .failures(failures)
-        .field("test")
+        .field(FIELD)
         .isEqualTo(target);
 
       // Assert
       expect(failures.length).toBe(1);
+      expect(failures[0].details.field).toBe(FIELD);
       expect(failures[0].code).toBe(FailureCode.VALUES_NOT_EQUAL);
     });
 
@@ -359,17 +357,16 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
       const value = "aaa";
       const target = "aab";
-      const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
       new TestValidator(value)
         .failures(failures)
         .field("test")
-        .isEqualTo(target, {}, code);
+        .isEqualTo(target, {}, CUSTOM_CODE);
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(code);
+      expect(failures[0].code).toBe(CUSTOM_CODE);
     });
 
     it("deve incluir detalhes na falha", () => {
@@ -377,14 +374,15 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
       const value = "aaa";
       const target = "aab";
-      const details = { message: "message" };
 
       // Act
-      new TestValidator(value).failures(failures).isEqualTo(target, details);
+      new TestValidator(value)
+        .failures(failures)
+        .isEqualTo(target, CUSTOM_DETAILS);
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details).toMatchObject(details);
+      expect(failures[0].details).toMatchObject(CUSTOM_DETAILS);
     });
   });
 
@@ -408,12 +406,13 @@ describe("BaseValidator", () => {
 
       // Act
       new TestValidator("test")
-        .field("testField")
+        .field(FIELD)
         .failures(failures)
         .isTrue(false, CUSTOM_CODE);
 
       // Assert
       expect(failures.length).toBe(1);
+      expect(failures[0].details.field).toBe(FIELD);
       expect(failures[0].code).toBe(CUSTOM_CODE);
     });
 
@@ -424,10 +423,12 @@ describe("BaseValidator", () => {
       // Act
       new TestValidator("test")
         .failures(failures)
+        .field(FIELD)
         .isTrue(false, FailureCode.CONTENT_INVALID_TYPE, CUSTOM_DETAILS);
 
       // Assert
       expect(failures.length).toBe(1);
+      expect(failures[0].details.field).toBe(FIELD);
       expect(failures[0].details).toMatchObject(CUSTOM_DETAILS);
     });
   });
