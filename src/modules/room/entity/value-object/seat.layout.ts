@@ -129,22 +129,25 @@ export class SeatLayout {
    * Usado principalmente para reconstruir objetos a partir do banco de dados ou outras fontes confiáveis.
    *
    * @param seatRows Mapa de fileiras de assentos
-   * @param preferentialSeatsByRow Mapa de assentos preferenciais por fileira
-   * @param totalCapacity Capacidade total da sala
    * @throws {TechnicalError} Se os dados obrigatórios estiverem ausentes
    * @returns Instância de SeatLayout
    */
-  public static hydrate(
-    seatRows: Map<number, SeatRow>,
-    preferentialSeatsByRow: Map<number, string[]>,
-    totalCapacity: number,
-  ): SeatLayout {
-    TechnicalError.if(
-      isNull(seatRows) ||
-        isNull(preferentialSeatsByRow) ||
-        isNull(totalCapacity),
-      FailureCode.INVALID_HYDRATE_DATA,
-    );
+  public static hydrate(seatRows: Map<number, SeatRow>): SeatLayout {
+    TechnicalError.if(isNull(seatRows), FailureCode.INVALID_HYDRATE_DATA, {
+      field: "seatRows",
+    });
+
+    const preferentialSeatsByRow = new Map<number, string[]>();
+    let totalCapacity = 0;
+
+    seatRows.forEach((seatRow, rowId) => {
+      if (seatRow.preferentialSeatLetters.length > 0) {
+        preferentialSeatsByRow.set(rowId, [...seatRow.preferentialSeatLetters]);
+      }
+
+      totalCapacity += seatRow.capacity;
+    });
+
     return new SeatLayout(seatRows, preferentialSeatsByRow, totalCapacity);
   }
 
