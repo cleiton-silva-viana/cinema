@@ -1,0 +1,322 @@
+import { SeatLayout } from "./seat.layout";
+import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { ISeatRowConfiguration } from "../room";
+import { SeatRow } from "./seat.row";
+
+describe("SeatLayout", () => {
+  describe("Métodos Estáticos", () => {
+    describe("create", () => {
+      describe("Cenários de sucesso", () => {
+        const createValidLayout = (): ISeatRowConfiguration[] => [
+          {
+            rowId: 1,
+            columns: "E", // 5 assentos (A-E)
+            preferentialSeats: ["A", "B"],
+          },
+          {
+            rowId: 2,
+            columns: "F", // 6 assentos (A-F)
+            preferentialSeats: ["C"],
+          },
+          {
+            rowId: 3,
+            columns: "G", // 7 assentos (A-G)
+          },
+          {
+            rowId: 4,
+            columns: "H", // 8 assentos (A-H)
+          },
+        ];
+        it("deve criar um layout de assentos válido com valores mínimos", () => {
+          // Arrange
+          const layout = createValidLayout();
+
+          // Act
+          const result = SeatLayout.create(layout);
+
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value.seatRows.size).toBe(4);
+          expect(result.value.totalCapacity).toBe(26); // 5+6+7+8 = 26
+          expect(result.value.preferentialSeatsByRow.size).toBe(2);
+          expect(result.value.preferentialSeatsByRow.get(1)).toEqual([
+            "A",
+            "B",
+          ]);
+          expect(result.value.preferentialSeatsByRow.get(2)).toEqual(["C"]);
+          expect(result.value.preferentialSeatsByRow.has(3)).toBe(false);
+          expect(result.value.preferentialSeatsByRow.has(4)).toBe(false);
+        });
+
+        it("deve criar um layout com o número máximo de fileiras", () => {
+          // Arrange
+          const maxRows = 20;
+          const layout: ISeatRowConfiguration[] = [];
+
+          for (let i = 1; i <= maxRows; i++) {
+            layout.push({
+              rowId: i,
+              columns: "E", // 5 assentos por fileira (A-E)
+              preferentialSeats: i <= 4 ? ["A"] : [], // Adiciona assentos preferenciais nas primeiras 4 fileiras
+            });
+          }
+
+          // Act
+          const result = SeatLayout.create(layout);
+
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value.seatRows.size).toBe(maxRows);
+          expect(result.value.totalCapacity).toBe(maxRows * 5); // 20 fileiras * 5 assentos = 100
+        });
+
+        // deve criar um com quantidade mínima de linhas
+        // deve criar com quantidade máxima de linhas
+        // deve criar com quantidade mínima de assentos preferenciais
+        // deve criar com quantidade máxima de assentos preferenciais
+      });
+
+      describe("Cenários de falha", () => {
+        describe("Validação do layout", () => {
+          const failureCases = [
+            {
+              scenario: "layout nulo",
+              layout: null as any,
+              errorCode: FailureCode.OBJECT_IS_EMPTY,
+              field: "rowConfigurations",
+            },
+            {
+              scenario: "layout vazio",
+              layout: [],
+              errorCode: FailureCode.OBJECT_IS_EMPTY,
+              field: "rowConfigurations",
+            },
+            {
+              scenario: "layout com menos fileiras que o mínimo",
+              layout: Array(3)
+                .fill(0)
+                .map((_, i) => ({
+                  rowId: i + 1,
+                  columns: "E",
+                })),
+              errorCode: FailureCode.LENGTH_OUT_OF_RANGE,
+              field: "rowConfigurations",
+            },
+            {
+              scenario: "layout com mais fileiras que o máximo",
+              layout: Array(21)
+                .fill(0)
+                .map((_, i) => ({
+                  rowId: i + 1,
+                  columns: "E",
+                })),
+              errorCode: FailureCode.LENGTH_OUT_OF_RANGE,
+              field: "rowConfigurations",
+            },
+          ];
+
+          failureCases.forEach(({ scenario, layout, errorCode, field }) => {
+            it(`deve falhar quando o ${scenario}`, () => {
+              // Act
+              const result = SeatLayout.create(layout);
+
+              // Assert
+              expect(result.invalid).toBe(true);
+              expect(result.failures[0].code).toBe(errorCode);
+              expect(result.failures[0].details.field).toBe(field);
+            });
+          });
+        });
+
+        describe("Validação da capacidade da sala", () => {
+          it("deve falhar quando a capacidade total é menor que o mínimo permitido", () => {
+            // Arrange - 4 fileiras com 4 assentos cada = 16 assentos (mínimo é 20)
+            const layout: ISeatRowConfiguration[] = [
+              { rowId: 1, columns: "D" }, // 4 assentos
+              { rowId: 2, columns: "D" }, // 4 assentos
+              { rowId: 3, columns: "D" }, // 4 assentos
+              { rowId: 4, columns: "D" }, // 4 assentos
+            ];
+
+            // Act
+            const result = SeatLayout.create(layout);
+
+            // Assert
+            expect(result.invalid).toBe(true);
+            expect(result.failures[0].code).toBe(
+              FailureCode.INVALID_ROOM_CAPACITY,
+            );
+            expect(result.failures[0].details.capacity.actual).toBe(16);
+            expect(result.failures[0].details.capacity.min).toBe(20);
+          });
+
+          it("deve falhar quando a capacidade total é maior que o máximo permitido", () => {
+            // Arrange - 20 fileiras com 15 assentos cada = 300 assentos (máximo é 250)
+            const layout: ISeatRowConfiguration[] = Array(20)
+              .fill(0)
+              .map((_, i) => ({
+                rowId: i + 1,
+                columns: "O", // 15 assentos (A-O)
+              }));
+
+            // Act
+            const result = SeatLayout.create(layout);
+
+            // Assert
+            expect(result.invalid).toBe(true);
+            expect(result.failures[0].code).toBe(
+              FailureCode.INVALID_ROOM_CAPACITY,
+            );
+            expect(result.failures[0].details.capacity.actual).toBe(300);
+            expect(result.failures[0].details.capacity.max).toBe(250);
+          });
+        });
+
+        describe("Validação de assentos preferenciais", () => {
+          it("deve falhar quando a quantidade de assentos preferenciais é menor que o mínimo permitido", () => {
+            // Arrange - 100 assentos totais, 0 preferenciais (mínimo seria 5%)
+            const layout: ISeatRowConfiguration[] = Array(20)
+              .fill(0)
+              .map((_, i) => ({
+                rowId: i + 1,
+                columns: "E", // 5 assentos por fileira
+                preferentialSeats: [] as string[], // Sem assentos preferenciais
+              }));
+
+            // Act
+            const result = SeatLayout.create(layout);
+
+            // Assert
+            expect(result.invalid).toBe(true);
+            expect(result.failures[0].code).toBe(
+              FailureCode.INVALID_NUMBER_OF_PREFERENTIAL_SEATS,
+            );
+            expect(result.failures[0].details.preferentialSeats.actual).toBe(0);
+            expect(
+              result.failures[0].details.preferentialSeats.minPercentage,
+            ).toBe(5);
+          });
+
+          it("deve falhar quando a quantidade de assentos preferenciais é maior que o máximo permitido", () => {
+            // Arrange - 100 assentos totais, 30 preferenciais (máximo seria 20% = 20 assentos)
+            const layout: ISeatRowConfiguration[] = Array(10)
+              .fill(0)
+              .map((_, i) => ({
+                rowId: i + 1,
+                columns: "j", // 10 assentos por fileira
+                preferentialSeats: ["A", "B", "C"], // 30 assentos preferenciais (10 fileiras x 3 assentos)
+              }));
+
+            // Act
+            const result = SeatLayout.create(layout);
+
+            // Assert
+            expect(result.invalid).toBe(true);
+            expect(result.failures[0].code).toBe(
+              FailureCode.INVALID_NUMBER_OF_PREFERENTIAL_SEATS,
+            );
+            expect(result.failures[0].details.preferentialSeats.actual).toBe(
+              30,
+            );
+            expect(
+              result.failures[0].details.preferentialSeats.maxPercentage,
+            ).toBe(20);
+          });
+        });
+      });
+    });
+
+    describe("hydrate", () => {
+      it("deve recriar uma instância de SeatLayout a partir de dados existentes", () => {
+        // Arrange
+        const seatRows = new Map();
+        const preferentialSeatsByRow = new Map();
+        const totalCapacity = 100;
+
+        // Act
+        const result = SeatLayout.hydrate(
+          seatRows,
+          preferentialSeatsByRow,
+          totalCapacity,
+        );
+
+        // Assert
+        expect(result.seatRows).toBe(seatRows);
+        expect(result.preferentialSeatsByRow).toBe(preferentialSeatsByRow);
+        expect(result.totalCapacity).toBe(totalCapacity);
+      });
+
+      it("deve lançar erro técnico quando os dados obrigatórios estiverem ausentes", () => {
+        // Act & Assert
+        expect(() => SeatLayout.hydrate(null as any, new Map(), 100)).toThrow();
+        expect(() => SeatLayout.hydrate(new Map(), null as any, 100)).toThrow();
+        expect(() =>
+          SeatLayout.hydrate(new Map(), new Map(), null as any),
+        ).toThrow();
+      });
+    });
+  });
+
+  describe("Métodos de Instancia", () => {
+    let instance: SeatLayout;
+    let seatRows: Map<number, SeatRow>;
+    let preferentialSeatsByRow: Map<number, string[]>;
+
+    beforeEach(() => {
+      // Configurar dados de teste
+      seatRows = new Map();
+      preferentialSeatsByRow = new Map();
+
+      // Adicionar fileiras de teste
+      const row1 = SeatRow.hydrate("E", ["A", "B"]); // Fileira 1: A-E, com A e B preferenciais
+      const row2 = SeatRow.hydrate("F", ["C"]); // Fileira 2: A-F, com C preferencial
+      const row3 = SeatRow.hydrate("G", []); // Fileira 3: A-G, sem preferenciais
+
+      seatRows.set(1, row1);
+      seatRows.set(2, row2);
+      seatRows.set(3, row3);
+
+      preferentialSeatsByRow.set(1, ["A", "B"]);
+      preferentialSeatsByRow.set(2, ["C"]);
+
+      // Criar instância para testes
+      instance = SeatLayout.hydrate(seatRows, preferentialSeatsByRow, 18); // 5 + 6 + 7 = 18 assentos
+    });
+
+    describe("hasSeat", () => {
+      it("deve retornar true quando há um assento correspondente", () => {
+        // Act & Assert
+        expect(instance.hasSeat(1, "A")).toBe(true);
+        expect(instance.hasSeat(1, "E")).toBe(true);
+        expect(instance.hasSeat(2, "F")).toBe(true);
+        expect(instance.hasSeat(3, "G")).toBe(true);
+      });
+
+      it("deve retornar false quando não há um assento correspondente", () => {
+        // Act & Assert
+        expect(instance.hasSeat(1, "F")).toBe(false); // Coluna F não existe na fileira 1
+        expect(instance.hasSeat(2, "G")).toBe(false); // Coluna G não existe na fileira 2
+        expect(instance.hasSeat(4, "A")).toBe(false); // Fileira 4 não existe
+        expect(instance.hasSeat(1, "Z")).toBe(false); // Coluna Z não existe em nenhuma fileira
+      });
+    });
+
+    describe("isPreferentialSeat", () => {
+      it("deve retornar true quando o assento é preferencial", () => {
+        // Act & Assert
+        expect(instance.isPreferentialSeat(1, "A")).toBe(true);
+        expect(instance.isPreferentialSeat(1, "B")).toBe(true);
+        expect(instance.isPreferentialSeat(2, "C")).toBe(true);
+      });
+
+      it("deve retornar false quando o assento não é preferencial", () => {
+        // Act & Assert
+        expect(instance.isPreferentialSeat(1, "C")).toBe(false); // Assento existe mas não é preferencial
+        expect(instance.isPreferentialSeat(2, "A")).toBe(false); // Assento existe mas não é preferencial
+        expect(instance.isPreferentialSeat(3, "A")).toBe(false); // Fileira sem assentos preferenciais
+        expect(instance.isPreferentialSeat(4, "A")).toBe(false); // Fileira não existe
+        expect(instance.isPreferentialSeat(1, "Z")).toBe(false); // Assento não existe
+      });
+    });
+  });
+});
