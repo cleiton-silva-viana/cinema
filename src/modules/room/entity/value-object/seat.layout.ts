@@ -50,9 +50,9 @@ export class SeatLayout {
 
     for (const rowConfig of rowConfigurations) {
       const rowResult = SeatRow.create(
-        rowConfig.rowId,
-        rowConfig.columns,
-        rowConfig?.preferentialSeats,
+        rowConfig.rowNumber,
+        rowConfig.lastColumnLetter,
+        rowConfig?.preferentialSeatLetters,
       );
       if (rowResult.invalid) {
         validationFailures.push(...rowResult.failures);
@@ -63,13 +63,13 @@ export class SeatLayout {
 
       if (seatRow.preferentialSeatLetters.length > 0) {
         totalPreferentialSeatsCount += seatRow.preferentialSeatLetters.length;
-        preferentialSeatsByRow.set(rowConfig.rowId, [
+        preferentialSeatsByRow.set(rowConfig.rowNumber, [
           ...seatRow.preferentialSeatLetters,
         ]);
       }
 
       roomTotalCapacity += seatRow.capacity;
-      seatRowsMap.set(rowConfig.rowId, seatRow);
+      seatRowsMap.set(rowConfig.rowNumber, seatRow);
     }
 
     if (
@@ -140,9 +140,11 @@ export class SeatLayout {
     const preferentialSeatsByRow = new Map<number, string[]>();
     let totalCapacity = 0;
 
-    seatRows.forEach((seatRow, rowId) => {
+    seatRows.forEach((seatRow, rowNumber) => {
       if (seatRow.preferentialSeatLetters.length > 0) {
-        preferentialSeatsByRow.set(rowId, [...seatRow.preferentialSeatLetters]);
+        preferentialSeatsByRow.set(rowNumber, [
+          ...seatRow.preferentialSeatLetters,
+        ]);
       }
 
       totalCapacity += seatRow.capacity;
@@ -153,23 +155,23 @@ export class SeatLayout {
 
   /**
    * Verifica se um assento específico existe no layout
-   * @param rowId ID da fileira
+   * @param rowNumber ID da fileira
    * @param seatColumn Letra da coluna do assento
    * @returns true se o assento existir, false caso contrário
    */
-  public hasSeat(rowId: number, seatColumn: string): boolean {
-    const row = this.seatRows.get(rowId);
+  public hasSeat(rowNumber: number, seatColumn: string): boolean {
+    const row = this.seatRows.get(rowNumber);
     return row !== undefined && row.hasSeat(seatColumn);
   }
 
   /**
    * Verifica se um assento específico é preferencial
-   * @param rowId ID da fileira
+   * @param rowNumber ID da fileira
    * @param seatColumn Letra da coluna do assento
    * @returns true se o assento for preferencial, false caso contrário
    */
-  public isPreferentialSeat(rowId: number, seatColumn: string): boolean {
-    const row = this.seatRows.get(rowId);
+  public isPreferentialSeat(rowNumber: number, seatColumn: string): boolean {
+    const row = this.seatRows.get(rowNumber);
     return row !== undefined && row.isPreferentialSeat(seatColumn);
   }
 }

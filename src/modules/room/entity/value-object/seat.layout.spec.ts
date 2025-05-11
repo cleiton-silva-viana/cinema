@@ -9,22 +9,22 @@ describe("SeatLayout", () => {
       describe("Cenários de sucesso", () => {
         const createValidLayout = (): ISeatRowConfiguration[] => [
           {
-            rowId: 1,
-            columns: "E", // 5 assentos (A-E)
-            preferentialSeats: ["A", "B"],
+            rowNumber: 1,
+            lastColumnLetter: "E", // 5 assentos (A-E)
+            preferentialSeatLetters: ["A", "B"],
           },
           {
-            rowId: 2,
-            columns: "F", // 6 assentos (A-F)
-            preferentialSeats: ["C"],
+            rowNumber: 2,
+            lastColumnLetter: "F", // 6 assentos (A-F)
+            preferentialSeatLetters: ["C"],
           },
           {
-            rowId: 3,
-            columns: "G", // 7 assentos (A-G)
+            rowNumber: 3,
+            lastColumnLetter: "G", // 7 assentos (A-G)
           },
           {
-            rowId: 4,
-            columns: "H", // 8 assentos (A-H)
+            rowNumber: 4,
+            lastColumnLetter: "H", // 8 assentos (A-H)
           },
         ];
         it("deve criar um layout de assentos válido com valores mínimos", () => {
@@ -55,9 +55,9 @@ describe("SeatLayout", () => {
 
           for (let i = 1; i <= maxRows; i++) {
             layout.push({
-              rowId: i,
-              columns: "E", // 5 assentos por fileira (A-E)
-              preferentialSeats: i <= 4 ? ["A"] : [], // Adiciona assentos preferenciais nas primeiras 4 fileiras
+              rowNumber: i,
+              lastColumnLetter: "E", // 5 assentos por fileira (A-E)
+              preferentialSeatLetters: i <= 5 ? ["A"] : [], // Adiciona assentos preferenciais nas primeiras 5 fileiras
             });
           }
 
@@ -132,10 +132,10 @@ describe("SeatLayout", () => {
           it("deve falhar quando a capacidade total é menor que o mínimo permitido", () => {
             // Arrange - 4 fileiras com 4 assentos cada = 16 assentos (mínimo é 20)
             const layout: ISeatRowConfiguration[] = [
-              { rowId: 1, columns: "D" }, // 4 assentos
-              { rowId: 2, columns: "D" }, // 4 assentos
-              { rowId: 3, columns: "D" }, // 4 assentos
-              { rowId: 4, columns: "D" }, // 4 assentos
+              { rowNumber: 1, lastColumnLetter: "D" }, // 4 assentos
+              { rowNumber: 2, lastColumnLetter: "D" }, // 4 assentos
+              { rowNumber: 3, lastColumnLetter: "D" }, // 4 assentos
+              { rowNumber: 4, lastColumnLetter: "D" }, // 4 assentos
             ];
 
             // Act
@@ -155,8 +155,8 @@ describe("SeatLayout", () => {
             const layout: ISeatRowConfiguration[] = Array(20)
               .fill(0)
               .map((_, i) => ({
-                rowId: i + 1,
-                columns: "O", // 15 assentos (A-O)
+                rowNumber: i + 1,
+                lastColumnLetter: "O", // 15 assentos (A-O)
               }));
 
             // Act
@@ -178,9 +178,9 @@ describe("SeatLayout", () => {
             const layout: ISeatRowConfiguration[] = Array(20)
               .fill(0)
               .map((_, i) => ({
-                rowId: i + 1,
-                columns: "E", // 5 assentos por fileira
-                preferentialSeats: [] as string[], // Sem assentos preferenciais
+                rowNumber: i + 1,
+                lastColumnLetter: "E", // 5 assentos por fileira
+                preferentialSeatLetters: [] as string[], // Sem assentos preferenciais
               }));
 
             // Act
@@ -202,9 +202,9 @@ describe("SeatLayout", () => {
             const layout: ISeatRowConfiguration[] = Array(10)
               .fill(0)
               .map((_, i) => ({
-                rowId: i + 1,
-                columns: "j", // 10 assentos por fileira
-                preferentialSeats: ["A", "B", "C"], // 30 assentos preferenciais (10 fileiras x 3 assentos)
+                rowNumber: i + 1,
+                lastColumnLetter: "j", // 10 assentos por fileira
+                preferentialSeatLetters: ["A", "B", "C"], // 30 assentos preferenciais (10 fileiras x 3 assentos)
               }));
 
             // Act
