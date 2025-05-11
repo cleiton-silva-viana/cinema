@@ -30,6 +30,10 @@ describe("SeatRow", () => {
             columns: "Z",
             scenario: "com colunas máximas permitidas",
           },
+          {
+            columns: "h",
+            scenario: "com colunas com letras minúsculas",
+          },
         ];
 
         successCases.forEach(({ columns, preferentialSeats, scenario }) => {
@@ -39,8 +43,8 @@ describe("SeatRow", () => {
 
             // Assert
             expect(result.invalid).toBe(false);
-            expect(result.value.lastColumn).toBe(columns);
-            expect(result.value.preferentialSeats).toEqual(
+            expect(result.value.lastColumnLetter).toBe(columns.toUpperCase());
+            expect(result.value.preferentialSeatLetters).toEqual(
               preferentialSeats ?? [],
             );
           });
@@ -140,8 +144,8 @@ describe("SeatRow", () => {
 
           // Assert
           expect(seatRow).toBeInstanceOf(SeatRow);
-          expect(seatRow.lastColumn).toBe("F");
-          expect(seatRow.preferentialSeats).toEqual(["A", "C"]);
+          expect(seatRow.lastColumnLetter).toBe("F");
+          expect(seatRow.preferentialSeatLetters).toEqual(["A", "C"]);
           expect(seatRow.capacity).toBe(6); // A até F = 6 assentos
         });
 
@@ -154,7 +158,7 @@ describe("SeatRow", () => {
           const seatRow = SeatRow.hydrate(lastColumn, preferentialSeats);
 
           // Assert
-          expect(seatRow.lastColumn).toBe("D");
+          expect(seatRow.lastColumnLetter).toBe("D");
         });
 
         it("deve normalizar os assentos preferenciais para maiúscula", () => {
@@ -166,7 +170,7 @@ describe("SeatRow", () => {
           const seatRow = SeatRow.hydrate(lastColumn, preferentialSeats);
 
           // Assert
-          expect(seatRow.preferentialSeats).toEqual(["A", "B", "C"]);
+          expect(seatRow.preferentialSeatLetters).toEqual(["A", "B", "C"]);
         });
       });
 

@@ -1,15 +1,13 @@
 import { failure, Result, success } from "../../../../shared/result/result";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { ISeatRowConfiguration } from "../room";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { TechnicalError } from "../../../../shared/error/technical.error";
-import { isNull } from "../../../../shared/validator/validator";
 
 /**
  * Mapeamento de letras para números (posição no alfabeto)
  * Usado para representar as colunas de assentos em uma fileira
  */
-export const columnsLetter = new Map<string, number>([
+export const seatColumnLetters = new Map<string, number>([
   ["A", 1],
   ["B", 2],
   ["C", 3],
@@ -46,178 +44,197 @@ export class SeatRow {
   /**
    * Número mínimo de assentos permitidos por fileira
    */
-  private static readonly MIN_SEATS_PER_ROW = 4;
+  private static readonly MINIMUM_SEATS_PER_ROW = 4;
 
   /**
    * Número máximo de assentos permitidos por fileira
    */
-  private static readonly MAX_SEATS_PER_ROW = 26;
+  private static readonly MAXIMUM_SEATS_PER_ROW = 26;
 
   /**
    * Número máximo de assentos preferenciais permitidos por fileira
    */
-  private static readonly MAX_PREFERENTIAL_SEATS_PER_ROW = 4;
+  private static readonly MAXIMUM_PREFERENTIAL_SEATS_PER_ROW = 4;
 
   /**
    * Construtor privado para garantir que instâncias sejam criadas apenas através dos métodos estáticos
-   * @param lastColumn Letra da última coluna da fileira (define a quantidade de assentos)
-   * @param preferentialSeats Lista de assentos preferenciais na fileira
+   * @param lastColumnLetter Letra da última coluna da fileira (define a quantidade de assentos)
+   * @param preferentialSeatLetters Lista de letras dos assentos preferenciais na fileira
    */
   private constructor(
-    public readonly lastColumn: string,
-    public readonly preferentialSeats: readonly string[],
+    public readonly lastColumnLetter: string,
+    public readonly preferentialSeatLetters: readonly string[],
   ) {}
 
   /**
    * Cria uma nova instância de SeatRow com validação
-   * @param rowID Identificador da fileira
-   * @param columns Letra da última coluna da fileira (define a quantidade de assentos)
-   * @param preferential Lista de assentos preferenciais
+   * @param rowId Identificador da fileira
+   * @param lastColumnLetter Letra da última coluna da fileira (define a quantidade de assentos)
+   * @param preferentialSeatLetters Lista de letras dos assentos preferenciais
    * @returns Resultado contendo a instância de SeatRow ou falhas de validação
    */
   public static create(
-    rowID: number,
-    columns: string,
-    preferential: string[],
+    rowId: number,
+    lastColumnLetter: string,
+    preferentialSeatLetters: string[] = [],
   ): Result<SeatRow> {
-    const validateColumnResult = this.validateColumn(rowID, columns);
-    if (validateColumnResult.invalid)
-      return failure(validateColumnResult.failures);
+    const normalizedLastColumnLetter = lastColumnLetter.toUpperCase();
 
-    const columnCount = validateColumnResult.value;
-
-    const preferentialSeatsValidation = this.validatePreferentialSeats(
-      rowID,
-      preferential || [],
-      columnCount,
+    const columnValidationResult = this.validateLastColumnLetter(
+      rowId,
+      normalizedLastColumnLetter,
     );
-    if (preferentialSeatsValidation.invalid)
-      return failure(preferentialSeatsValidation.failures);
+    if (columnValidationResult.invalid)
+      return failure(columnValidationResult.failures);
 
-    return success(new SeatRow(columns, preferentialSeatsValidation.value));
+    const totalSeatsInRow = columnValidationResult.value;
+
+    const preferentialSeatsValidationResult =
+      this.validatePreferentialSeatLetters(
+        rowId,
+        preferentialSeatLetters || [],
+        totalSeatsInRow,
+      );
+    if (preferentialSeatsValidationResult.invalid)
+      return failure(preferentialSeatsValidationResult.failures);
+
+    return success(
+      new SeatRow(
+        normalizedLastColumnLetter,
+        preferentialSeatsValidationResult.value,
+      ),
+    );
   }
 
   /**
    * Recria uma instância de SeatRow a partir de dados existentes sem validação.
    * Usado principalmente para reconstruir objetos a partir do banco de dados ou outras fontes confiáveis.
    *
-   * @param lastColumn Letra da última coluna da fileira
-   * @param preferentialSeats Lista de assentos preferenciais
+   * @param lastColumnLetter Letra da última coluna da fileira
+   * @param preferentialSeatLetters Lista de letras dos assentos preferenciais
    * @throws {TechnicalError} Se os dados obrigatórios estiverem ausentes
    * @returns Instância de SeatRow
    */
   public static hydrate(
-    lastColumn: string,
-    preferentialSeats?: string[],
+    lastColumnLetter: string,
+    preferentialSeatLetters?: string[],
   ): SeatRow {
-    TechnicalError.if(!lastColumn, FailureCode.INVALID_HYDRATE_DATA);
+    TechnicalError.if(!lastColumnLetter, FailureCode.INVALID_HYDRATE_DATA);
 
-    const preferential = preferentialSeats
-      ? preferentialSeats.map((seat) => seat.toUpperCase())
+    const normalizedPreferentialSeatLetters = preferentialSeatLetters
+      ? preferentialSeatLetters.map((seatLetter) => seatLetter.toUpperCase())
       : [];
 
-    return new SeatRow(lastColumn.toUpperCase(), preferential);
+    return new SeatRow(
+      lastColumnLetter.toUpperCase(),
+      normalizedPreferentialSeatLetters,
+    );
   }
 
   /**
-   * Valida a coluna final da fileira
-   * @param rowID Identificador da fileira para mensagens de erro
-   * @param column Letra da coluna final a ser validada
-   * @returns Resultado contendo o número de colunas ou falhas de validação
+   * Valida a letra da última coluna da fileira
+   * @param rowId Identificador da fileira para mensagens de erro
+   * @param lastColumnLetter Letra da última coluna a ser validada
+   * @returns Resultado contendo o número total de assentos na fileira ou falhas de validação
    */
-  private static validateColumn(rowID: number, column: string): Result<number> {
-    if (!columnsLetter.has(column)) {
+  private static validateLastColumnLetter(
+    rowId: number,
+    lastColumnLetter: string,
+  ): Result<number> {
+    if (!seatColumnLetters.has(lastColumnLetter)) {
       return failure({
         code: FailureCode.INVALID_SEAT_COLUMN,
         details: {
-          value: column,
-          rowID: rowID,
-          validValues: Array.from(columnsLetter.keys()),
+          value: lastColumnLetter,
+          rowId: rowId,
+          validValues: Array.from(seatColumnLetters.keys()),
         },
       });
     }
 
-    const columnCount = columnsLetter.get(column) || 0;
+    const totalSeatsInRow = seatColumnLetters.get(lastColumnLetter) || 0;
     if (
-      columnCount < this.MIN_SEATS_PER_ROW ||
-      columnCount > this.MAX_SEATS_PER_ROW
+      totalSeatsInRow < this.MINIMUM_SEATS_PER_ROW ||
+      totalSeatsInRow > this.MAXIMUM_SEATS_PER_ROW
     ) {
       return failure({
         code: FailureCode.SEAT_COLUMN_OUT_OF_RANGE,
         details: {
-          value: column,
-          rowID: rowID,
-          minSeatsPerRow: this.MIN_SEATS_PER_ROW,
-          maxSeatsPerRow: this.MAX_SEATS_PER_ROW,
+          value: lastColumnLetter,
+          rowId: rowId,
+          minSeatsPerRow: this.MINIMUM_SEATS_PER_ROW,
+          maxSeatsPerRow: this.MAXIMUM_SEATS_PER_ROW,
         },
       });
     }
 
-    return success(columnCount);
+    return success(totalSeatsInRow);
   }
 
   /**
-   * Valida os assentos preferenciais
-   * @param rowID Identificador da fileira para mensagens de erro
-   * @param seats Lista de assentos preferenciais a serem validados
-   * @param maxColumnValue Valor máximo de coluna permitido (baseado na última coluna)
-   * @returns Resultado contendo a lista de assentos preferenciais validados ou falhas
+   * Valida as letras dos assentos preferenciais
+   * @param rowId Identificador da fileira para mensagens de erro
+   * @param seatLetters Lista de letras dos assentos preferenciais a serem validados
+   * @param totalSeatsInRow Número total de assentos na fileira (baseado na última coluna)
+   * @returns Resultado contendo a lista de letras dos assentos preferenciais validados ou falhas
    */
-  private static validatePreferentialSeats(
-    rowID: number,
-    seats: string[],
-    maxColumnValue: number,
+  private static validatePreferentialSeatLetters(
+    rowId: number,
+    seatLetters: string[],
+    totalSeatsInRow: number,
   ): Result<string[]> {
-    const failures: SimpleFailure[] = [];
+    const validationFailures: SimpleFailure[] = [];
 
-    if (seats.length === 0) return success([]);
+    if (seatLetters.length === 0) return success([]);
 
-    if (seats.length > this.MAX_PREFERENTIAL_SEATS_PER_ROW) {
+    if (seatLetters.length > this.MAXIMUM_PREFERENTIAL_SEATS_PER_ROW) {
       return failure({
         code: FailureCode.PREFERENTIAL_SEATS_LIMIT_EXCEEDED,
         details: {
-          rowID: rowID,
-          maxPreferentialSeatsPerRow: this.MAX_PREFERENTIAL_SEATS_PER_ROW,
+          rowId: rowId,
+          maxPreferentialSeatsPerRow: this.MAXIMUM_PREFERENTIAL_SEATS_PER_ROW,
         },
       });
     }
 
-    const validatedSeats: string[] = [];
-    const validColumns = Array.from(columnsLetter.entries())
-      .filter(([_, value]) => value <= maxColumnValue)
-      .map(([key]) => key);
+    const validatedSeatLetters: string[] = [];
+    const validColumnLetters = Array.from(seatColumnLetters.entries())
+      .filter(([_, position]) => position <= totalSeatsInRow)
+      .map(([letter]) => letter);
 
-    for (const seat of seats) {
-      const seatUpper = seat.toUpperCase();
+    for (const seatLetter of seatLetters) {
+      const normalizedSeatLetter = seatLetter.toUpperCase();
 
-      const seatValue = columnsLetter.get(seatUpper);
-      if (seatValue === undefined || seatValue > maxColumnValue) {
-        failures.push({
+      const seatPosition = seatColumnLetters.get(normalizedSeatLetter);
+      if (seatPosition === undefined || seatPosition > totalSeatsInRow) {
+        validationFailures.push({
           code: FailureCode.PREFERENTIAL_SEAT_NOT_IN_ROW,
           details: {
-            rowID: rowID,
-            value: seat,
-            validValues: validColumns,
+            rowId: rowId,
+            value: seatLetter,
+            validValues: validColumnLetters,
           },
         });
         continue;
       }
 
-      if (validatedSeats.includes(seatUpper)) {
-        failures.push({
+      if (validatedSeatLetters.includes(normalizedSeatLetter)) {
+        validationFailures.push({
           code: FailureCode.DUPLICATE_PREFERENTIAL_SEAT,
           details: {
-            rowID: rowID,
-            value: seatUpper,
+            rowId: rowId,
+            value: normalizedSeatLetter,
           },
         });
         continue;
       }
 
-      validatedSeats.push(seatUpper);
+      validatedSeatLetters.push(normalizedSeatLetter);
     }
 
-    return failures.length > 0 ? failure(failures) : success(validatedSeats);
+    return validationFailures.length > 0
+      ? failure(validationFailures)
+      : success(validatedSeatLetters);
   }
 
   /**
@@ -225,45 +242,31 @@ export class SeatRow {
    * @returns Número total de assentos na fileira
    */
   public get capacity(): number {
-    return columnsLetter.get(this.lastColumn) || 0;
-  }
-
-  /**
-   * Obtém todas as letras de coluna para esta fileira em ordem alfabética
-   * @returns Array com todas as letras de coluna disponíveis nesta fileira
-   */
-  public getColumns(): string[] {
-    const lastColumnValue = columnsLetter.get(this.lastColumn) || 0;
-    return Array.from(columnsLetter.entries())
-      .filter(([_, value]) => value <= lastColumnValue)
-      .map(([key]) => key)
-      .sort(
-        (a, b) => (columnsLetter.get(a) || 0) - (columnsLetter.get(b) || 0),
-      );
+    return seatColumnLetters.get(this.lastColumnLetter) || 0;
   }
 
   /**
    * Verifica se um assento específico é preferencial
-   * @param column Letra da coluna do assento a verificar
+   * @param seatLetter Letra do assento a verificar
    * @returns true se o assento for preferencial, false caso contrário
    */
-  public isPreferentialSeat(column: string): boolean {
-    return this.preferentialSeats.includes(column.toUpperCase());
+  public isPreferentialSeat(seatLetter: string): boolean {
+    return this.preferentialSeatLetters.includes(seatLetter.toUpperCase());
   }
 
   /**
    * Verifica se um assento existe nesta fileira
-   * @param column Letra da coluna do assento a verificar
+   * @param seatLetter Letra do assento a verificar
    * @returns true se o assento existir na fileira, false caso contrário
    */
-  public hasSeat(column: string): boolean {
-    const columnValue = columnsLetter.get(column.toUpperCase());
-    const lastColumnValue = columnsLetter.get(this.lastColumn);
+  public hasSeat(seatLetter: string): boolean {
+    const seatPosition = seatColumnLetters.get(seatLetter.toUpperCase());
+    const lastColumnPosition = seatColumnLetters.get(this.lastColumnLetter);
 
     return (
-      columnValue !== undefined &&
-      lastColumnValue !== undefined &&
-      columnValue <= lastColumnValue
+      seatPosition !== undefined &&
+      lastColumnPosition !== undefined &&
+      seatPosition <= lastColumnPosition
     );
   }
 }
