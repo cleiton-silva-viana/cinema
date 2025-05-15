@@ -174,4 +174,13 @@ export class SeatLayout {
     const row = this.seatRows.get(rowNumber);
     return row !== undefined && row.isPreferentialSeat(seatColumn);
   }
+
+  /** Retorna a quantidade de assentos preferenicais */
+  get preferentialSeatsCount(): number {
+    let counter = 0;
+    this.preferentialSeatsByRow.forEach((row) => {
+      counter += row.length;
+    });
+    return counter;
+  }
 }

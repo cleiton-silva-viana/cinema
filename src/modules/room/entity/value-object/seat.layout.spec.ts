@@ -349,5 +349,44 @@ describe("SeatLayout", () => {
         expect(instance.isPreferentialSeat(1, "Z")).toBe(false); // Assento não existe
       });
     });
+
+    describe("preferentialSeatsCount", () => {
+      it("deve retornar zero quando não há assentos preferenciais", () => {
+        // Arrange
+        const seatRows = new Map<number, SeatRow>();
+        seatRows.set(1, SeatRow.hydrate("E", []));
+        seatRows.set(2, SeatRow.hydrate("F", []));
+        const layoutSemPreferenciais = SeatLayout.hydrate(seatRows);
+
+        // Act
+        const count = layoutSemPreferenciais.preferentialSeatsCount;
+
+        // Assert
+        expect(count).toBe(0);
+      });
+
+      it("deve retornar a soma total de assentos preferenciais de todas as fileiras", () => {
+        // Arrange
+        const seatRows = new Map<number, SeatRow>();
+        seatRows.set(1, SeatRow.hydrate("E", ["A", "B"])); // 2 assentos preferenciais
+        seatRows.set(2, SeatRow.hydrate("F", ["C", "D"])); // 2 assentos preferenciais
+        seatRows.set(3, SeatRow.hydrate("G", ["A"])); // 1 assento preferencial
+        const layout = SeatLayout.hydrate(seatRows);
+
+        // Act
+        const count = layout.preferentialSeatsCount;
+
+        // Assert
+        expect(count).toBe(5); // Total: 2 + 2 + 1 = 5 assentos preferenciais
+      });
+
+      it("deve retornar o valor correto usando a instância de teste padrão", () => {
+        // Act
+        const count = instance.preferentialSeatsCount;
+
+        // Assert
+        expect(count).toBe(3); // 2 na primeira fileira (A,B) + 1 na segunda fileira (C)
+      });
+    });
   });
 });
