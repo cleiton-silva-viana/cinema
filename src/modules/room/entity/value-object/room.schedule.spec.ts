@@ -4,6 +4,7 @@ import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { BookingType } from "./booking.slot";
+import { v4 } from "uuid";
 
 describe("RoomSchedule", () => {
   const createFutureDate = (
@@ -36,12 +37,14 @@ describe("RoomSchedule", () => {
         const screeningUID2 = ScreeningUID.create().value;
         const bookingData: IRoomBookingData[] = [
           {
+            bookingUID: v4(),
             screeningUID: screeningUID1,
             startTime: createFutureDate(0, 14),
             endTime: createFutureDate(0, 16),
             type: BookingType.SCREENING,
           },
           {
+            bookingUID: v4(),
             screeningUID: screeningUID2,
             startTime: createFutureDate(0, 17),
             endTime: createFutureDate(0, 19),
@@ -111,12 +114,14 @@ describe("RoomSchedule", () => {
     beforeEach(() => {
       instance = RoomSchedule.hydrate([
         {
+          bookingUID: v4(),
           screeningUID: SCREENING_UID_1.value,
           startTime: START_TIME_1,
           endTime: END_TIME_1,
           type: BookingType.SCREENING,
         },
         {
+          bookingUID: v4(),
           screeningUID: SCREENING_UID_2.value,
           startTime: START_TIME_2,
           endTime: END_TIME_2,
@@ -264,18 +269,19 @@ describe("RoomSchedule", () => {
         expect(result.invalid).toBe(false);
         const newSchedule = result.value;
         expect(newSchedule.getAllBookingsData()).toHaveLength(1);
-        expect(newSchedule.findBookingData(SCREENING_UID_1)).toBeDefined();
+        expect(newSchedule.findScreeningData(SCREENING_UID_1)).toBeDefined();
       });
 
-      it("deve retornar falha se BookingSlot.create falhar", () => {
+      it("deve retornar falha se o inicio do perído for no passado", () => {
         // Arrange
-        const invalidStartTime = new Date(Date.now() - 100000); // Past date
+        const invalidStartTime = createFutureDate(0, 10, -1);
+        const invalidEndTime = createFutureDate(0, 13, -1);
 
         // Act
         const result = instance.addBooking(
           SCREENING_UID_1,
           invalidStartTime,
-          END_TIME_1,
+          invalidEndTime,
           BookingType.SCREENING,
         );
 
@@ -343,19 +349,21 @@ describe("RoomSchedule", () => {
       });
     });
 
-    describe("removeBooking", () => {
+    describe("removeScreening", () => {
       it("deve remover um booking existente", () => {
         // Act
-        const result = instance.removeBooking(SCREENING_UID_1);
+        const result = instance.removeScreening(SCREENING_UID_1);
 
         // Assert
         expect(result.invalid).toBe(false);
         const updatedSchedule = result.value;
         expect(updatedSchedule.getAllBookingsData()).toHaveLength(1);
         expect(
-          updatedSchedule.findBookingData(SCREENING_UID_1),
+          updatedSchedule.findScreeningData(SCREENING_UID_1),
         ).toBeUndefined();
-        expect(updatedSchedule.findBookingData(SCREENING_UID_2)).toBeDefined();
+        expect(
+          updatedSchedule.findScreeningData(SCREENING_UID_2),
+        ).toBeDefined();
       });
 
       it("deve retornar falha ao tentar remover um booking inexistente", () => {
@@ -363,7 +371,7 @@ describe("RoomSchedule", () => {
         const nonExistentUID = ScreeningUID.create();
 
         // Act
-        const result = instance.removeBooking(nonExistentUID);
+        const result = instance.removeScreening(nonExistentUID);
 
         // Assert
         expect(result.invalid).toBe(true);
@@ -371,6 +379,140 @@ describe("RoomSchedule", () => {
           FailureCode.BOOKING_NOT_FOUND_FOR_SCREENING,
         );
         expect(instance.getAllBookingsData()).toHaveLength(2); // Schedule remains unchanged
+      });
+    }); // remove screening
+
+    describe("removeBookingByUID", () => {
+      let bookingUID1: string;
+      let bookingUID2: string;
+
+      beforeEach(() => {
+        const bookings = instance.getAllBookingsData();
+        bookingUID1 = bookings[0].bookingUID;
+        bookingUID2 = bookings[1].bookingUID;
+      });
+
+      const successCases = [
+        {
+          scenario: "deve remover o primeiro booking pelo UID",
+          bookingUIDToRemove: () => bookingUID1,
+          remainingBookingUID: () => bookingUID2,
+        },
+        {
+          scenario: "deve remover o segundo booking pelo UID",
+          bookingUIDToRemove: () => bookingUID2,
+          remainingBookingUID: () => bookingUID1,
+        },
+      ];
+
+      successCases.forEach(
+        ({ scenario, bookingUIDToRemove, remainingBookingUID }) => {
+          it(scenario, () => {
+            // Arrange
+            const initialLength = instance.getAllBookingsData().length;
+
+            // Act
+            const result = instance.removeBookingByUID(bookingUIDToRemove());
+
+            // Assert
+            expect(result.invalid).toBe(false);
+            const newSchedule = result.value;
+            const newBookings = newSchedule.getAllBookingsData();
+            expect(newBookings).toHaveLength(initialLength - 1);
+            expect(newBookings[0].bookingUID).toBe(remainingBookingUID());
+            expect(newBookings[0].bookingUID).not.toBe(bookingUIDToRemove());
+          });
+        },
+      );
+
+      it("deve falhar ao tentar remover UID inexistente", () => {
+        // Arrange
+        const nonExistentUID = v4();
+        const initialLength = instance.getAllBookingsData().length;
+
+        // Act
+        const result = instance.removeBookingByUID(nonExistentUID);
+
+        // Assert
+        expect(result.invalid).toBe(true);
+        expect(result.failures).toHaveLength(1);
+        expect(result.failures[0].code).toBe(FailureCode.BOOKING_NOT_FOUND);
+        expect(instance.getAllBookingsData()).toHaveLength(initialLength);
+      });
+    });
+
+    describe("findBookingDataByUID", () => {
+      let bookingUID1: string;
+      let bookingUID2: string;
+
+      beforeEach(() => {
+        const bookings = instance.getAllBookingsData();
+        bookingUID1 = bookings[0].bookingUID;
+        bookingUID2 = bookings[1].bookingUID;
+      });
+
+      const successCases = [
+        {
+          scenario: "deve encontrar dados do primeiro booking pelo UID",
+          bookingUIDToFind: () => bookingUID1,
+          expectedIndex: 0,
+        },
+        {
+          scenario: "deve encontrar dados do segundo booking pelo UID",
+          bookingUIDToFind: () => bookingUID2,
+          expectedIndex: 1,
+        },
+      ];
+
+      successCases.forEach(({ scenario, bookingUIDToFind, expectedIndex }) => {
+        it(scenario, () => {
+          // Arrange
+          const allBookings = instance.getAllBookingsData();
+          const expectedData = allBookings[expectedIndex];
+
+          // Act
+          const result = instance.findBookingDataByUID(bookingUIDToFind());
+
+          // Assert
+          expect(result).toBeDefined();
+          expect(result).toEqual(expectedData);
+        });
+      });
+
+      it("deve retornar undefined para UID inexistente", () => {
+        // Arrange
+        const nonExistentUID = v4();
+
+        // Act
+        const result = instance.findBookingDataByUID(nonExistentUID);
+
+        // Assert
+        expect(result).toBeUndefined();
+      });
+    });
+
+    describe("findScreeningData", () => {
+      it("deve encontrar e retornar dados de um booking existente", () => {
+        // Act
+        const foundData = instance.findScreeningData(SCREENING_UID_1);
+
+        // Assert
+        expect(foundData).toBeDefined();
+        expect(foundData?.screeningUID).toBe(SCREENING_UID_1.value);
+        expect(foundData?.startTime).toEqual(START_TIME_1);
+        expect(foundData?.endTime).toEqual(END_TIME_1);
+        expect(foundData?.type).toBe(BookingType.SCREENING);
+      });
+
+      it("deve retornar undefined para um booking inexistente", () => {
+        // Arrange
+        const nonExistentUID = ScreeningUID.create();
+
+        // Act
+        const foundData = instance.findScreeningData(nonExistentUID);
+
+        // Assert
+        expect(foundData).toBeUndefined();
       });
     });
 
@@ -400,31 +542,6 @@ describe("RoomSchedule", () => {
       });
     });
 
-    describe("findBookingData", () => {
-      it("deve encontrar e retornar dados de um booking existente", () => {
-        // Act
-        const foundData = instance.findBookingData(SCREENING_UID_1);
-
-        // Assert
-        expect(foundData).toBeDefined();
-        expect(foundData?.screeningUID).toBe(SCREENING_UID_1.value);
-        expect(foundData?.startTime).toEqual(START_TIME_1);
-        expect(foundData?.endTime).toEqual(END_TIME_1);
-        expect(foundData?.type).toBe(BookingType.SCREENING);
-      });
-
-      it("deve retornar undefined para um booking inexistente", () => {
-        // Arrange
-        const nonExistentUID = ScreeningUID.create();
-
-        // Act
-        const foundData = instance.findBookingData(nonExistentUID);
-
-        // Assert
-        expect(foundData).toBeUndefined();
-      });
-    });
-
     describe("getFreeSlotsForDate", () => {
       const minDuration = 60; // 1 hora
       const today = createFutureDate(0, 0);
@@ -439,6 +556,7 @@ describe("RoomSchedule", () => {
 
         scheduleWithOneBooking = RoomSchedule.hydrate([
           {
+            bookingUID: v4(),
             screeningUID: SCREENING_UID_1.value,
             startTime: START_TIME_1,
             endTime: END_TIME_1,
@@ -448,18 +566,21 @@ describe("RoomSchedule", () => {
 
         scheduleWithMultipleBookings = RoomSchedule.hydrate([
           {
+            bookingUID: v4(),
             screeningUID: SCREENING_UID_1.value,
             startTime: START_TIME_1,
             endTime: END_TIME_1,
             type: BookingType.SCREENING,
           }, // 10:00 > 12:00
           {
+            bookingUID: v4(),
             screeningUID: SCREENING_UID_2.value,
             startTime: START_TIME_2,
             endTime: END_TIME_2,
             type: BookingType.SCREENING,
           }, // 13:00 > 15:00
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 16),
             endTime: createFutureDate(0, 18),
@@ -469,18 +590,21 @@ describe("RoomSchedule", () => {
 
         scheduleWithFullDay = RoomSchedule.hydrate([
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 10),
             endTime: createFutureDate(0, 13),
             type: BookingType.SCREENING,
           },
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 14),
             endTime: createFutureDate(0, 18),
             type: BookingType.SCREENING,
           },
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 19),
             endTime: createFutureDate(0, 22),
@@ -569,6 +693,7 @@ describe("RoomSchedule", () => {
         // Arrange
         const scheduleWithStartBooking = RoomSchedule.hydrate([
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 10),
             endTime: createFutureDate(0, 12),
@@ -594,6 +719,7 @@ describe("RoomSchedule", () => {
         // Arrange
         const scheduleWithEndBooking = RoomSchedule.hydrate([
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 20),
             endTime: createFutureDate(0, 22),
@@ -619,12 +745,14 @@ describe("RoomSchedule", () => {
         // Arrange
         const scheduleWithExactSlot = RoomSchedule.hydrate([
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 10),
             endTime: createFutureDate(0, 12),
             type: BookingType.SCREENING,
           },
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 13),
             endTime: createFutureDate(0, 22),
@@ -659,6 +787,7 @@ describe("RoomSchedule", () => {
 
         const scheduleForTomorrow = RoomSchedule.hydrate([
           {
+            bookingUID: v4(),
             screeningUID: ScreeningUID.create().value,
             startTime: createFutureDate(0, 14, 1),
             endTime: createFutureDate(0, 16, 1),

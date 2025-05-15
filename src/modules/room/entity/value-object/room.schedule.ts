@@ -1,6 +1,6 @@
 import { failure, Result, success } from "../../../../shared/result/result";
 import { ScreeningUID } from "../../../screening/aggregate/value-object/screening.uid";
-import { BookingSlot, BookingType } from "./booking.slot"; // Adicionado BookingType
+import { BookingSlot, BookingType } from "./booking.slot";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { isNull } from "../../../../shared/validator/validator";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
@@ -10,7 +10,8 @@ import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
  * Interface para os dados brutos de um agendamento, usada para hidratação e serialização.
  */
 export interface IRoomBookingData {
-  screeningUID: string;
+  bookingUID: string;
+  screeningUID: string | null;
   startTime: Date;
   endTime: Date;
   type: BookingType;
@@ -71,11 +72,19 @@ export class RoomSchedule {
 
     const bookings: BookingSlot[] = bookingDataArray.map((data) => {
       TechnicalError.if(isNull(data.type), FailureCode.INVALID_HYDRATE_DATA, {
-        // Adicionada verificação para o tipo
         field: "bookingData.type",
         details: "Booking type is required for hydration",
       });
+      TechnicalError.if(
+        isNull(data.bookingUID),
+        FailureCode.INVALID_HYDRATE_DATA,
+        {
+          field: "bookingData.bookingUID",
+          details: "Booking UID is required for hydration",
+        },
+      );
       return BookingSlot.hydrate(
+        data.bookingUID,
         data.screeningUID,
         new Date(data.startTime),
         new Date(data.endTime),
@@ -155,7 +164,8 @@ export class RoomSchedule {
             requestedStartTime: requestedStartTime.toISOString(),
             requestedEndTime: requestedEndTime.toISOString(),
             conflictingBooking: {
-              screeningUID: booking.screeningUID.value,
+              bookingUID: booking.bookingUID,
+              screeningUID: booking.screeningUID?.value || null,
               startTime: booking.startTime.toISOString(),
               endTime: booking.endTime.toISOString(),
             },
@@ -177,38 +187,70 @@ export class RoomSchedule {
    * @returns Result com a nova instância de RoomSchedule ou falhas
    */
   public addBooking(
-    screeningUID: ScreeningUID,
+    screeningUID: ScreeningUID | null,
     startTime: Date,
     endTime: Date,
     type: BookingType,
   ): Result<RoomSchedule> {
-    const newBookingSlotResult = BookingSlot.create(
+    const failures: SimpleFailure[] = [];
+
+    // Verifica se o período está disponível
+    if (!this.isAvailable(startTime, endTime, failures)) {
+      return failure(failures);
+    }
+
+    // Cria o novo booking slot
+    const bookingSlotResult = BookingSlot.create(
       screeningUID,
       startTime,
       endTime,
       type,
     );
-    if (newBookingSlotResult.invalid)
-      return failure(newBookingSlotResult.failures);
 
-    const failures: SimpleFailure[] = [];
-    if (!this.isAvailable(startTime, endTime, failures))
-      return failure(failures);
+    if (bookingSlotResult.invalid) return failure(bookingSlotResult.failures);
 
-    const updatedBookings = [...this.bookings, newBookingSlotResult.value];
-    return success(new RoomSchedule(updatedBookings));
+    // Adiciona o novo booking e ordena a lista
+    const newBookings = [...this.bookings, bookingSlotResult.value].sort(
+      (a, b) => a.startTime.getTime() - b.startTime.getTime(),
+    );
+
+    return success(new RoomSchedule(newBookings));
   }
 
   /**
    * Retorna uma nova instância de RoomSchedule sem o BookingSlot correspondente.
-   * @param screeningUID Identificador único da exibição a ser removida
+   * @param bookingUID Identificador único do agendamento a ser removido
    * @returns Result com a nova instância de RoomSchedule ou falhas
    */
-  public removeBooking(screeningUID: ScreeningUID): Result<RoomSchedule> {
+  public removeBookingByUID(bookingUID: string): Result<RoomSchedule> {
     const initialLength = this.bookings.length;
 
     const updatedBookings = this.bookings.filter(
-      (booking) => !booking.screeningUID.equal(screeningUID),
+      (booking) => !(booking.bookingUID === bookingUID),
+    );
+
+    return updatedBookings.length === initialLength
+      ? failure([
+          {
+            code: FailureCode.BOOKING_NOT_FOUND,
+            details: { bookingUID: bookingUID },
+          },
+        ])
+      : success(new RoomSchedule(updatedBookings));
+  }
+
+  /**
+   * Retorna uma nova instância de RoomSchedule sem o BookingSlot correspondente à exibição.
+   * @param screeningUID Identificador único da exibição a ser removida
+   * @returns Result com a nova instância de RoomSchedule ou falhas
+   */
+  public removeScreening(screeningUID: ScreeningUID): Result<RoomSchedule> {
+    const initialLength = this.bookings.length;
+
+    const updatedBookings = this.bookings.filter(
+      (booking) =>
+        booking.screeningUID === null ||
+        !booking.screeningUID.equal(screeningUID),
     );
 
     return updatedBookings.length === initialLength
@@ -227,31 +269,60 @@ export class RoomSchedule {
    */
   public getAllBookingsData(): IRoomBookingData[] {
     return this.bookings.map((bookingSlot) => ({
-      screeningUID: bookingSlot.screeningUID.value,
+      bookingUID: bookingSlot.bookingUID,
+      screeningUID: bookingSlot.screeningUID?.value || null,
       startTime: bookingSlot.startTime,
       endTime: bookingSlot.endTime,
-      type: bookingSlot.type, // Adicionado type
+      type: bookingSlot.type,
     }));
   }
 
   /**
-   * Busca um BookingSlot específico e retorna seus dados brutos.
-   * @param screeningUIDToFind Identificador único da exibição a ser encontrada
+   * Busca um BookingSlot específico pelo UID do agendamento e retorna seus dados brutos.
+   * @param bookingUIDToFind Identificador único do agendamento a ser encontrado
    * @returns Dados brutos da reserva ou undefined se não encontrada
    */
-  public findBookingData(
-    screeningUIDToFind: ScreeningUID,
+  public findBookingDataByUID(
+    bookingUIDToFind: string,
   ): IRoomBookingData | undefined {
-    const foundBooking = this.bookings.find((booking) =>
-      booking.screeningUID.equal(screeningUIDToFind),
+    const foundBooking = this.bookings.find(
+      (booking) => booking.bookingUID === bookingUIDToFind,
     );
 
     if (foundBooking) {
       return {
-        screeningUID: foundBooking.screeningUID.value,
+        bookingUID: foundBooking.bookingUID,
+        screeningUID: foundBooking.screeningUID?.value || null,
         startTime: foundBooking.startTime,
         endTime: foundBooking.endTime,
-        type: foundBooking.type, // Adicionado type
+        type: foundBooking.type,
+      };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Busca um BookingSlot específico pelo UID da exibição e retorna seus dados brutos.
+   * @param screeningUIDToFind Identificador único da exibição a ser encontrada
+   * @returns Dados brutos da reserva ou undefined se não encontrada
+   */
+  public findScreeningData(
+    screeningUIDToFind: ScreeningUID,
+  ): IRoomBookingData | undefined {
+    const foundBooking = this.bookings.find(
+      (booking) =>
+        booking.screeningUID !== null &&
+        booking.screeningUID.equal(screeningUIDToFind),
+    );
+
+    if (foundBooking) {
+      return {
+        bookingUID: foundBooking.bookingUID,
+        screeningUID: foundBooking.screeningUID?.value || null,
+        startTime: foundBooking.startTime,
+        endTime: foundBooking.endTime,
+        type: foundBooking.type,
       };
     }
 
