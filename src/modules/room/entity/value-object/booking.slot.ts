@@ -5,27 +5,29 @@ import { Validate } from "../../../../shared/validator/validate";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { isNull } from "../../../../shared/validator/validator";
 import { TechnicalError } from "../../../../shared/error/technical.error";
+import { v4 } from "uuid";
 
 /**
- * Define os tipos de agendamento possíveis.
+ * Define os tipos de agendamento possíveis para uma sala de cinema.
  */
 export enum BookingType {
-  SCREENING = "SCREENING",
-  CLEANING = "CLEANING",
-  MAINTENANCE = "MAINTENANCE",
+  SCREENING = "SCREENING", // Exibição de filme
+  CLEANING = "CLEANING", // Limpeza da sala
+  MAINTENANCE = "MAINTENANCE", // Manutenção da sala
 }
 
 /**
  * Configurações de duração para cada tipo de agendamento.
+ * Define os limites mínimos e máximos de duração em minutos.
  */
 export const BookingDurationConfig = {
-  [BookingType.SCREENING]: { min: 30, max: 360 }, // 30 min a 6 horas
-  [BookingType.CLEANING]: { min: 0, max: 120 }, // Máximo de 2 horas
-  [BookingType.MAINTENANCE]: { min: 0, max: 3 * 24 * 60 }, // Máximo de 3 dias (em minutos)
+  [BookingType.SCREENING]: { min: 30, max: 360 }, // 30 min a 6 horas para exibições
+  [BookingType.CLEANING]: { min: 0, max: 120 }, // Máximo de 2 horas para limpeza
+  [BookingType.MAINTENANCE]: { min: 0, max: 3 * 24 * 60 }, // Máximo de 3 dias para manutenção
 };
 
 /**
- * Mapeamento de tipos de agendamento para códigos de falha de duração.
+ * Mapeamento de tipos de agendamento para seus respectivos códigos de falha de duração.
  */
 const DurationFailureCodes = {
   [BookingType.SCREENING]: FailureCode.INVALID_SCREENING_DURATION,
@@ -37,16 +39,21 @@ const DurationFailureCodes = {
  * Representa um período de tempo reservado para uma atividade em uma sala de cinema.
  *
  * Este Value Object encapsula as informações essenciais de uma reserva:
- * - O identificador único da atividade (screeningUID)
- * - O horário de início (startTime)
- * - O horário de término (endTime)
- * - O tipo de agendamento (type)
+ * - bookingUID: Identificador único do agendamento (UUID v4)
+ * - screeningUID: Identificador único da exibição (apenas para agendamentos do tipo SCREENING)
+ * - startTime: Data e hora de início do agendamento
+ * - endTime: Data e hora de término do agendamento
+ * - type: Tipo do agendamento (SCREENING, CLEANING ou MAINTENANCE)
  *
- * BookingSlot é imutável, garantindo a integridade dos dados durante todo o ciclo de vida.
+ * Características:
+ * - Imutável: Todas as propriedades são readonly
+ * - Auto-validado: Possui regras de validação para cada tipo de agendamento
+ * - Identificável: Cada agendamento possui um UUID único
  */
 export class BookingSlot {
   private constructor(
-    public readonly screeningUID: ScreeningUID,
+    public readonly bookingUID: string,
+    public readonly screeningUID: ScreeningUID | null,
     public readonly startTime: Date,
     public readonly endTime: Date,
     public readonly type: BookingType,
@@ -55,15 +62,16 @@ export class BookingSlot {
   /**
    * Cria uma nova instância de BookingSlot com validação completa.
    *
-   * @param screeningUID - O identificador único da atividade
-   * @param startTime - A data e hora de início da reserva
-   * @param endTime - A data e hora de término da reserva
-   * @param type - O tipo de agendamento
+   * @param screeningUID - O identificador único da exibição (obrigatório apenas para type=SCREENING)
+   * @param startTime - A data e hora de início do agendamento
+   * @param endTime - A data e hora de término do agendamento
+   * @param type - O tipo de agendamento (SCREENING, CLEANING ou MAINTENANCE)
    *
-   * @returns Result<BookingSlot> - Um objeto Result contendo o BookingSlot criado ou as falhas de validação
+   * @returns Result<BookingSlot> - Sucesso: nova instância de BookingSlot
+   *                                Falha: lista de falhas de validação
    */
   public static create(
-    screeningUID: ScreeningUID,
+    screeningUID: ScreeningUID | null,
     startTime: Date,
     endTime: Date,
     type: BookingType,
@@ -92,30 +100,34 @@ export class BookingSlot {
     )
       return failure(failures);
 
-    return success(new BookingSlot(screeningUID, startTime, endTime, type));
+    return success(
+      new BookingSlot(v4(), screeningUID, startTime, endTime, type),
+    );
   }
 
   /**
-   * Recria uma instância de BookingSlot a partir de dados existentes sem validação completa.
+   * Recria uma instância de BookingSlot a partir de dados existentes.
+   * Usado principalmente para hidratação de dados do banco de dados.
    *
-   * @param screeningUID - String representando o identificador único da atividade
-   * @param startTime - A data e hora de início da reserva
-   * @param endTime - A data e hora de término da reserva
+   * @param bookingUID - Identificador único do agendamento (UUID v4)
+   * @param screeningUID - String do identificador único da exibição (pode ser null)
+   * @param startTime - A data e hora de início do agendamento
+   * @param endTime - A data e hora de término do agendamento
    * @param type - O tipo de agendamento
    *
-   * @returns BookingSlot - Uma instância de BookingSlot
-   *
+   * @returns BookingSlot - Nova instância de BookingSlot
    * @throws TechnicalError - Quando os dados de hidratação são inválidos
    */
   public static hydrate(
-    screeningUID: string,
+    bookingUID: string,
+    screeningUID: string | null,
     startTime: Date,
     endTime: Date,
     type: BookingType,
   ): BookingSlot {
     const fields = [];
 
-    if (isNull(screeningUID)) fields.push("screeningUID");
+    if (isNull(bookingUID)) fields.push("bookingUID");
     if (isNull(startTime)) fields.push("startTime");
     if (isNull(endTime)) fields.push("endTime");
     if (isNull(type) || !Object.values(BookingType).includes(type)) {
@@ -127,7 +139,8 @@ export class BookingSlot {
     });
 
     return new BookingSlot(
-      ScreeningUID.hydrate(screeningUID),
+      bookingUID,
+      screeningUID ? ScreeningUID.hydrate(screeningUID) : null,
       startTime,
       endTime,
       type,
@@ -136,6 +149,7 @@ export class BookingSlot {
 
   /**
    * Calcula a duração do agendamento em minutos.
+   * @returns number - Duração em minutos
    */
   public get durationInMinutes(): number {
     return (this.endTime.getTime() - this.startTime.getTime()) / (1000 * 60);
@@ -145,7 +159,7 @@ export class BookingSlot {
    * Valida os requisitos básicos para criação de um BookingSlot.
    */
   private static validateBasicRequirements(
-    screeningUID: ScreeningUID,
+    screeningUID: ScreeningUID | null,
     startTime: Date,
     endTime: Date,
     type: BookingType,
@@ -153,10 +167,7 @@ export class BookingSlot {
   ): boolean {
     const now = new Date();
 
-    Validate.object(screeningUID)
-      .field("screeningUID")
-      .failures(failures)
-      .isRequired();
+    // Não validamos screeningUID como obrigatório, pois pode ser null para CLEANING e MAINTENANCE
 
     Validate.date(startTime)
       .field("startTime")
@@ -175,7 +186,16 @@ export class BookingSlot {
       .field("type")
       .failures(failures)
       .isRequired()
-      .isInEnum(BookingType, FailureCode.INVALID_BOOKING_TYPE);
+      .isInEnum(BookingType, FailureCode.INVALID_BOOKING_TYPE)
+      .when(type === BookingType.SCREENING, () => {
+        if (isNull(screeningUID))
+          failures.push({
+            code: FailureCode.MISSING_REQUIRED_DATA,
+            details: {
+              field: "screeningUID",
+            },
+          });
+      });
 
     return failures.length === 0;
   }
@@ -184,7 +204,7 @@ export class BookingSlot {
    * Valida a duração do agendamento com base no tipo.
    */
   private static validateDuration(
-    screeningUID: ScreeningUID,
+    screeningUID: ScreeningUID | null,
     startTime: Date,
     endTime: Date,
     type: BookingType,
@@ -197,7 +217,7 @@ export class BookingSlot {
       failures.push({
         code: DurationFailureCodes[type],
         details: {
-          screeningUID: screeningUID.value,
+          screeningUID: screeningUID?.value,
           startTime,
           endTime,
           duration: {
@@ -211,5 +231,10 @@ export class BookingSlot {
     }
 
     return true;
+  }
+
+  public equals(other: BookingSlot): boolean {
+    if (isNull(other) || !(other instanceof BookingSlot)) return false;
+    return other.bookingUID === this.bookingUID;
   }
 }

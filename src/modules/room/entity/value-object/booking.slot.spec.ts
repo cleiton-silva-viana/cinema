@@ -63,8 +63,8 @@ describe("BookingSlot", () => {
       describe("falhas com campo específico", () => {
         const failureCases = [
           {
-            scenario: "quando screeningUID é nulo",
-            props: { screeningUID: null as any },
+            scenario: "quando screeningUID é nulo e type é igual a screening",
+            props: { screeningUID: null as any, type: BookingType.SCREENING },
             expectedCode: FailureCode.MISSING_REQUIRED_DATA,
             field: "screeningUID",
           },
@@ -210,6 +210,7 @@ describe("BookingSlot", () => {
     it("deve criar um objeto BookingSlot sem validação", () => {
       // Act
       const result = BookingSlot.hydrate(
+        "uid",
         mockScreeningUIDString,
         VALID_START_TIME,
         VALID_END_TIME,
@@ -226,6 +227,10 @@ describe("BookingSlot", () => {
 
     describe("deve lançar TechnicalError quando dados de hidratação são inválidos", () => {
       const invalidHydrateCases = [
+        {
+          scenario: "booking uid é nulo",
+          props: { bookingUID: null as any },
+        },
         {
           scenario: "screeningUID é nulo",
           props: { screeningUID: null as any },
@@ -252,6 +257,7 @@ describe("BookingSlot", () => {
         it(scenario, () => {
           // Arrange
           const datas = {
+            bookingUID: props.bookingUID,
             screeningUID: mockScreeningUIDString, // hydrate espera string para screeningUID
             startTime: VALID_START_TIME,
             endTime: VALID_END_TIME,
@@ -262,12 +268,88 @@ describe("BookingSlot", () => {
           // Act & Assert
           expect(() =>
             BookingSlot.hydrate(
+              datas.bookingUID,
               datas.screeningUID,
               datas.startTime,
               datas.endTime,
               datas.type,
             ),
           ).toThrow(TechnicalError);
+        });
+      });
+    });
+  });
+
+  describe("equals", () => {
+    const validUID = "test-uid";
+    const NOW = new Date();
+
+    it("deve retornar true se ambos tiverem mesmo uid", () => {
+      // Arrange
+      const instance1 = BookingSlot.hydrate(
+        validUID,
+        null,
+        NOW,
+        new Date(NOW.getTime() + 1000 * 60 * 60),
+        BookingType.CLEANING,
+      );
+      const instance2 = BookingSlot.hydrate(
+        validUID,
+        null,
+        NOW,
+        new Date(NOW.getTime() + 1000 * 60 * 60),
+        BookingType.CLEANING,
+      );
+
+      // Act
+      const result = instance1.equals(instance2);
+
+      // Assert
+      expect(result).toBe(true);
+    });
+
+    describe("deve retornar false", () => {
+      const falsyCases = [
+        {
+          scenario: "quando other não é uma instância de BookingSlot",
+          other: "não é um BookingSlot",
+        },
+        {
+          scenario: "quando uids são diferentes",
+          other: BookingSlot.hydrate(
+            "outro-uid",
+            null,
+            NOW,
+            new Date(NOW.getTime() + 1000 * 60 * 60),
+            BookingType.CLEANING,
+          ),
+        },
+        {
+          scenario: "quando other é null",
+          other: null,
+        },
+        {
+          scenario: "quando other é undefined",
+          other: undefined,
+        },
+      ];
+
+      falsyCases.forEach(({ scenario, other }) => {
+        it(scenario, () => {
+          // Arrange
+          const instance = BookingSlot.hydrate(
+            validUID,
+            null,
+            NOW,
+            new Date(NOW.getTime() + 1000 * 60 * 60),
+            BookingType.CLEANING,
+          );
+
+          // Act
+          const result = instance.equals(other as BookingSlot);
+
+          // Assert
+          expect(result).toBe(false);
         });
       });
     });
