@@ -250,12 +250,15 @@ export class RoomSchedule {
       .field("type")
       .failures(failures)
       .isRequired()
-      .when(type === BookingType.SCREENING, () => {
-        Validate.object(screeningUID)
-          .field("screeningUID")
-          .failures(failures)
-          .isRequired();
-      });
+      .when(
+        type === BookingType.SCREENING || type === BookingType.EXIT_TIME,
+        () => {
+          Validate.object(screeningUID)
+            .field("screeningUID")
+            .failures(failures)
+            .isRequired();
+        },
+      );
 
     if (failures.length > 0) return failure(failures);
 
@@ -312,7 +315,8 @@ export class RoomSchedule {
   /**
    * Retorna uma nova instância de RoomSchedule sem o BookingSlot correspondente à exibição.
    *
-   * Remove um agendamento específico com base no identificador único da exibição.
+   * Remove todos os agendamentos associados ao identificador único da exibição,
+   * incluindo os agendamentos de tipo SCREENING e EXIT_TIME.
    * Este método é útil quando uma exibição é cancelada e precisa ser removida da agenda.
    * Se nenhum agendamento for encontrado para a exibição, retorna uma falha.
    *
