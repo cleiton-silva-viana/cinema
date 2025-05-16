@@ -14,6 +14,7 @@ export enum BookingType {
   SCREENING = "SCREENING", // Exibição de filme
   CLEANING = "CLEANING", // Limpeza da sala
   MAINTENANCE = "MAINTENANCE", // Manutenção da sala
+  EXIT_TIME = "EXIT_TIME", // Tempo para saída dos clientes
 }
 
 /**
@@ -24,15 +25,7 @@ export const BookingDurationConfig = {
   [BookingType.SCREENING]: { min: 30, max: 360 }, // 30 min a 6 horas para exibições
   [BookingType.CLEANING]: { min: 0, max: 120 }, // Máximo de 2 horas para limpeza
   [BookingType.MAINTENANCE]: { min: 0, max: 3 * 24 * 60 }, // Máximo de 3 dias para manutenção
-};
-
-/**
- * Mapeamento de tipos de agendamento para seus respectivos códigos de falha de duração.
- */
-const DurationFailureCodes = {
-  [BookingType.SCREENING]: FailureCode.INVALID_SCREENING_DURATION,
-  [BookingType.CLEANING]: FailureCode.INVALID_CLEANING_DURATION,
-  [BookingType.MAINTENANCE]: FailureCode.INVALID_MAINTENANCE_DURATION,
+  [BookingType.EXIT_TIME]: { min: 0, max: 30 }, // Máximo de 30 minutos para saída dos clientes
 };
 
 /**
@@ -167,8 +160,6 @@ export class BookingSlot {
   ): boolean {
     const now = new Date();
 
-    // Não validamos screeningUID como obrigatório, pois pode ser null para CLEANING e MAINTENANCE
-
     Validate.date(startTime)
       .field("startTime")
       .failures(failures)
@@ -186,16 +177,19 @@ export class BookingSlot {
       .field("type")
       .failures(failures)
       .isRequired()
-      .isInEnum(BookingType, FailureCode.INVALID_BOOKING_TYPE)
-      .when(type === BookingType.SCREENING, () => {
-        if (isNull(screeningUID))
-          failures.push({
-            code: FailureCode.MISSING_REQUIRED_DATA,
-            details: {
-              field: "screeningUID",
-            },
-          });
-      });
+      .isInEnum(BookingType)
+      .when(
+        type === BookingType.SCREENING || type === BookingType.EXIT_TIME,
+        () => {
+          if (isNull(screeningUID))
+            failures.push({
+              code: FailureCode.MISSING_REQUIRED_DATA,
+              details: {
+                field: "screeningUID",
+              },
+            });
+        },
+      );
 
     return failures.length === 0;
   }
@@ -215,7 +209,7 @@ export class BookingSlot {
 
     if (duration < config.min || duration > config.max) {
       failures.push({
-        code: DurationFailureCodes[type],
+        code: FailureCode.INVALID_OPERATION_DURATION,
         details: {
           screeningUID: screeningUID?.value,
           startTime,
