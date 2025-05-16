@@ -253,573 +253,735 @@ describe("RoomSchedule", () => {
     });
 
     describe("addBooking", () => {
-      it("deve adicionar um booking a um schedule vazio", () => {
-        // Arrange
-        const emptyBookings = RoomSchedule.create();
-
-        // Act
-        const result = emptyBookings.addBooking(
-          SCREENING_UID_1,
-          START_TIME_1,
-          END_TIME_1,
-          BookingType.SCREENING,
-        );
-
-        // Assert
-        expect(result.invalid).toBe(false);
-        const newSchedule = result.value;
-        expect(newSchedule.getAllBookingsData()).toHaveLength(1);
-        expect(newSchedule.findScreeningData(SCREENING_UID_1)).toBeDefined();
-      });
-
-      it("deve retornar falha se o inicio do perído for no passado", () => {
-        // Arrange
-        const invalidStartTime = createFutureDate(0, 10, -1);
-        const invalidEndTime = createFutureDate(0, 13, -1);
-
-        // Act
-        const result = instance.addBooking(
-          SCREENING_UID_1,
-          invalidStartTime,
-          invalidEndTime,
-          BookingType.SCREENING,
-        );
-
-        // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe(FailureCode.DATE_CANNOT_BE_PAST);
-      });
-
-      it("deve retornar falha se o período não estiver disponível", () => {
-        // Arrange
-        const conflictingStartTime = createFutureDate(0, 13);
-        const conflictingEndTime = createFutureDate(0, 15);
-
-        // Act
-        const result = instance.addBooking(
-          ScreeningUID.create(),
-          conflictingStartTime,
-          conflictingEndTime,
-          BookingType.SCREENING,
-        );
-
-        // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe(
-          FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
-        );
-      });
-
-      it("deve adicionar múltiplos bookings e mantê-los ordenados", () => {
-        // Arrange
-        const screeningUID1 = ScreeningUID.create();
-        const screeningUID2 = ScreeningUID.create();
-
-        const startTime1 = createFutureDate(0, 14); // 14:00
-        const endTime1 = createFutureDate(0, 16); // 16:00
-
-        const startTime2 = createFutureDate(0, 10); // 10:00
-        const endTime2 = createFutureDate(0, 12); // 12:00
-
-        // Act
-        let schedule = emptySchedule.addBooking(
-          screeningUID1,
-          startTime1,
-          endTime1,
-          BookingType.SCREENING,
-        ).value;
-        schedule = schedule.addBooking(
-          screeningUID2,
-          startTime2,
-          endTime2,
-          BookingType.CLEANING,
-        ).value;
-        const bookings = schedule.getAllBookingsData();
-
-        // Assert
-        expect(bookings).toHaveLength(2);
-        expect(bookings[0].screeningUID).toBe(screeningUID2.value);
-        expect(bookings[0].startTime).toEqual(startTime2);
-        expect(bookings[0].endTime).toEqual(endTime2);
-        expect(bookings[0].type).toBe(BookingType.CLEANING);
-        expect(bookings[1].screeningUID).toBe(screeningUID1.value);
-        expect(bookings[1].startTime).toEqual(startTime1);
-        expect(bookings[1].endTime).toEqual(endTime1);
-        expect(bookings[1].type).toBe(BookingType.SCREENING);
-      });
-    });
-
-    describe("removeScreening", () => {
-      it("deve remover um booking existente", () => {
-        // Act
-        const result = instance.removeScreening(SCREENING_UID_1);
-
-        // Assert
-        expect(result.invalid).toBe(false);
-        const updatedSchedule = result.value;
-        expect(updatedSchedule.getAllBookingsData()).toHaveLength(1);
-        expect(
-          updatedSchedule.findScreeningData(SCREENING_UID_1),
-        ).toBeUndefined();
-        expect(
-          updatedSchedule.findScreeningData(SCREENING_UID_2),
-        ).toBeDefined();
-      });
-
-      it("deve retornar falha ao tentar remover um booking inexistente", () => {
-        // Arrange
-        const nonExistentUID = ScreeningUID.create();
-
-        // Act
-        const result = instance.removeScreening(nonExistentUID);
-
-        // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe(
-          FailureCode.BOOKING_NOT_FOUND_FOR_SCREENING,
-        );
-        expect(instance.getAllBookingsData()).toHaveLength(2); // Schedule remains unchanged
-      });
-    }); // remove screening
-
-    describe("removeBookingByUID", () => {
-      let bookingUID1: string;
-      let bookingUID2: string;
-
-      beforeEach(() => {
-        const bookings = instance.getAllBookingsData();
-        bookingUID1 = bookings[0].bookingUID;
-        bookingUID2 = bookings[1].bookingUID;
-      });
-
-      const successCases = [
-        {
-          scenario: "deve remover o primeiro booking pelo UID",
-          bookingUIDToRemove: () => bookingUID1,
-          remainingBookingUID: () => bookingUID2,
-        },
-        {
-          scenario: "deve remover o segundo booking pelo UID",
-          bookingUIDToRemove: () => bookingUID2,
-          remainingBookingUID: () => bookingUID1,
-        },
-      ];
-
-      successCases.forEach(
-        ({ scenario, bookingUIDToRemove, remainingBookingUID }) => {
-          it(scenario, () => {
-            // Arrange
-            const initialLength = instance.getAllBookingsData().length;
-
-            // Act
-            const result = instance.removeBookingByUID(bookingUIDToRemove());
-
-            // Assert
-            expect(result.invalid).toBe(false);
-            const newSchedule = result.value;
-            const newBookings = newSchedule.getAllBookingsData();
-            expect(newBookings).toHaveLength(initialLength - 1);
-            expect(newBookings[0].bookingUID).toBe(remainingBookingUID());
-            expect(newBookings[0].bookingUID).not.toBe(bookingUIDToRemove());
-          });
-        },
-      );
-
-      it("deve falhar ao tentar remover UID inexistente", () => {
-        // Arrange
-        const nonExistentUID = v4();
-        const initialLength = instance.getAllBookingsData().length;
-
-        // Act
-        const result = instance.removeBookingByUID(nonExistentUID);
-
-        // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(FailureCode.BOOKING_NOT_FOUND);
-        expect(instance.getAllBookingsData()).toHaveLength(initialLength);
-      });
-    });
-
-    describe("findBookingDataByUID", () => {
-      let bookingUID1: string;
-      let bookingUID2: string;
-
-      beforeEach(() => {
-        const bookings = instance.getAllBookingsData();
-        bookingUID1 = bookings[0].bookingUID;
-        bookingUID2 = bookings[1].bookingUID;
-      });
-
-      const successCases = [
-        {
-          scenario: "deve encontrar dados do primeiro booking pelo UID",
-          bookingUIDToFind: () => bookingUID1,
-          expectedIndex: 0,
-        },
-        {
-          scenario: "deve encontrar dados do segundo booking pelo UID",
-          bookingUIDToFind: () => bookingUID2,
-          expectedIndex: 1,
-        },
-      ];
-
-      successCases.forEach(({ scenario, bookingUIDToFind, expectedIndex }) => {
-        it(scenario, () => {
+      describe("cenários válidos", () => {
+        it("deve adicionar um booking a um schedule vazio", () => {
           // Arrange
-          const allBookings = instance.getAllBookingsData();
-          const expectedData = allBookings[expectedIndex];
+          const emptyBookings = RoomSchedule.create();
 
           // Act
-          const result = instance.findBookingDataByUID(bookingUIDToFind());
+          const result = emptyBookings.addBooking(
+            SCREENING_UID_1,
+            START_TIME_1,
+            END_TIME_1,
+            BookingType.SCREENING,
+          );
 
           // Assert
-          expect(result).toBeDefined();
-          expect(result).toEqual(expectedData);
+          expect(result.invalid).toBe(false);
+          const newSchedule = result.value;
+          expect(newSchedule.getAllBookingsData()).toHaveLength(1);
+          expect(newSchedule.findScreeningData(SCREENING_UID_1)).toBeDefined();
+        });
+
+        it("deve adicionar múltiplos bookings e mantê-los ordenados", () => {
+          // Arrange
+          const screeningUID1 = ScreeningUID.create();
+          const screeningUID2 = ScreeningUID.create();
+
+          const startTime1 = createFutureDate(0, 14); // 14:00
+          const endTime1 = createFutureDate(0, 16); // 16:00
+
+          const startTime2 = createFutureDate(0, 10); // 10:00
+          const endTime2 = createFutureDate(0, 12); // 12:00
+
+          // Act
+          let schedule = emptySchedule.addBooking(
+            screeningUID1,
+            startTime1,
+            endTime1,
+            BookingType.SCREENING,
+          ).value;
+          schedule = schedule.addBooking(
+            screeningUID2,
+            startTime2,
+            endTime2,
+            BookingType.CLEANING,
+          ).value;
+          const bookings = schedule.getAllBookingsData();
+
+          // Assert
+          expect(bookings).toHaveLength(2);
+          expect(bookings[0].screeningUID).toBe(screeningUID2.value);
+          expect(bookings[0].startTime).toEqual(startTime2);
+          expect(bookings[0].endTime).toEqual(endTime2);
+          expect(bookings[0].type).toBe(BookingType.CLEANING);
+          expect(bookings[1].screeningUID).toBe(screeningUID1.value);
+          expect(bookings[1].startTime).toEqual(startTime1);
+          expect(bookings[1].endTime).toEqual(endTime1);
+          expect(bookings[1].type).toBe(BookingType.SCREENING);
+        });
+
+        it("deve permitir adicionar booking do tipo CLEANING sem screeningUID", () => {
+          // Arrange
+          const validStartTime = createFutureDate(0, 16);
+          const validEndTime = createFutureDate(0, 18);
+
+          // Act
+          const result = emptySchedule.addBooking(
+            null,
+            validStartTime,
+            validEndTime,
+            BookingType.CLEANING,
+          );
+
+          // Assert
+          expect(result.invalid).toBe(false);
+          const newSchedule = result.value;
+          expect(newSchedule.getAllBookingsData()).toHaveLength(1);
+          const booking = newSchedule.getAllBookingsData()[0];
+          expect(booking.screeningUID).toBeNull();
+          expect(booking.type).toBe(BookingType.CLEANING);
         });
       });
 
-      it("deve retornar undefined para UID inexistente", () => {
-        // Arrange
-        const nonExistentUID = v4();
-
-        // Act
-        const result = instance.findBookingDataByUID(nonExistentUID);
-
-        // Assert
-        expect(result).toBeUndefined();
-      });
-    });
-
-    describe("findScreeningData", () => {
-      it("deve encontrar e retornar dados de um booking existente", () => {
-        // Act
-        const foundData = instance.findScreeningData(SCREENING_UID_1);
-
-        // Assert
-        expect(foundData).toBeDefined();
-        expect(foundData?.screeningUID).toBe(SCREENING_UID_1.value);
-        expect(foundData?.startTime).toEqual(START_TIME_1);
-        expect(foundData?.endTime).toEqual(END_TIME_1);
-        expect(foundData?.type).toBe(BookingType.SCREENING);
-      });
-
-      it("deve retornar undefined para um booking inexistente", () => {
-        // Arrange
-        const nonExistentUID = ScreeningUID.create();
-
-        // Act
-        const foundData = instance.findScreeningData(nonExistentUID);
-
-        // Assert
-        expect(foundData).toBeUndefined();
-      });
-    });
-
-    describe("getAllBookingsData", () => {
-      it("deve retornar um array vazio para um schedule sem bookings", () => {
-        // Act
-        const bookingsData = emptySchedule.getAllBookingsData();
-
-        // Assert
-        expect(bookingsData).toEqual([]);
-      });
-
-      it("deve retornar dados de todos os bookings", () => {
-        // Act
-        const bookingsData = instance.getAllBookingsData();
-
-        // Assert
-        expect(bookingsData).toHaveLength(2);
-        expect(bookingsData[0].screeningUID).toBe(SCREENING_UID_1.value);
-        expect(bookingsData[0].startTime).toEqual(START_TIME_1);
-        expect(bookingsData[0].endTime).toEqual(END_TIME_1);
-        expect(bookingsData[0].type).toBe(BookingType.SCREENING);
-        expect(bookingsData[1].screeningUID).toBe(SCREENING_UID_2.value);
-        expect(bookingsData[1].startTime).toEqual(START_TIME_2);
-        expect(bookingsData[1].endTime).toEqual(END_TIME_2);
-        expect(bookingsData[1].type).toBe(BookingType.SCREENING);
-      });
-    });
-
-    describe("getFreeSlotsForDate", () => {
-      const minDuration = 60; // 1 hora
-      const today = createFutureDate(0, 0);
-
-      let emptySchedule: RoomSchedule;
-      let scheduleWithOneBooking: RoomSchedule;
-      let scheduleWithMultipleBookings: RoomSchedule;
-      let scheduleWithFullDay: RoomSchedule;
-
-      beforeEach(() => {
-        emptySchedule = RoomSchedule.create();
-
-        scheduleWithOneBooking = RoomSchedule.hydrate([
+      describe("casos inválidos", () => {
+        const failureCases = [
           {
-            bookingUID: v4(),
-            screeningUID: SCREENING_UID_1.value,
-            startTime: START_TIME_1,
-            endTime: END_TIME_1,
-            type: BookingType.SCREENING,
-          },
-        ]);
-
-        scheduleWithMultipleBookings = RoomSchedule.hydrate([
-          {
-            bookingUID: v4(),
-            screeningUID: SCREENING_UID_1.value,
-            startTime: START_TIME_1,
-            endTime: END_TIME_1,
-            type: BookingType.SCREENING,
-          }, // 10:00 > 12:00
-          {
-            bookingUID: v4(),
-            screeningUID: SCREENING_UID_2.value,
-            startTime: START_TIME_2,
-            endTime: END_TIME_2,
-            type: BookingType.SCREENING,
-          }, // 13:00 > 15:00
-          {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 16),
-            endTime: createFutureDate(0, 18),
-            type: BookingType.SCREENING,
-          },
-        ]);
-
-        scheduleWithFullDay = RoomSchedule.hydrate([
-          {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 10),
-            endTime: createFutureDate(0, 13),
-            type: BookingType.SCREENING,
+            scenario: "deve retornar falha inicio do período for no passado",
+            input: {
+              startTime: createFutureDate(0, 10, -1),
+              endTime: createFutureDate(0, 13, -1),
+            },
+            code: FailureCode.DATE_CANNOT_BE_PAST,
           },
           {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 14),
-            endTime: createFutureDate(0, 18),
-            type: BookingType.SCREENING,
+            scenario: "deve retornar falha se o período não estiver disponível",
+            input: {
+              startTime: createFutureDate(0, 13),
+              endTime: createFutureDate(0, 15),
+            },
+            code: FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
           },
           {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 19),
-            endTime: createFutureDate(0, 22),
-            type: BookingType.SCREENING,
-          },
-        ]);
-      });
-
-      it("deve retornar um único slot grande se não houver bookings", () => {
-        // Arrange
-        const operatingStart = new Date(today);
-        operatingStart.setHours(10, 0, 0, 0);
-        const operatingEnd = new Date(today);
-        operatingEnd.setHours(22, 0, 0, 0);
-
-        // Act
-        const freeSlots = emptySchedule.getFreeSlotsForDate(today, minDuration);
-
-        // Assert
-        expect(freeSlots).toHaveLength(1);
-        expect(freeSlots[0].startTime).toEqual(operatingStart);
-        expect(freeSlots[0].endTime).toEqual(operatingEnd);
-      });
-
-      it("deve retornar slots livres corretamente com um booking no meio do dia", () => {
-        // Arrange
-        const expectedSlotStart = createFutureDate(0, 12);
-        const expectedSlotEnd = createFutureDate(0, 22);
-
-        // Act
-        const freeSlots = scheduleWithOneBooking.getFreeSlotsForDate(
-          today,
-          minDuration,
-        );
-
-        // Assert
-        expect(freeSlots).toHaveLength(1);
-        expect(freeSlots[0].startTime.toISOString()).toEqual(
-          expectedSlotStart.toISOString(),
-        );
-        expect(freeSlots[0].endTime.toISOString()).toEqual(
-          expectedSlotEnd.toISOString(),
-        );
-      });
-
-      it("deve retornar slots livres com múltiplos bookings", () => {
-        // Arrange
-        const expectedSlot1Start = createFutureDate(0, 12);
-        const expectedSlot1End = createFutureDate(0, 13);
-        const expectedSlot2Start = createFutureDate(0, 15);
-        const expectedSlot2End = createFutureDate(0, 16);
-        const expectedSlot3Start = createFutureDate(0, 18);
-        const expectedSlot3End = createFutureDate(0, 22);
-
-        // Act
-        const freeSlots = scheduleWithMultipleBookings.getFreeSlotsForDate(
-          today,
-          minDuration,
-        );
-
-        // Assert
-        expect(freeSlots).toHaveLength(3);
-        expect(freeSlots[0].startTime).toEqual(expectedSlot1Start);
-        expect(freeSlots[0].endTime).toEqual(expectedSlot1End);
-        expect(freeSlots[1].startTime).toEqual(expectedSlot2Start);
-        expect(freeSlots[1].endTime).toEqual(expectedSlot2End);
-        expect(freeSlots[2].startTime).toEqual(expectedSlot3Start);
-        expect(freeSlots[2].endTime).toEqual(expectedSlot3End);
-      });
-
-      it("deve retornar vazio se nenhum slot livre atender à duração mínima", () => {
-        // Arrange
-        const duration = 240;
-
-        // Act
-        const freeSlots = scheduleWithFullDay.getFreeSlotsForDate(
-          today,
-          duration,
-        );
-
-        // Assert
-        expect(freeSlots).toHaveLength(0);
-      });
-
-      it("deve lidar com bookings que começam no início do horário de funcionamento", () => {
-        // Arrange
-        const scheduleWithStartBooking = RoomSchedule.hydrate([
-          {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 10),
-            endTime: createFutureDate(0, 12),
-            type: BookingType.SCREENING,
-          },
-        ]);
-        const expectedSlotStart = createFutureDate(0, 12);
-        const expectedSlotEnd = createFutureDate(0, 22);
-
-        // Act
-        const freeSlots = scheduleWithStartBooking.getFreeSlotsForDate(
-          today,
-          minDuration,
-        );
-
-        // Assert
-        expect(freeSlots).toHaveLength(1);
-        expect(freeSlots[0].startTime).toEqual(expectedSlotStart);
-        expect(freeSlots[0].endTime).toEqual(expectedSlotEnd);
-      });
-
-      it("deve lidar com bookings que terminam no fim do horário de funcionamento", () => {
-        // Arrange
-        const scheduleWithEndBooking = RoomSchedule.hydrate([
-          {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 20),
-            endTime: createFutureDate(0, 22),
-            type: BookingType.SCREENING,
-          },
-        ]);
-        const expectedSlotStart = createFutureDate(0, 10);
-        const expectedSlotEnd = createFutureDate(0, 20);
-
-        // Act
-        const freeSlots = scheduleWithEndBooking.getFreeSlotsForDate(
-          today,
-          minDuration,
-        );
-
-        // Assert
-        expect(freeSlots).toHaveLength(1);
-        expect(freeSlots[0].startTime).toEqual(expectedSlotStart);
-        expect(freeSlots[0].endTime).toEqual(expectedSlotEnd);
-      });
-
-      it("deve retornar um slot que atenda exatamente a duração mínima", () => {
-        // Arrange
-        const scheduleWithExactSlot = RoomSchedule.hydrate([
-          {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 10),
-            endTime: createFutureDate(0, 12),
-            type: BookingType.SCREENING,
+            scenario:
+              "deve retornar falha se screeningUID for nulo quando o tipo for SCREENING",
+            input: {
+              screeningUID: null as any,
+            },
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 13),
-            endTime: createFutureDate(0, 22),
-            type: BookingType.SCREENING,
+            scenario: "deve retornar falha se startTime for nulo",
+            input: {
+              startTime: null as any,
+            },
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
-        ]);
-        const expectedSlotStart = createFutureDate(0, 12);
-        const expectedSlotEnd = createFutureDate(0, 13);
+          {
+            scenario: "deve retornar falha se endTime for nulo",
+            input: {
+              endTime: null as any,
+            },
+            code: FailureCode.MISSING_REQUIRED_DATA,
+          },
+          {
+            scenario: "deve retornar falha se o tipo de booking for nulo",
+            input: {
+              type: null as any,
+            },
+            code: FailureCode.MISSING_REQUIRED_DATA,
+          },
+        ];
 
-        // Act
-        const freeSlots = scheduleWithExactSlot.getFreeSlotsForDate(
-          today,
-          minDuration,
-        );
+        failureCases.forEach(({ scenario, input, code }) => {
+          it(scenario, () => {
+            // Arrange
+            const params = {
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 16),
+              endTime: createFutureDate(0, 18),
+              type: BookingType.SCREENING,
+              ...input,
+            };
 
-        // Assert
-        expect(freeSlots).toHaveLength(1);
-        expect(freeSlots[0].startTime).toEqual(expectedSlotStart);
-        expect(freeSlots[0].endTime).toEqual(expectedSlotEnd);
+            // Act
+            const result = instance.addBooking(
+              params.screeningUID,
+              params.startTime,
+              params.endTime,
+              params.type,
+            );
+
+            // Assert
+            expect(result.invalid).toBe(true);
+            expect(result.failures[0].code).toBe(code);
+          });
+        });
       });
 
-      it("deve funcionar corretamente para um dia diferente do dia atual do mock", () => {
-        // Arrange
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(10, 0, 0, 0);
+      describe("removeScreening", () => {
+        it("deve remover um booking existente", () => {
+          // Act
+          const result = instance.removeScreening(SCREENING_UID_1);
 
-        const operatingStartTomorrow = new Date(tomorrow);
-        operatingStartTomorrow.setHours(10, 0, 0, 0);
-        const operatingEndTomorrow = new Date(tomorrow);
-        operatingEndTomorrow.setHours(22, 0, 0, 0);
+          // Assert
+          expect(result.invalid).toBe(false);
+          const updatedSchedule = result.value;
+          expect(updatedSchedule.getAllBookingsData()).toHaveLength(1);
+          expect(
+            updatedSchedule.findScreeningData(SCREENING_UID_1),
+          ).toBeUndefined();
+          expect(
+            updatedSchedule.findScreeningData(SCREENING_UID_2),
+          ).toBeDefined();
+        });
 
-        const scheduleForTomorrow = RoomSchedule.hydrate([
-          {
-            bookingUID: v4(),
-            screeningUID: ScreeningUID.create().value,
-            startTime: createFutureDate(0, 14, 1),
-            endTime: createFutureDate(0, 16, 1),
-            type: BookingType.SCREENING,
-          },
-        ]);
+        it("deve retornar falha ao tentar remover um booking inexistente", () => {
+          // Arrange
+          const nonExistentUID = ScreeningUID.create();
 
-        const expectedSlot1Start = new Date(operatingStartTomorrow);
-        const expectedSlot1End = new Date(createFutureDate(0, 14, 1));
-        const expectedSlot2Start = new Date(createFutureDate(0, 16, 1));
-        const expectedSlot2End = new Date(operatingEndTomorrow);
+          // Act
+          const result = instance.removeScreening(nonExistentUID);
 
-        // Act
-        const freeSlots = scheduleForTomorrow.getFreeSlotsForDate(
-          tomorrow,
-          minDuration,
-        );
+          // Assert
+          expect(result.invalid).toBe(true);
+          expect(result.failures[0].code).toBe(
+            FailureCode.BOOKING_NOT_FOUND_FOR_SCREENING,
+          );
+          expect(instance.getAllBookingsData()).toHaveLength(2); // Schedule remains unchanged
+        });
+      });
 
-        // Assert
-        expect(freeSlots).toHaveLength(2);
-        expect(freeSlots[0].startTime.toISOString()).toEqual(
-          expectedSlot1Start.toISOString(),
-        );
-        expect(freeSlots[0].endTime.toISOString()).toEqual(
-          expectedSlot1End.toISOString(),
-        );
-        expect(freeSlots[1].startTime.toISOString()).toEqual(
-          expectedSlot2Start.toISOString(),
-        );
-        expect(freeSlots[1].endTime.toISOString()).toEqual(
-          expectedSlot2End.toISOString(),
-        );
+      describe("removeBookingByUID", () => {
+        let bookingUID1: string;
+        let bookingUID2: string;
+
+        beforeEach(() => {
+          const bookings = instance.getAllBookingsData();
+          bookingUID1 = bookings[0].bookingUID;
+          bookingUID2 = bookings[1].bookingUID;
+        });
+
+        describe("cenários válidos", () => {
+          const successCases = [
+            {
+              scenario: "deve remover o primeiro booking pelo UID",
+              bookingUIDToRemove: () => bookingUID1,
+              remainingBookingUID: () => bookingUID2,
+            },
+            {
+              scenario: "deve remover o segundo booking pelo UID",
+              bookingUIDToRemove: () => bookingUID2,
+              remainingBookingUID: () => bookingUID1,
+            },
+          ];
+
+          successCases.forEach(
+            ({ scenario, bookingUIDToRemove, remainingBookingUID }) => {
+              it(scenario, () => {
+                // Arrange
+                const initialLength = instance.getAllBookingsData().length;
+
+                // Act
+                const result =
+                  instance.removeBookingByUID(bookingUIDToRemove());
+
+                // Assert
+                expect(result.invalid).toBe(false);
+                const newSchedule = result.value;
+                const newBookings = newSchedule.getAllBookingsData();
+                expect(newBookings).toHaveLength(initialLength - 1);
+                expect(newBookings[0].bookingUID).toBe(remainingBookingUID());
+                expect(newBookings[0].bookingUID).not.toBe(
+                  bookingUIDToRemove(),
+                );
+              });
+            },
+          );
+        });
+
+        it("deve falhar ao tentar remover UID inexistente", () => {
+          // Arrange
+          const nonExistentUID = v4();
+          const initialLength = instance.getAllBookingsData().length;
+
+          // Act
+          const result = instance.removeBookingByUID(nonExistentUID);
+
+          // Assert
+          expect(result.invalid).toBe(true);
+          expect(result.failures).toHaveLength(1);
+          expect(result.failures[0].code).toBe(FailureCode.BOOKING_NOT_FOUND);
+          expect(instance.getAllBookingsData()).toHaveLength(initialLength);
+        });
+      });
+
+      describe("findBookingDataByUID", () => {
+        let bookingUID1: string;
+        let bookingUID2: string;
+
+        beforeEach(() => {
+          const bookings = instance.getAllBookingsData();
+          bookingUID1 = bookings[0].bookingUID;
+          bookingUID2 = bookings[1].bookingUID;
+        });
+
+        describe("cenários válidos", () => {
+          const successCases = [
+            {
+              scenario: "deve encontrar dados do primeiro booking pelo UID",
+              bookingUIDToFind: () => bookingUID1,
+              expectedIndex: 0,
+            },
+            {
+              scenario: "deve encontrar dados do segundo booking pelo UID",
+              bookingUIDToFind: () => bookingUID2,
+              expectedIndex: 1,
+            },
+          ];
+
+          successCases.forEach(
+            ({ scenario, bookingUIDToFind, expectedIndex }) => {
+              it(scenario, () => {
+                // Arrange
+                const allBookings = instance.getAllBookingsData();
+                const expectedData = allBookings[expectedIndex];
+
+                // Act
+                const result =
+                  instance.findBookingDataByUID(bookingUIDToFind());
+
+                // Assert
+                expect(result).toBeDefined();
+                expect(result).toEqual(expectedData);
+              });
+            },
+          );
+        });
+
+        it("deve retornar undefined para UID inexistente", () => {
+          // Arrange
+          const nonExistentUID = v4();
+
+          // Act
+          const result = instance.findBookingDataByUID(nonExistentUID);
+
+          // Assert
+          expect(result).toBeUndefined();
+        });
+      });
+
+      describe("findScreeningData", () => {
+        it("deve encontrar e retornar dados de um booking existente", () => {
+          // Act
+          const foundData = instance.findScreeningData(SCREENING_UID_1);
+
+          // Assert
+          expect(foundData).toBeDefined();
+          expect(foundData?.screeningUID).toBe(SCREENING_UID_1.value);
+          expect(foundData?.startTime).toEqual(START_TIME_1);
+          expect(foundData?.endTime).toEqual(END_TIME_1);
+          expect(foundData?.type).toBe(BookingType.SCREENING);
+        });
+
+        it("deve retornar undefined para um booking inexistente", () => {
+          // Arrange
+          const nonExistentUID = ScreeningUID.create();
+
+          // Act
+          const foundData = instance.findScreeningData(nonExistentUID);
+
+          // Assert
+          expect(foundData).toBeUndefined();
+        });
+      });
+
+      describe("getAllBookingsData", () => {
+        it("deve retornar um array vazio para um schedule sem bookings", () => {
+          // Act
+          const bookingsData = emptySchedule.getAllBookingsData();
+
+          // Assert
+          expect(bookingsData).toEqual([]);
+        });
+
+        it("deve retornar dados de todos os bookings", () => {
+          // Act
+          const bookingsData = instance.getAllBookingsData();
+
+          // Assert
+          expect(bookingsData).toHaveLength(2);
+          expect(bookingsData[0].screeningUID).toBe(SCREENING_UID_1.value);
+          expect(bookingsData[0].startTime).toEqual(START_TIME_1);
+          expect(bookingsData[0].endTime).toEqual(END_TIME_1);
+          expect(bookingsData[0].type).toBe(BookingType.SCREENING);
+          expect(bookingsData[1].screeningUID).toBe(SCREENING_UID_2.value);
+          expect(bookingsData[1].startTime).toEqual(START_TIME_2);
+          expect(bookingsData[1].endTime).toEqual(END_TIME_2);
+          expect(bookingsData[1].type).toBe(BookingType.SCREENING);
+        });
+      });
+
+      describe("getFreeSlotsForDate", () => {
+        const minDuration = 60; // 1 hora
+        const today = createFutureDate(0, 0);
+
+        let emptySchedule: RoomSchedule;
+        let scheduleWithOneBooking: RoomSchedule;
+        let scheduleWithMultipleBookings: RoomSchedule;
+        let scheduleWithFullDay: RoomSchedule;
+
+        beforeEach(() => {
+          emptySchedule = RoomSchedule.create();
+
+          scheduleWithOneBooking = RoomSchedule.hydrate([
+            {
+              bookingUID: v4(),
+              screeningUID: SCREENING_UID_1.value,
+              startTime: START_TIME_1,
+              endTime: END_TIME_1,
+              type: BookingType.SCREENING,
+            },
+          ]);
+
+          scheduleWithMultipleBookings = RoomSchedule.hydrate([
+            {
+              bookingUID: v4(),
+              screeningUID: SCREENING_UID_1.value,
+              startTime: START_TIME_1,
+              endTime: END_TIME_1,
+              type: BookingType.SCREENING,
+            }, // 10:00 > 12:00
+            {
+              bookingUID: v4(),
+              screeningUID: SCREENING_UID_2.value,
+              startTime: START_TIME_2,
+              endTime: END_TIME_2,
+              type: BookingType.SCREENING,
+            }, // 13:00 > 15:00
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 16),
+              endTime: createFutureDate(0, 18),
+              type: BookingType.SCREENING,
+            },
+          ]);
+
+          scheduleWithFullDay = RoomSchedule.hydrate([
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 10),
+              endTime: createFutureDate(0, 13),
+              type: BookingType.SCREENING,
+            },
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 14),
+              endTime: createFutureDate(0, 18),
+              type: BookingType.SCREENING,
+            },
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 19),
+              endTime: createFutureDate(0, 22),
+              type: BookingType.SCREENING,
+            },
+          ]);
+        });
+
+        it("deve retornar um único slot grande se não houver bookings", () => {
+          // Arrange
+          const operatingStart = new Date(today);
+          operatingStart.setHours(10, 0, 0, 0);
+          const operatingEnd = new Date(today);
+          operatingEnd.setHours(22, 0, 0, 0);
+
+          // Act
+          const freeSlots = emptySchedule.getFreeSlotsForDate(
+            today,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots).toHaveLength(1);
+          expect(freeSlots[0].startTime).toEqual(operatingStart);
+          expect(freeSlots[0].endTime).toEqual(operatingEnd);
+        });
+
+        it("deve retornar slots livres corretamente com um booking no meio do dia", () => {
+          // Arrange
+          const expectedSlotStart = createFutureDate(0, 12);
+          const expectedSlotEnd = createFutureDate(0, 22);
+
+          // Act
+          const freeSlots = scheduleWithOneBooking.getFreeSlotsForDate(
+            today,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots).toHaveLength(1);
+          expect(freeSlots[0].startTime.toISOString()).toEqual(
+            expectedSlotStart.toISOString(),
+          );
+          expect(freeSlots[0].endTime.toISOString()).toEqual(
+            expectedSlotEnd.toISOString(),
+          );
+        });
+
+        it("deve retornar slots livres com múltiplos bookings", () => {
+          // Arrange
+          const expectedSlot1Start = createFutureDate(0, 12);
+          const expectedSlot1End = createFutureDate(0, 13);
+          const expectedSlot2Start = createFutureDate(0, 15);
+          const expectedSlot2End = createFutureDate(0, 16);
+          const expectedSlot3Start = createFutureDate(0, 18);
+          const expectedSlot3End = createFutureDate(0, 22);
+
+          // Act
+          const freeSlots = scheduleWithMultipleBookings.getFreeSlotsForDate(
+            today,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots).toHaveLength(3);
+          expect(freeSlots[0].startTime).toEqual(expectedSlot1Start);
+          expect(freeSlots[0].endTime).toEqual(expectedSlot1End);
+          expect(freeSlots[1].startTime).toEqual(expectedSlot2Start);
+          expect(freeSlots[1].endTime).toEqual(expectedSlot2End);
+          expect(freeSlots[2].startTime).toEqual(expectedSlot3Start);
+          expect(freeSlots[2].endTime).toEqual(expectedSlot3End);
+        });
+
+        it("deve retornar vazio se nenhum slot livre atender à duração mínima", () => {
+          // Arrange
+          const duration = 240;
+
+          // Act
+          const freeSlots = scheduleWithFullDay.getFreeSlotsForDate(
+            today,
+            duration,
+          );
+
+          // Assert
+          expect(freeSlots).toHaveLength(0);
+        });
+
+        it("deve lidar com bookings que começam no início do horário de funcionamento", () => {
+          // Arrange
+          const scheduleWithStartBooking = RoomSchedule.hydrate([
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 10),
+              endTime: createFutureDate(0, 12),
+              type: BookingType.SCREENING,
+            },
+          ]);
+          const expectedSlotStart = createFutureDate(0, 12);
+          const expectedSlotEnd = createFutureDate(0, 22);
+
+          // Act
+          const freeSlots = scheduleWithStartBooking.getFreeSlotsForDate(
+            today,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots).toHaveLength(1);
+          expect(freeSlots[0].startTime).toEqual(expectedSlotStart);
+          expect(freeSlots[0].endTime).toEqual(expectedSlotEnd);
+        });
+
+        it("deve lidar com bookings que terminam no fim do horário de funcionamento", () => {
+          // Arrange
+          const scheduleWithEndBooking = RoomSchedule.hydrate([
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 20),
+              endTime: createFutureDate(0, 22),
+              type: BookingType.SCREENING,
+            },
+          ]);
+          const expectedSlotStart = createFutureDate(0, 10);
+          const expectedSlotEnd = createFutureDate(0, 20);
+
+          // Act
+          const freeSlots = scheduleWithEndBooking.getFreeSlotsForDate(
+            today,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots).toHaveLength(1);
+          expect(freeSlots[0].startTime).toEqual(expectedSlotStart);
+          expect(freeSlots[0].endTime).toEqual(expectedSlotEnd);
+        });
+
+        it("deve retornar um slot que atenda exatamente a duração mínima", () => {
+          // Arrange
+          const scheduleWithExactSlot = RoomSchedule.hydrate([
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 10),
+              endTime: createFutureDate(0, 12),
+              type: BookingType.SCREENING,
+            },
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 13),
+              endTime: createFutureDate(0, 22),
+              type: BookingType.SCREENING,
+            },
+          ]);
+          const expectedSlotStart = createFutureDate(0, 12);
+          const expectedSlotEnd = createFutureDate(0, 13);
+
+          // Act
+          const freeSlots = scheduleWithExactSlot.getFreeSlotsForDate(
+            today,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots).toHaveLength(1);
+          expect(freeSlots[0].startTime).toEqual(expectedSlotStart);
+          expect(freeSlots[0].endTime).toEqual(expectedSlotEnd);
+        });
+
+        it("deve funcionar corretamente para um dia diferente do dia atual do mock", () => {
+          // Arrange
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(10, 0, 0, 0);
+
+          const operatingStartTomorrow = new Date(tomorrow);
+          operatingStartTomorrow.setHours(10, 0, 0, 0);
+          const operatingEndTomorrow = new Date(tomorrow);
+          operatingEndTomorrow.setHours(22, 0, 0, 0);
+
+          const scheduleForTomorrow = RoomSchedule.hydrate([
+            {
+              bookingUID: v4(),
+              screeningUID: ScreeningUID.create().value,
+              startTime: createFutureDate(0, 14, 1),
+              endTime: createFutureDate(0, 16, 1),
+              type: BookingType.SCREENING,
+            },
+          ]);
+
+          const expectedSlot1Start = new Date(operatingStartTomorrow);
+          const expectedSlot1End = new Date(createFutureDate(0, 14, 1));
+          const expectedSlot2Start = new Date(createFutureDate(0, 16, 1));
+          const expectedSlot2End = new Date(operatingEndTomorrow);
+
+          // Act
+          const freeSlots = scheduleForTomorrow.getFreeSlotsForDate(
+            tomorrow,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots).toHaveLength(2);
+          expect(freeSlots[0].startTime.toISOString()).toEqual(
+            expectedSlot1Start.toISOString(),
+          );
+          expect(freeSlots[0].endTime.toISOString()).toEqual(
+            expectedSlot1End.toISOString(),
+          );
+          expect(freeSlots[1].startTime.toISOString()).toEqual(
+            expectedSlot2Start.toISOString(),
+          );
+          expect(freeSlots[1].endTime.toISOString()).toEqual(
+            expectedSlot2End.toISOString(),
+          );
+        });
+
+        it("deve retornar slots diferentes com base na duração mínima", () => {
+          // Arrange
+          const shortDuration = 30; // 30 minutos
+          const longDuration = 120; // 2 horas
+
+          // Act
+          const shortSlots = scheduleWithMultipleBookings.getFreeSlotsForDate(
+            today,
+            shortDuration,
+          );
+          const longSlots = scheduleWithMultipleBookings.getFreeSlotsForDate(
+            today,
+            longDuration,
+          );
+
+          // Assert
+          expect(shortSlots.length).toBeGreaterThanOrEqual(longSlots.length);
+          expect(
+            longSlots.every((slot) => {
+              const durationMinutes =
+                (slot.endTime.getTime() - slot.startTime.getTime()) / 60000;
+              return durationMinutes >= longDuration;
+            }),
+          ).toBe(true);
+        });
+
+        it("deve retornar array vazio se a data for nula", () => {
+          // Act
+          const freeSlots = emptySchedule.getFreeSlotsForDate(
+            null as any,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots).toEqual([]);
+        });
+
+        it("deve retornar array vazio se a duração mínima for 0, negativa ou nula", () => {
+          // Act
+          const freeSlots1 = emptySchedule.getFreeSlotsForDate(today, -30);
+          const freeSlots2 = emptySchedule.getFreeSlotsForDate(today, 0);
+          const freeSlots3 = emptySchedule.getFreeSlotsForDate(today, null);
+
+          // Assert
+          expect(freeSlots1).toEqual([]);
+          expect(freeSlots2).toEqual([]);
+          expect(freeSlots3).toEqual([]);
+        });
+
+        it("deve lidar com bookings de diferentes tipos", () => {
+          // Arrange
+          const mixedSchedule = RoomSchedule.hydrate([
+            {
+              bookingUID: v4(),
+              screeningUID: SCREENING_UID_1.value,
+              startTime: START_TIME_1,
+              endTime: END_TIME_1,
+              type: BookingType.SCREENING,
+            },
+            {
+              bookingUID: v4(),
+              screeningUID: null,
+              startTime: createFutureDate(0, 16),
+              endTime: createFutureDate(0, 17),
+              type: BookingType.CLEANING,
+            },
+          ]);
+
+          // Act
+          const freeSlots = mixedSchedule.getFreeSlotsForDate(
+            today,
+            minDuration,
+          );
+
+          // Assert
+          expect(freeSlots.length).toBeGreaterThan(0);
+          // Verifica se os slots não se sobrepõem com os bookings
+          for (const slot of freeSlots) {
+            const bookings = mixedSchedule.getAllBookingsData();
+            for (const booking of bookings) {
+              const hasOverlap =
+                slot.startTime < booking.endTime &&
+                slot.endTime > booking.startTime;
+              expect(hasOverlap).toBe(false);
+            }
+          }
+        });
       });
     });
   });
