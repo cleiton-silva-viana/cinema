@@ -9,6 +9,9 @@ import { RoomUID } from "./value-object/room.uid";
 import { RoomIdentifier } from "./value-object/room.identifier";
 import { SeatLayout } from "./value-object/seat.layout";
 import { SeatRow } from "./value-object/seat.row";
+import { IRoomBookingData, RoomSchedule } from "./value-object/room.schedule";
+import { ScreeningUID } from "../../screening/aggregate/value-object/screening.uid";
+import { BookingType } from "./value-object/booking.slot";
 
 /**
  * Interface que define os parâmetros necessários para criar uma sala de cinema.
@@ -45,6 +48,7 @@ export interface IHydrateRoomInput {
     size: number;
     type: string;
   };
+  schedule: Array<IRoomBookingData>;
   status: string;
 }
 
@@ -76,17 +80,11 @@ export interface ISeatRowConfiguration {
 /**
  * Define os possíveis estados de uma sala.
  */
-export enum RoomStatus {
+export enum RoomAdministrativeStatus {
   /** Sala disponível para agendamento de sessões */
   AVAILABLE = "AVAILABLE",
   /** Sala reservada para um evento específico */
-  RESERVED = "RESERVED",
-  /** Sala fechada para uso */
   CLOSED = "CLOSED",
-  /** Sala em manutenção */
-  MAINTENANCE = "MAINTENANCE",
-  /** Sala em processo de limpeza */
-  CLEANING = "CLEANING",
 }
 
 /**
@@ -100,21 +98,31 @@ export enum RoomStatus {
  * A classe é imutável. Qualquer atualização resulta em uma nova instância.
  */
 export class Room {
+  /** Tempo de higienização da sala em minutos após cada exibição */
+  private static readonly DEFAULT_CLEANING_TIME_IN_MINUTES = 30;
+
+  /** Tempo em minutos para os clientes entrarem na sala antes do início da exibição */
+  private static readonly DEFAULT_ENTRY_TIME_IN_MINUTES = 15;
+
+  /** Tempo em minutos para os clientes saírem da sala após o término da exibição */
+  private static readonly DEFAULT_EXIT_TIME_IN_MINUTES = 15;
+
   /**
    * Construtor privado para garantir que instâncias sejam criadas apenas através dos métodos factory.
    *
    * @param roomUID Identificador único da sala
    * @param identifier Número da sala
-   * @param layout Layout dos assentos da sala
-   * @param screen Objeto Screen representando a tela da sala
+   * @param _layout Layout dos assentos da sala
+   * @param _screen Objeto Screen representando a tela da sala
    * @param status Status atual da sala
    */
   private constructor(
     public readonly roomUID: RoomUID,
     public readonly identifier: RoomIdentifier,
-    public readonly layout: SeatLayout,
-    public readonly screen: Screen,
-    public readonly status: RoomStatus,
+    private readonly _layout: SeatLayout,
+    private readonly _screen: Screen,
+    private readonly _schedule: RoomSchedule,
+    public readonly status: RoomAdministrativeStatus,
   ) {}
 
   /**
@@ -151,7 +159,7 @@ export class Room {
       .field("status")
       .failures(validationFailures)
       .isRequired()
-      .isInEnum(RoomStatus);
+      .isInEnum(RoomAdministrativeStatus);
 
     const identifierResult = RoomIdentifier.create(params.identifier);
     if (identifierResult.invalid)
@@ -171,7 +179,8 @@ export class Room {
             identifierResult.value,
             layoutResult.value,
             screenResult.value,
-            params.status as RoomStatus,
+            RoomSchedule.create(),
+            params.status as RoomAdministrativeStatus,
           ),
         );
   }
@@ -210,7 +219,8 @@ export class Room {
       RoomIdentifier.hydrate(params.identifier),
       SeatLayout.hydrate(seatRowsMap),
       Screen.hydrate(params.screen.size, params.screen.type),
-      params.status as RoomStatus,
+      RoomSchedule.hydrate(params.schedule),
+      params.status as RoomAdministrativeStatus,
     );
   }
 
@@ -236,9 +246,17 @@ export class Room {
       .field("status")
       .failures(validationFailures)
       .isRequired()
-      .isInEnum(RoomStatus);
+      .isInEnum(RoomAdministrativeStatus);
 
     if (validationFailures.length > 0) return failure(validationFailures);
+
+    if (
+      statusUpper === RoomAdministrativeStatus.CLOSED &&
+      this._schedule.getAllBookingsData().length > 0
+    )
+      return failure({
+        code: FailureCode.ROOM_HAS_FUTURE_BOOKINGS,
+      });
 
     return this.status === statusUpper
       ? success(this)
@@ -246,10 +264,449 @@ export class Room {
           new Room(
             this.roomUID,
             this.identifier,
-            this.layout,
-            this.screen,
-            statusUpper as RoomStatus,
+            this._layout,
+            this._screen,
+            this._schedule,
+            statusUpper as RoomAdministrativeStatus,
           ),
         );
+  }
+
+  /**
+   * Adiciona um novo agendamento de exibição à sala.
+   * Após o término da exibição, adiciona automaticamente períodos de saída e higienização.
+   * Calcula o tempo total necessário incluindo entrada, filme, saída e limpeza.
+   *
+   * @param screeningUID - O identificador único da exibição
+   * @param startTime - A data e hora de início da exibição
+   * @param durationInMinutes - A duração do filme em minutos
+   * @returns Result<Room> - Uma nova instância de Room com o agendamento adicionado
+   */
+  public addScreening(
+    screeningUID: ScreeningUID,
+    startTime: Date,
+    durationInMinutes: number,
+  ): Result<Room> {
+    const failures: SimpleFailure[] = [];
+
+    Room.checkNullOrUndefinedValues("screeningUID", screeningUID, failures);
+    Room.checkNullOrUndefinedValues("startTime", startTime, failures);
+    Room.checkNullOrUndefinedValues(
+      "durationInMinutes",
+      durationInMinutes,
+      failures,
+    );
+
+    if (failures.length > 0) return failure(failures);
+
+    const isAvailable = this.isPeriodAvailable(startTime, durationInMinutes);
+    if (isAvailable.invalid) return failure(isAvailable.failures);
+    if (isAvailable.value === false)
+      return failure({ code: FailureCode.ROOM_PERIOD_UNAVAILABLE });
+
+    const entryTime = Room.calculateEndTime(
+      startTime,
+      Room.DEFAULT_ENTRY_TIME_IN_MINUTES,
+    );
+    const showTime = Room.calculateEndTime(entryTime, durationInMinutes);
+    const exitTime = Room.calculateEndTime(
+      showTime,
+      Room.DEFAULT_EXIT_TIME_IN_MINUTES,
+    );
+    const cleaningTime = Room.calculateEndTime(
+      exitTime,
+      Room.DEFAULT_CLEANING_TIME_IN_MINUTES,
+    );
+
+    const entryTimeResult = this._schedule.addBooking(
+      screeningUID,
+      startTime,
+      entryTime,
+      BookingType.ENTRY_TIME,
+    );
+    if (entryTimeResult.invalid) return failure(entryTimeResult.failures);
+
+    const showTimeResult = entryTimeResult.value.addBooking(
+      screeningUID,
+      entryTime,
+      showTime,
+      BookingType.SCREENING,
+    );
+    if (showTimeResult.invalid) return failure(showTimeResult.failures);
+
+    const exitTimeResult = showTimeResult.value.addBooking(
+      screeningUID,
+      showTime,
+      exitTime,
+      BookingType.EXIT_TIME,
+    );
+    if (exitTimeResult.invalid) return failure(exitTimeResult.failures);
+
+    const cleaningTimeResult = exitTimeResult.value.addBooking(
+      screeningUID,
+      exitTime,
+      cleaningTime,
+      BookingType.CLEANING,
+    );
+    if (cleaningTimeResult.invalid) return failure(cleaningTimeResult.failures);
+
+    return success(
+      new Room(
+        this.roomUID,
+        this.identifier,
+        this._layout,
+        this._screen,
+        cleaningTimeResult.value,
+        this.status,
+      ),
+    );
+  }
+
+  /**
+   * Adiciona um período de manutenção à sala.
+   *
+   * @param startTime - A data e hora de início da manutenção
+   * @param durationInMinutes - A duração da manutenção em minutos
+   * @returns Result<Room> - Uma nova instância de Room com o agendamento de manutenção adicionado
+   */
+  public scheduleMaintenance(
+    startTime: Date,
+    durationInMinutes: number,
+  ): Result<Room> {
+    const failures: SimpleFailure[] = [];
+
+    Room.checkNullOrUndefinedValues("startTime", startTime, failures);
+    Room.checkNullOrUndefinedValues(
+      "durationInMinutes",
+      durationInMinutes,
+      failures,
+    );
+
+    if (failures.length > 0) return failure(failures);
+
+    const endTime = Room.calculateEndTime(startTime, durationInMinutes);
+    const maintenanceResult = this._schedule.addBooking(
+      null, // Não há screeningUID para manutenção
+      startTime,
+      endTime,
+      BookingType.MAINTENANCE,
+    );
+
+    return maintenanceResult.invalid
+      ? failure(maintenanceResult.failures)
+      : success(
+          new Room(
+            this.roomUID,
+            this.identifier,
+            this._layout,
+            this._screen,
+            maintenanceResult.value,
+            this.status,
+          ),
+        );
+  }
+
+  /**
+   * Adiciona um período de higienização manual à sala.
+   * Diferente da higienização automática após exibições, esta é agendada manualmente.
+   *
+   * @param startTime - A data e hora de início da higienização
+   * @param durationInMinutes - A duração da higienização em minutos
+   * @returns Result<Room> - Uma nova instância de Room com o agendamento de higienização adicionado
+   */
+  public scheduleCleaning(
+    startTime: Date,
+    durationInMinutes: number,
+  ): Result<Room> {
+    const failures: SimpleFailure[] = [];
+
+    Room.checkNullOrUndefinedValues("startTime", startTime, failures);
+    Room.checkNullOrUndefinedValues(
+      "durationInMinutes",
+      durationInMinutes,
+      failures,
+    );
+
+    if (failures.length > 0) return failure(failures);
+
+    const endTime = Room.calculateEndTime(startTime, durationInMinutes);
+    const cleaningResult = this._schedule.addBooking(
+      null,
+      startTime,
+      endTime,
+      BookingType.CLEANING,
+    );
+
+    return cleaningResult.invalid
+      ? failure(cleaningResult.failures)
+      : success(
+          new Room(
+            this.roomUID,
+            this.identifier,
+            this._layout,
+            this._screen,
+            cleaningResult.value,
+            this.status,
+          ),
+        );
+  }
+
+  /**
+   * Remove um agendamento da sala pelo UID do agendamento.
+   * Retorna uma nova instância de Room com o agendamento removido.
+   */
+  public removeBookingByUID(bookingUID: string): Result<Room> {
+    const newScheduleResult = this._schedule.removeBookingByUID(bookingUID);
+
+    return newScheduleResult.invalid
+      ? failure(newScheduleResult.failures)
+      : success(
+          new Room(
+            this.roomUID,
+            this.identifier,
+            this._layout,
+            this._screen,
+            newScheduleResult.value,
+            this.status,
+          ),
+        );
+  }
+
+  /**
+   * Remove um agendamento da sala pelo UID da exibição.
+   * Também remove os agendamentos de EXIT_TIME associados ao mesmo screeningUID.
+   * Retorna uma nova instância de Room com os agendamentos removidos.
+   */
+  public removeScreening(screeningUID: ScreeningUID): Result<Room> {
+    let newScheduleResult = this._schedule.removeScreening(screeningUID);
+    if (newScheduleResult.invalid) return failure(newScheduleResult.failures);
+
+    return success(
+      new Room(
+        this.roomUID,
+        this.identifier,
+        this._layout,
+        this._screen,
+        newScheduleResult.value,
+        this.status,
+      ),
+    );
+  }
+
+  /**
+   * Verifica se um período com duração específica está disponível na sala.
+   * Considera o tempo total necessário incluindo:
+   * - Tempo de entrada (DEFAULT_ENTRY_TIME_IN_MINUTES)
+   * - Duração do filme (durationInMinutes)
+   * - Tempo de saída (DEFAULT_EXIT_TIME_IN_MINUTES)
+   * - Tempo de limpeza (DEFAULT_CLEANING_TIME_IN_MINUTES)
+   *
+   * @param startTime - A data e hora de início do período (início da entrada)
+   * @param durationInMinutes - A duração do filme em minutos
+   * @returns Result<boolean> - Resultado indicando se o período está disponível
+   */
+  public isPeriodAvailable(
+    startTime: Date,
+    durationInMinutes: number,
+  ): Result<boolean> {
+    const failures: SimpleFailure[] = [];
+
+    Room.checkNullOrUndefinedValues("startTime", startTime, failures);
+    Room.checkNullOrUndefinedValues(
+      "durationInMinutes",
+      durationInMinutes,
+      failures,
+    );
+
+    if (failures.length > 0) return failure(failures);
+
+    const totalDuration =
+      durationInMinutes +
+      Room.DEFAULT_ENTRY_TIME_IN_MINUTES +
+      Room.DEFAULT_EXIT_TIME_IN_MINUTES +
+      Room.DEFAULT_CLEANING_TIME_IN_MINUTES;
+
+    const endTime = Room.calculateEndTime(startTime, totalDuration);
+
+    const result = this._schedule.isAvailable(startTime, endTime, failures);
+    return failures.length > 0 ? failure(failures) : success(result);
+  }
+
+  /**
+   * Retorna os horários livres para uma data específica, considerando uma duração mínima.
+   */
+  public getFreeSlotsForDate(
+    date: Date,
+    minMinutes: number,
+  ): Array<{ startTime: Date; endTime: Date }> {
+    return this._schedule.getFreeSlotsForDate(date, minMinutes);
+  }
+
+  /**
+   * Calcula o tempo total necessário para uma exibição, incluindo entrada, filme, saída e limpeza.
+   * @param durationInMinutes - A duração do filme em minutos
+   * @returns O tempo total em minutos
+   */
+  public static calculateTotalScreeningTime(durationInMinutes: number): number {
+    return (
+      durationInMinutes +
+      Room.DEFAULT_ENTRY_TIME_IN_MINUTES +
+      Room.DEFAULT_EXIT_TIME_IN_MINUTES +
+      Room.DEFAULT_CLEANING_TIME_IN_MINUTES
+    );
+  }
+
+  /**
+   * Retorna todos os agendamentos da sala.
+   */
+  public getAllBookings(): Array<IRoomBookingData> {
+    return this._schedule.getAllBookingsData();
+  }
+
+  /**
+   * Busca um agendamento específico pelo UID do agendamento.
+   */
+  public findBookingDataByUID(
+    bookingUID: string,
+  ): IRoomBookingData | undefined {
+    return this._schedule.findBookingDataByUID(bookingUID);
+  }
+
+  /**
+   * Busca um agendamento específico pelo UID da sessão.
+   */
+  public findScreeningData(
+    screeningUID: ScreeningUID,
+  ): IRoomBookingData | undefined {
+    return this._schedule.findScreeningData(screeningUID);
+  }
+
+  public hasSeat(number: number, column: string): boolean {
+    return this._layout.hasSeat(number, column);
+  }
+
+  public isPreferentialSeat(rowNumber: number, letter: string): boolean {
+    return this._layout.isPreferentialSeat(rowNumber, letter);
+  }
+
+  /**
+   * Retorna o tamanho da tela.
+   */
+  get screenSize(): number {
+    return this._screen.size;
+  }
+
+  /**
+   * Retorna o tipo da tela.
+   */
+  get screenType(): string {
+    return this._screen.type;
+  }
+
+  /**
+   * Retorna a capacidade total de assentos da sala.
+   */
+  get totalSeatsCapacity(): number {
+    return this._layout.totalCapacity;
+  }
+
+  /**
+   * Retorna a quantidade de assentos preferenciais da sala.
+   */
+  get preferentialSeatsCount(): number {
+    let counter = 0;
+    this._layout.preferentialSeatsByRow.forEach(
+      (row) => (counter += row.length),
+    );
+    return counter;
+  }
+
+  /**
+   * Retorna informações detalhadas sobre o layout de assentos da sala.
+   *
+   * @returns Objeto contendo:
+   * - rows: número total de fileiras
+   * - totalSeats: capacidade total de assentos
+   * - preferentialSeats: quantidade de assentos preferenciais
+   * - rowsInfo: informações detalhadas de cada fileira
+   */
+  get seatLayoutInfo(): {
+    rows: number;
+    totalSeats: number;
+    preferentialSeats: number;
+    rowsInfo: Array<{
+      rowNumber: number;
+      seats: number;
+      preferentialSeats: string[];
+    }>;
+  } {
+    const rowsInfo: Array<{
+      rowNumber: number;
+      seats: number;
+      preferentialSeats: string[];
+    }> = [];
+
+    this._layout.seatRows.forEach((row, rowNumber) => {
+      rowsInfo.push({
+        rowNumber,
+        seats: row.capacity,
+        preferentialSeats:
+          this._layout.preferentialSeatsByRow.get(rowNumber) || [],
+      });
+    });
+
+    return {
+      rows: this._layout.seatRows.size,
+      totalSeats: this._layout.totalCapacity,
+      preferentialSeats: this._layout.preferentialSeatsCount,
+      rowsInfo,
+    };
+  }
+
+  /**
+   * Converte minutos em milissegundos
+   */
+  private static minutesToMilliseconds(minutes: number): number {
+    return minutes * 60 * 1000;
+  }
+
+  /**
+   * Calcula a data e hora de término com base na data de início e duração em minutos.
+   * Utilizado para calcular os horários de término dos diferentes períodos de agendamento.
+   *
+   * @param startTime - A data e hora de início
+   * @param durationInMinutes - A duração em minutos
+   * @returns Date - A data e hora de término calculada
+   * @private
+   */
+  private static calculateEndTime(
+    startTime: Date,
+    durationInMinutes: number,
+  ): Date {
+    return new Date(
+      startTime.getTime() + Room.minutesToMilliseconds(durationInMinutes),
+    );
+  }
+
+  /**
+   * Verifica se um valor é nulo ou indefinido e adiciona uma falha apropriada à lista de falhas.
+   *
+   * @param fieldName - O nome do campo sendo verificado
+   * @param value - O valor a ser verificado
+   * @param failures - A lista de falhas onde adicionar o erro, se encontrado
+   * @private
+   */
+  private static checkNullOrUndefinedValues(
+    field: string,
+    value: any,
+    failures: SimpleFailure[],
+  ): void {
+    if (isNull(value))
+      failures.push({
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          field,
+        },
+      });
   }
 }
