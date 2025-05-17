@@ -120,7 +120,7 @@ describe("BookingSlot", () => {
 
         it("Deve criar um BookingSlot do tipo EXIT_TIME com sucesso", () => {
           // Arrange
-          const minutes = 10;
+          const minutes = 15; // Agora o mínimo é 15 minutos
           const startTime = new Date(VALID_END_TIME);
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
 
@@ -135,6 +135,31 @@ describe("BookingSlot", () => {
           // Assert
           expect(result.invalid).toBe(false);
           expect(result.value.type).toBe(BookingType.EXIT_TIME);
+          expect(result.value.bookingUID).toBeDefined();
+          expect(result.value.screeningUID).toBe(VALID_SCREENING_UID);
+          expect(result.value.durationInMinutes).toBe(minutes);
+          expect(result.value.startTime).toEqual(startTime);
+          expect(result.value.endTime).toEqual(endTime);
+        });
+
+        it("Deve criar um BookingSlot do tipo ENTRY_TIME com sucesso", () => {
+          // Arrange
+          const minutes = 15; // Mínimo para ENTRY_TIME
+          const startTime = new Date(VALID_START_TIME);
+          startTime.setMinutes(startTime.getMinutes() - minutes);
+          const endTime = new Date(VALID_START_TIME);
+
+          // Act
+          const result = BookingSlot.create(
+            VALID_SCREENING_UID,
+            startTime,
+            endTime,
+            BookingType.ENTRY_TIME,
+          );
+
+          // Assert
+          expect(result.invalid).toBe(false);
+          expect(result.value.type).toBe(BookingType.ENTRY_TIME);
           expect(result.value.bookingUID).toBeDefined();
           expect(result.value.screeningUID).toBe(VALID_SCREENING_UID);
           expect(result.value.durationInMinutes).toBe(minutes);
@@ -157,12 +182,40 @@ describe("BookingSlot", () => {
         const longDurationMaintenanceEndTime = new Date(
           VALID_START_TIME.getTime() + 1000 * 60 * (3 * 24 * 60 + 1),
         ); // 3 dias + 1 minuto de duração
+        const shortDurationExitTimeEndTime = new Date(
+          VALID_START_TIME.getTime() + 1000 * 60 * 14,
+        ); // 14 minutos de duração (mínimo é 15)
+        const longDurationExitTimeEndTime = new Date(
+          VALID_START_TIME.getTime() + 1000 * 60 * 31,
+        ); // 31 minutos de duração (máximo é 30)
+        const shortDurationEntryTimeEndTime = new Date(
+          VALID_START_TIME.getTime() + 1000 * 60 * 14,
+        ); // 14 minutos de duração (mínimo é 15)
+        const longDurationEntryTimeEndTime = new Date(
+          VALID_START_TIME.getTime() + 1000 * 60 * 21,
+        ); // 21 minutos de duração (máximo é 20)
 
         describe("falhas com campo específico", () => {
           const failureCases = [
             {
               scenario: "quando screeningUID é nulo e type é igual a screening",
               props: { screeningUID: null as any, type: BookingType.SCREENING },
+              expectedCode: FailureCode.MISSING_REQUIRED_DATA,
+              field: "screeningUID",
+            },
+            {
+              scenario: "quando screeningUID é nulo e type é igual a EXIT_TIME",
+              props: { screeningUID: null as any, type: BookingType.EXIT_TIME },
+              expectedCode: FailureCode.MISSING_REQUIRED_DATA,
+              field: "screeningUID",
+            },
+            {
+              scenario:
+                "quando screeningUID é nulo e type é igual a ENTRY_TIME",
+              props: {
+                screeningUID: null as any,
+                type: BookingType.ENTRY_TIME,
+              },
               expectedCode: FailureCode.MISSING_REQUIRED_DATA,
               field: "screeningUID",
             },
@@ -271,6 +324,42 @@ describe("BookingSlot", () => {
               expectedCode: FailureCode.INVALID_OPERATION_DURATION,
             },
             {
+              scenario:
+                "quando a duração para EXIT_TIME é muito curta (< 15 min)",
+              props: {
+                endTime: shortDurationExitTimeEndTime,
+                type: BookingType.EXIT_TIME,
+              },
+              expectedCode: FailureCode.INVALID_OPERATION_DURATION,
+            },
+            {
+              scenario:
+                "quando a duração para EXIT_TIME é muito longa (> 30 min)",
+              props: {
+                endTime: longDurationExitTimeEndTime,
+                type: BookingType.EXIT_TIME,
+              },
+              expectedCode: FailureCode.INVALID_OPERATION_DURATION,
+            },
+            {
+              scenario:
+                "quando a duração para ENTRY_TIME é muito curta (< 15 min)",
+              props: {
+                endTime: shortDurationEntryTimeEndTime,
+                type: BookingType.ENTRY_TIME,
+              },
+              expectedCode: FailureCode.INVALID_OPERATION_DURATION,
+            },
+            {
+              scenario:
+                "quando a duração para ENTRY_TIME é muito longa (> 20 min)",
+              props: {
+                endTime: longDurationEntryTimeEndTime,
+                type: BookingType.ENTRY_TIME,
+              },
+              expectedCode: FailureCode.INVALID_OPERATION_DURATION,
+            },
+            {
               scenario: "Deve falhar quando startTime for no passado",
               props: {
                 startTime: new Date(Date.now() - 24 * 60 * 60 * 1000), // Ontem
@@ -355,15 +444,29 @@ describe("BookingSlot", () => {
         expect(result.type).toEqual(VALID_TYPE);
       });
 
+      it("deve criar um objeto BookingSlot do tipo ENTRY_TIME sem validação", () => {
+        // Act
+        const result = BookingSlot.hydrate(
+          "uid",
+          mockScreeningUIDString,
+          VALID_START_TIME,
+          VALID_END_TIME,
+          BookingType.ENTRY_TIME,
+        );
+
+        // Assert
+        expect(result).toBeInstanceOf(BookingSlot);
+        expect(result.screeningUID.value).toBe(mockScreeningUIDString);
+        expect(result.startTime).toEqual(VALID_START_TIME);
+        expect(result.endTime).toEqual(VALID_END_TIME);
+        expect(result.type).toEqual(BookingType.ENTRY_TIME);
+      });
+
       describe("deve lançar TechnicalError quando dados de hidratação são inválidos", () => {
         const invalidHydrateCases = [
           {
             scenario: "booking uid é nulo",
             props: { bookingUID: null as any },
-          },
-          {
-            scenario: "screeningUID é nulo",
-            props: { screeningUID: null as any },
           },
           {
             scenario: "startTime é nulo",
@@ -387,7 +490,7 @@ describe("BookingSlot", () => {
           it(scenario, () => {
             // Arrange
             const datas = {
-              bookingUID: props.bookingUID,
+              bookingUID: "uid",
               screeningUID: mockScreeningUIDString, // hydrate espera string para screeningUID
               startTime: VALID_START_TIME,
               endTime: VALID_END_TIME,
@@ -435,7 +538,7 @@ describe("BookingSlot", () => {
       it("Deve calcular a duração corretamente para intervalos curtos", () => {
         // Arrange
         const startTime = new Date(VALID_END_TIME);
-        const durationInMinutes = 10; // 10 minutos
+        const durationInMinutes = 15; // 15 minutos (mínimo para EXIT_TIME)
         const endTime = new Date(
           startTime.getTime() + durationInMinutes * 60 * 1000,
         );

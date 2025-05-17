@@ -11,10 +11,11 @@ import { v4 } from "uuid";
  * Define os tipos de agendamento possíveis para uma sala de cinema.
  */
 export enum BookingType {
-  SCREENING = "SCREENING", // Exibição de filme
-  CLEANING = "CLEANING", // Limpeza da sala
-  MAINTENANCE = "MAINTENANCE", // Manutenção da sala
-  EXIT_TIME = "EXIT_TIME", // Tempo para saída dos clientes
+  SCREENING = "SCREENING",
+  CLEANING = "CLEANING",
+  MAINTENANCE = "MAINTENANCE",
+  EXIT_TIME = "EXIT_TIME",
+  ENTRY_TIME = "ENTRY_TIME",
 }
 
 /**
@@ -23,9 +24,10 @@ export enum BookingType {
  */
 export const BookingDurationConfig = {
   [BookingType.SCREENING]: { min: 30, max: 360 }, // 30 min a 6 horas para exibições
-  [BookingType.CLEANING]: { min: 0, max: 120 }, // Máximo de 2 horas para limpeza
+  [BookingType.CLEANING]: { min: 20, max: 120 }, // Máximo de 2 horas para limpeza
   [BookingType.MAINTENANCE]: { min: 0, max: 3 * 24 * 60 }, // Máximo de 3 dias para manutenção
-  [BookingType.EXIT_TIME]: { min: 0, max: 30 }, // Máximo de 30 minutos para saída dos clientes
+  [BookingType.EXIT_TIME]: { min: 15, max: 30 }, // Máximo de 30 minutos para saída dos clientes
+  [BookingType.ENTRY_TIME]: { min: 15, max: 20 }, // Máximo de 20 minutos para saída dos clientes
 };
 
 /**
@@ -179,7 +181,9 @@ export class BookingSlot {
       .isRequired()
       .isInEnum(BookingType)
       .when(
-        type === BookingType.SCREENING || type === BookingType.EXIT_TIME,
+        type === BookingType.SCREENING ||
+          type === BookingType.EXIT_TIME ||
+          type === BookingType.ENTRY_TIME,
         () => {
           if (isNull(screeningUID))
             failures.push({
