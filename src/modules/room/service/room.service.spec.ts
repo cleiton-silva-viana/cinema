@@ -4,11 +4,13 @@ import {
   ICreateScreenInput,
   ISeatRowConfiguration,
   Room,
-  RoomStatus,
+  RoomAdministrativeStatus,
 } from "../entity/room";
 import { failure, success } from "../../../shared/result/result";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
-import { Screen, ScreenType } from "../entity/value-object/screen";
+import { RoomUID } from "../entity/value-object/room.uid";
+import { v4 } from "uuid";
+import { BookingType } from "../entity/value-object/booking.slot";
 
 describe("RoomService", () => {
   let roomService: RoomService;
@@ -31,14 +33,14 @@ describe("RoomService", () => {
     validRoomId = 1;
     validSeatConfig = [
       {
-        rowId: 1,
-        columns: "ABCD",
-        preferentialSeats: ["A1", "B1"],
+        rowNumber: 1,
+        lastColumnLetter: "D",
+        preferentialSeatLetters: ["A", "B"],
       },
       {
-        rowId: 2,
-        columns: "ABCDE",
-        preferentialSeats: ["C2"],
+        rowNumber: 2,
+        lastColumnLetter: "E",
+        preferentialSeatLetters: ["C"],
       },
     ];
     validScreenInput = {
@@ -46,16 +48,28 @@ describe("RoomService", () => {
       type: "2D",
     };
 
-    const screen = Screen.hydrate(20, ScreenType["2D"]);
-    roomMock = Room.hydrate(
-      validRoomId,
-      2,
-      ["ABCD", "ABCDE"],
-      ["A1", "B1", "C2"],
-      9,
-      screen,
-      RoomStatus.AVAILABLE,
-    );
+    roomMock = Room.hydrate({
+      identifier: 1,
+      schedule: [
+        {
+          screeningUID: v4(),
+          bookingUID: v4(),
+          type: BookingType.SCREENING,
+          startTime: new Date(new Date().getTime() + 10 * 60 * 1000),
+          endTime: new Date(new Date().getTime() + 20 * 60 * 1000),
+        },
+      ],
+      layout: {
+        seatRows: [
+          { rowNumber: 1, lastColumnLetter: "F" },
+          { rowNumber: 2, lastColumnLetter: "F" },
+          { rowNumber: 3, lastColumnLetter: "F" },
+        ],
+      },
+      roomUID: RoomUID.create().value,
+      screen: validScreenInput,
+      status: RoomAdministrativeStatus.AVAILABLE,
+    });
   });
 
   afterEach(() => {
@@ -64,7 +78,7 @@ describe("RoomService", () => {
   });
 
   describe("findById", () => {
-    it("deve retornar uma sala quando encontrada pelo ID", async () => {
+    it("deve retornar uma sala quando o id for válido", async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(roomMock);
 
@@ -115,19 +129,44 @@ describe("RoomService", () => {
         validRoomId,
         validSeatConfig,
         validScreenInput,
+        RoomAdministrativeStatus.AVAILABLE,
       );
 
       // Assert
       expect(result.invalid).toBe(false);
       expect(result.value).toBeDefined();
       expect(result.value).toEqual(roomMock);
-      expect(Room.create).toHaveBeenCalledWith(
+      expect(Room.create).toHaveBeenCalledWith({
+        identifier: validRoomId,
+        seatConfig: validSeatConfig,
+        screen: validScreenInput,
+        status: RoomAdministrativeStatus.AVAILABLE,
+      });
+      expect(repositoryMock.create).toHaveBeenCalledWith(roomMock);
+    });
+
+    it("deve criar uma sala com status padrão quando não informado", async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null);
+      jest.spyOn(Room, "create").mockReturnValue(success(roomMock));
+      repositoryMock.create.mockResolvedValue(roomMock);
+
+      // Act
+      const result = await roomService.create(
         validRoomId,
         validSeatConfig,
         validScreenInput,
-        undefined,
       );
-      expect(repositoryMock.create).toHaveBeenCalledWith(roomMock);
+
+      // Assert
+      expect(result.invalid).toBe(false);
+      expect(result.value).toBeDefined();
+      expect(Room.create).toHaveBeenCalledWith({
+        identifier: validRoomId,
+        seatConfig: validSeatConfig,
+        screen: validScreenInput,
+        status: undefined,
+      });
     });
 
     it("deve retornar failure quando a sala já existe", async () => {
@@ -179,10 +218,11 @@ describe("RoomService", () => {
       // Assert
       expect(result.invalid).toBe(false);
       expect(result.value).toBeNull();
+      expect(repositoryMock.delete).toHaveBeenCalledTimes(1);
       expect(repositoryMock.delete).toHaveBeenCalledWith(validRoomId);
     });
 
-    it("deve retornar failure quando a sala não existe", async () => {
+    it("deve retornar failure quando a sala não existir", async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(null);
 
@@ -194,27 +234,58 @@ describe("RoomService", () => {
       expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
       expect(repositoryMock.delete).not.toHaveBeenCalled();
     });
+
+    it("deve retornar failure quando o id for inválido", async () => {
+      // Act
+      const result = await roomService.delete(null);
+
+      // Assert
+      expect(result.invalid).toBe(true);
+      expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
+      expect(repositoryMock.delete).not.toHaveBeenCalled();
+    });
   });
 
   describe("closeRoom", () => {
-    /*    it("deve fechar uma sala com sucesso", async () => {
+    it("deve fechar uma sala com sucesso", async () => {
       // Arrange
-      repositoryMock.findById.mockResolvedValue(roomMock);
-      const closedRoomMock = { ...roomMock, status: RoomStatus.CLOSED };
-      jest.spyOn(roomMock, "changeStatus").mockReturnValue(success(closedRoomMock));
-      repositoryMock.update.mockResolvedValue(closedRoomMock);
+      const params = {
+        identifier: 1,
+        schedule: [] as any, // Sem agendamentos
+        layout: {
+          seatRows: [
+            { rowNumber: 1, lastColumnLetter: "F" },
+            { rowNumber: 2, lastColumnLetter: "F" },
+            { rowNumber: 3, lastColumnLetter: "F" },
+          ],
+        },
+        roomUID: RoomUID.create().value,
+        screen: validScreenInput,
+        status: RoomAdministrativeStatus.AVAILABLE,
+      };
+      const roomWithoutBookings = Room.hydrate(params);
+
+      const roomUpdated = { ...params };
+      roomUpdated.status = RoomAdministrativeStatus.CLOSED;
+      const roomWithStatusUpdated = Room.hydrate(roomUpdated);
+
+      repositoryMock.findById.mockResolvedValue(roomWithoutBookings);
+      repositoryMock.update.mockResolvedValue(roomWithStatusUpdated);
 
       // Act
       const result = await roomService.closeRoom(validRoomId);
 
       // Assert
       expect(result.invalid).toBe(false);
-      expect(result.value).toEqual(closedRoomMock);
-      expect(roomMock.changeStatus).toHaveBeenCalledWith(RoomStatus.CLOSED);
-      expect(repositoryMock.update).toHaveBeenCalledWith(validRoomId, closedRoomMock);
-    });*/
+      expect(result.value).toEqual(roomWithStatusUpdated);
+      expect(repositoryMock.update).toHaveBeenCalledWith(
+        validRoomId,
+        roomWithoutBookings,
+      );
+      expect(repositoryMock.update).toHaveBeenCalledTimes(1);
+    });
 
-    it("deve retornar failure quando a sala não existe", async () => {
+    it("deve retornar failure quando a sala não existir", async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(null);
 
@@ -227,10 +298,20 @@ describe("RoomService", () => {
       expect(repositoryMock.update).not.toHaveBeenCalled();
     });
 
+    it("deve retornar failure quando o id for inválido", async () => {
+      // Act
+      const result = await roomService.closeRoom(null);
+
+      // Assert
+      expect(result.invalid).toBe(true);
+      expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
+      expect(repositoryMock.update).not.toHaveBeenCalled();
+    });
+
     it("deve retornar failure quando a mudança de status falha", async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(roomMock);
-      const failures = [{ code: "INVALID_STATUS_TRANSITION" }];
+      const failures = [{ code: FailureCode.ROOM_HAS_FUTURE_BOOKINGS }];
       jest.spyOn(roomMock, "changeStatus").mockReturnValue(failure(failures));
 
       // Act
@@ -239,6 +320,9 @@ describe("RoomService", () => {
       // Assert
       expect(result.invalid).toBe(true);
       expect(result.failures).toEqual(failures);
+      expect(roomMock.changeStatus).toHaveBeenCalledWith(
+        RoomAdministrativeStatus.CLOSED,
+      );
       expect(repositoryMock.update).not.toHaveBeenCalled();
     });
   });

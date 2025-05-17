@@ -3,7 +3,7 @@ import {
   ICreateScreenInput,
   ISeatRowConfiguration,
   Room,
-  RoomStatus,
+  RoomAdministrativeStatus,
 } from "../entity/room";
 import { Inject, Injectable } from "@nestjs/common";
 import { ROOM_REPOSITORY } from "../constant/room.constant";
@@ -21,8 +21,7 @@ import { IRoomService } from "./room.service.interface";
 @Injectable()
 export class RoomService implements IRoomService {
   constructor(
-    @Inject(ROOM_REPOSITORY)
-    private readonly repository: IRoomRepository,
+    @Inject(ROOM_REPOSITORY) private readonly repository: IRoomRepository,
   ) {}
 
   /**
@@ -65,18 +64,21 @@ export class RoomService implements IRoomService {
     id: number,
     seatConfig: ISeatRowConfiguration[],
     screen: ICreateScreenInput,
-    status?: RoomStatus,
+    status?: string,
   ): Promise<Result<Room>> {
     const roomExists = await this.repository.findById(id);
     if (roomExists)
       return failure({
         code: FailureCode.RESOURCE_ALREADY_EXISTS,
-        details: {
-          id,
-        },
+        details: { id },
       });
 
-    const roomResult = Room.create(id, seatConfig, screen, status);
+    const roomResult = Room.create({
+      seatConfig: seatConfig,
+      screen: screen,
+      identifier: id,
+      status: status,
+    });
     if (roomResult.invalid) return roomResult;
 
     const room = await this.repository.create(roomResult.value);
@@ -110,7 +112,9 @@ export class RoomService implements IRoomService {
     if (findResult.invalid) return failure(findResult.failures);
     const room = findResult.value;
 
-    const changeStatusResult = room.changeStatus(RoomStatus.CLOSED);
+    const changeStatusResult = room.changeStatus(
+      RoomAdministrativeStatus.CLOSED,
+    );
     if (changeStatusResult.invalid) return failure(changeStatusResult.failures);
 
     const updatedRoom = await this.repository.update(id, room);
