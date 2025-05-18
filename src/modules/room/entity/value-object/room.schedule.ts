@@ -356,14 +356,8 @@ export class RoomSchedule {
    *
    * @returns Array de dados brutos de reservas (IRoomBookingData[])
    */
-  public getAllBookingsData(): IRoomBookingData[] {
-    return this.bookings.map((bookingSlot) => ({
-      bookingUID: bookingSlot.bookingUID,
-      screeningUID: bookingSlot.screeningUID?.value || null,
-      startTime: bookingSlot.startTime,
-      endTime: bookingSlot.endTime,
-      type: bookingSlot.type,
-    }));
+  public getAllBookingsData(): BookingSlot[] {
+    return [...this.bookings];
   }
 
   /**
@@ -372,25 +366,11 @@ export class RoomSchedule {
    * Localiza um agendamento específico com base em seu identificador único e
    * retorna sua representação serializada.
    *
-   * @param bookingUIDToFind Identificador único do agendamento a ser encontrado
+   * @param bookingUID Identificador único do agendamento a ser encontrado
    * @returns Dados brutos da reserva (IRoomBookingData) ou undefined se não encontrada
    */
-  public findBookingDataByUID(
-    bookingUIDToFind: string,
-  ): IRoomBookingData | undefined {
-    const foundBooking = this.bookings.find(
-      (booking) => booking.bookingUID === bookingUIDToFind,
-    );
-
-    return foundBooking
-      ? {
-          bookingUID: foundBooking.bookingUID,
-          screeningUID: foundBooking.screeningUID?.value || null,
-          startTime: foundBooking.startTime,
-          endTime: foundBooking.endTime,
-          type: foundBooking.type,
-        }
-      : undefined;
+  public findBookingDataByUID(bookingUID: string): BookingSlot | undefined {
+    return this.bookings.find((b) => b.bookingUID === bookingUID);
   }
 
   /**
@@ -400,27 +380,17 @@ export class RoomSchedule {
    * retorna sua representação serializada. Útil para encontrar detalhes de uma
    * exibição específica na agenda da sala.
    *
-   * @param screeningUIDToFind Identificador único da exibição a ser encontrada
+   * @param screeningUID Identificador único da exibição a ser encontrada
    * @returns Dados brutos da reserva (IRoomBookingData) ou undefined se não encontrada
    */
   public findScreeningData(
-    screeningUIDToFind: ScreeningUID,
-  ): IRoomBookingData | undefined {
-    const foundBooking = this.bookings.find(
+    screeningUID: ScreeningUID,
+  ): BookingSlot | undefined {
+    return this.bookings.find(
       (booking) =>
         booking.screeningUID !== null &&
-        booking.screeningUID.equal(screeningUIDToFind),
+        booking.screeningUID.equal(screeningUID),
     );
-
-    return foundBooking
-      ? {
-          bookingUID: foundBooking.bookingUID,
-          screeningUID: foundBooking.screeningUID?.value || null,
-          startTime: foundBooking.startTime,
-          endTime: foundBooking.endTime,
-          type: foundBooking.type,
-        }
-      : undefined;
   }
 
   /**

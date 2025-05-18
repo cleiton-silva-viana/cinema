@@ -59,8 +59,8 @@ describe("RoomSchedule", () => {
         // Assert
         expect(schedule).toBeInstanceOf(RoomSchedule);
         expect(allBookings).toHaveLength(2);
-        expect(allBookings[0].screeningUID).toBe(screeningUID1);
-        expect(allBookings[1].screeningUID).toBe(screeningUID2);
+        expect(allBookings[0].screeningUID.value).toBe(screeningUID1);
+        expect(allBookings[1].screeningUID.value).toBe(screeningUID2);
         expect(allBookings[0].startTime.getTime()).toBeLessThan(
           allBookings[1].startTime.getTime(),
         );
@@ -301,11 +301,11 @@ describe("RoomSchedule", () => {
 
           // Assert
           expect(bookings).toHaveLength(2);
-          expect(bookings[0].screeningUID).toBe(screeningUID2.value);
+          expect(bookings[0].screeningUID.value).toBe(screeningUID2.value);
           expect(bookings[0].startTime).toEqual(startTime2);
           expect(bookings[0].endTime).toEqual(endTime2);
           expect(bookings[0].type).toBe(BookingType.CLEANING);
-          expect(bookings[1].screeningUID).toBe(screeningUID1.value);
+          expect(bookings[1].screeningUID).toEqual(screeningUID1);
           expect(bookings[1].startTime).toEqual(startTime1);
           expect(bookings[1].endTime).toEqual(endTime1);
           expect(bookings[1].type).toBe(BookingType.SCREENING);
@@ -565,7 +565,7 @@ describe("RoomSchedule", () => {
 
         // Assert
         expect(foundData).toBeDefined();
-        expect(foundData?.screeningUID).toBe(SCREENING_UID_1.value);
+        expect(foundData?.screeningUID.value).toBe(SCREENING_UID_1.value);
         expect(foundData?.startTime).toEqual(START_TIME_1);
         expect(foundData?.endTime).toEqual(END_TIME_1);
         expect(foundData?.type).toBe(BookingType.SCREENING);
@@ -598,11 +598,11 @@ describe("RoomSchedule", () => {
 
         // Assert
         expect(bookingsData).toHaveLength(2);
-        expect(bookingsData[0].screeningUID).toBe(SCREENING_UID_1.value);
+        expect(bookingsData[0].screeningUID).toEqual(SCREENING_UID_1);
         expect(bookingsData[0].startTime).toEqual(START_TIME_1);
         expect(bookingsData[0].endTime).toEqual(END_TIME_1);
         expect(bookingsData[0].type).toBe(BookingType.SCREENING);
-        expect(bookingsData[1].screeningUID).toBe(SCREENING_UID_2.value);
+        expect(bookingsData[1].screeningUID).toEqual(SCREENING_UID_2);
         expect(bookingsData[1].startTime).toEqual(START_TIME_2);
         expect(bookingsData[1].endTime).toEqual(END_TIME_2);
         expect(bookingsData[1].type).toBe(BookingType.SCREENING);
