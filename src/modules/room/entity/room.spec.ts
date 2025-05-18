@@ -426,28 +426,28 @@ describe("Room", () => {
           bookings.some(
             (b) =>
               b.type === BookingType.SCREENING &&
-              b.screeningUID === screeningUID.value,
+              b.screeningUID.value === screeningUID.value,
           ),
         ).toBe(true);
         expect(
           bookings.some(
             (b) =>
               b.type === BookingType.CLEANING &&
-              b.screeningUID === screeningUID.value,
+              b.screeningUID.value === screeningUID.value,
           ),
         ).toBe(true);
         expect(
           bookings.some(
             (b) =>
               b.type === BookingType.ENTRY_TIME &&
-              b.screeningUID === screeningUID.value,
+              b.screeningUID.value === screeningUID.value,
           ),
         ).toBe(true);
         expect(
           bookings.some(
             (b) =>
               b.type === BookingType.EXIT_TIME &&
-              b.screeningUID === screeningUID.value,
+              b.screeningUID.value === screeningUID.value,
           ),
         ).toBe(true);
       });

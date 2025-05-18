@@ -11,7 +11,7 @@ import { SeatLayout } from "./value-object/seat.layout";
 import { SeatRow } from "./value-object/seat.row";
 import { IRoomBookingData, RoomSchedule } from "./value-object/room.schedule";
 import { ScreeningUID } from "../../screening/aggregate/value-object/screening.uid";
-import { BookingType } from "./value-object/booking.slot";
+import { BookingSlot, BookingType } from "./value-object/booking.slot";
 
 /**
  * Interface que define os parâmetros necessários para criar uma sala de cinema.
@@ -559,16 +559,14 @@ export class Room {
   /**
    * Retorna todos os agendamentos da sala.
    */
-  public getAllBookings(): Array<IRoomBookingData> {
+  public getAllBookings(): Array<BookingSlot> {
     return this._schedule.getAllBookingsData();
   }
 
   /**
    * Busca um agendamento específico pelo UID do agendamento.
    */
-  public findBookingDataByUID(
-    bookingUID: string,
-  ): IRoomBookingData | undefined {
+  public findBookingDataByUID(bookingUID: string): BookingSlot | undefined {
     return this._schedule.findBookingDataByUID(bookingUID);
   }
 
@@ -577,7 +575,7 @@ export class Room {
    */
   public findScreeningData(
     screeningUID: ScreeningUID,
-  ): IRoomBookingData | undefined {
+  ): BookingSlot | undefined {
     return this._schedule.findScreeningData(screeningUID);
   }
 
