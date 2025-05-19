@@ -64,31 +64,31 @@ describe("DisplayPeriod", () => {
             startDate: PAST_DATE,
             endDate: FAR_FUTURE_DATE,
             scenario: "com data de início no passado",
-            errorCode: FailureCode.DATE_PAST_NOT_ALLOWED,
+            errorCode: FailureCode.DATE_CANNOT_BE_PAST,
           },
           {
             startDate: null,
             endDate: FAR_FUTURE_DATE,
             scenario: "com data de início nula",
-            errorCode: FailureCode.NULL_ARGUMENT,
+            errorCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
             startDate: FUTURE_DATE,
             endDate: null,
             scenario: "com data de término nula",
-            errorCode: FailureCode.NULL_ARGUMENT,
+            errorCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
             startDate: FUTURE_DATE,
             endDate: FUTURE_DATE,
             scenario: "com data de término igual à data de início",
-            errorCode: FailureCode.INVALID_DATE_SEQUENCE,
+            errorCode: FailureCode.DATE_WITH_INVALID_SEQUENCE,
           },
           {
             startDate: NOW,
             endDate: FUTURE_DATE,
             scenario: "com data de término anterior ao mínimo (14 dias)",
-            errorCode: FailureCode.INVALID_DATE_SEQUENCE,
+            errorCode: FailureCode.DATE_WITH_INVALID_SEQUENCE,
           },
           {
             startDate: FUTURE_DATE,
@@ -139,7 +139,7 @@ describe("DisplayPeriod", () => {
         },
       ])("deve lançar erro técnico se $scenario", ({ startDate, endDate }) => {
         expect(() => DisplayPeriod.hydrate(startDate, endDate)).toThrow(
-          FailureCode.NULL_ARGUMENT,
+          FailureCode.MISSING_REQUIRED_DATA,
         );
       });
     });

@@ -5,6 +5,7 @@ import { isNull } from "../../../../shared/validator/validator";
 import { Assert } from "../../../../shared/assert/assert";
 import { not } from "../../../../shared/assert/not";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { Validate } from "../../../../shared/validator/validate";
 
 /**
  * Enum que representa os possíveis estados de exibição de um filme
@@ -24,6 +25,11 @@ export enum ScreeningStatus {
    * Filme com exibição encerrada
    */
   ENDED = "ended",
+}
+
+export interface ICreateDisplayPeriodInput {
+  startDate: Date;
+  endDate: Date;
 }
 
 /**
@@ -86,45 +92,33 @@ export class DisplayPeriod {
       maxStartDate.getMonth() + DisplayPeriod.MAX_START_DATE_MONTHS_AHEAD,
     ); // máximo de 2 meses
 
-    Assert.untilFirstFailure(
-      failures,
-      { field: "startDate" },
-      not.null(startDate, FailureCode.NULL_ARGUMENT),
-      not.dateBefore(
-        startDate,
+    Validate.date(startDate)
+      .field("startDate")
+      .failures(failures)
+      .isRequired()
+      .isAfter(
         DisplayPeriod.MIN_DATE_FOR_DISPLAY_PERIOD,
-        FailureCode.DATE_PAST_NOT_ALLOWED,
-      ),
-      not.dateAfter(
-        startDate,
-        maxStartDate,
-        FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
-      ),
-    );
+        FailureCode.DATE_CANNOT_BE_PAST,
+      )
+      .isBefore(maxStartDate, FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT)
+      .then(() => {
+        const minEndDate = new Date(startDate.getTime());
+        minEndDate.setDate(
+          minEndDate.getDate() + DisplayPeriod.MIN_DISPLAY_PERIOD_DAYS,
+        );
 
-    if (failures.length === 0 && startDate) {
-      const minEndDate = new Date(startDate.getTime());
-      minEndDate.setDate(
-        minEndDate.getDate() + DisplayPeriod.MIN_DISPLAY_PERIOD_DAYS,
-      );
+        const maxEndDate = new Date(startDate.getTime());
+        maxEndDate.setDate(
+          maxEndDate.getDate() + DisplayPeriod.MAX_DISPLAY_PERIOD_DAYS,
+        );
 
-      const maxEndDate = new Date(startDate.getTime());
-      maxEndDate.setDate(
-        maxEndDate.getDate() + DisplayPeriod.MAX_DISPLAY_PERIOD_DAYS,
-      );
-
-      Assert.untilFirstFailure(
-        failures,
-        { field: "endDate" },
-        not.null(endDate, FailureCode.NULL_ARGUMENT),
-        not.dateBefore(endDate, minEndDate, FailureCode.INVALID_DATE_SEQUENCE),
-        not.dateAfter(
-          endDate,
-          maxEndDate,
-          FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
-        ),
-      );
-    }
+        Validate.date(endDate)
+          .field("endDate")
+          .failures(failures)
+          .isRequired()
+          .isAfter(minEndDate, FailureCode.DATE_WITH_INVALID_SEQUENCE)
+          .isBefore(maxEndDate, FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT);
+      });
 
     return failures.length > 0
       ? failure(failures)
@@ -140,7 +134,7 @@ export class DisplayPeriod {
   public static hydrate(startDate: Date, endDate: Date): DisplayPeriod {
     TechnicalError.if(
       isNull(startDate) || isNull(endDate),
-      FailureCode.NULL_ARGUMENT,
+      FailureCode.MISSING_REQUIRED_DATA,
     );
     return new DisplayPeriod(startDate, endDate);
   }
