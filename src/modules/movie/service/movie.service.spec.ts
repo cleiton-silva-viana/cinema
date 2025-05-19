@@ -179,7 +179,7 @@ describe("MovieService", () => {
       // Assert
       expect(result.invalid).toBe(true);
       expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
+      expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
       expect(repositoryMock.save).not.toHaveBeenCalled();
     });
 
@@ -235,7 +235,9 @@ describe("MovieService", () => {
       // Assert
       expect(result.invalid).toBe(true);
       expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toEqual(FailureCode.NULL_ARGUMENT);
+      expect(result.failures[0].code).toEqual(
+        FailureCode.MISSING_REQUIRED_DATA,
+      );
     });
 
     it("should return failure when movie not found", async () => {

@@ -15,7 +15,6 @@ import {
 import { MOVIE_REPOSITORY } from "../constant/movie.constant";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { ResourceTypes } from "../../../shared/constant/resource.types";
-import { IMovieService } from "./movie.service.interface";
 
 /**
  * Serviço responsável por gerenciar operações relacionadas a filmes.
@@ -32,9 +31,10 @@ import { IMovieService } from "./movie.service.interface";
  * tratamento de erros e sucesso.
  */
 @Injectable()
-export class MovieService implements IMovieService {
+export class MovieService {
   constructor(
-    @Inject(MOVIE_REPOSITORY) private readonly repository: IMovieRepository,
+    @Inject(MOVIE_REPOSITORY)
+    private readonly repository: IMovieRepository,
     @Inject(SHOWTIME_SERVICE)
     private readonly showtimeService: IShowtimeService,
   ) {}
@@ -98,7 +98,7 @@ export class MovieService implements IMovieService {
   public async create(input: ICreateMovieInput): Promise<Result<Movie>> {
     if (isNull(input)) {
       return failure({
-        code: FailureCode.NULL_ARGUMENT,
+        code: FailureCode.MISSING_REQUIRED_DATA,
       });
     }
 
@@ -132,7 +132,8 @@ export class MovieService implements IMovieService {
     movieUID: string,
     input: IMovieUpdateInput,
   ): Promise<Result<Movie>> {
-    if (isNull(input)) return failure({ code: FailureCode.NULL_ARGUMENT });
+    if (isNull(input))
+      return failure({ code: FailureCode.MISSING_REQUIRED_DATA });
 
     const findResult = await this.findById(movieUID);
     if (findResult.invalid) return failure(findResult.failures);
