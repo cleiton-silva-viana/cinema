@@ -62,22 +62,22 @@ describe("MovieGenre", () => {
           {
             genres: null as any,
             scenario: "quando os gêneros são nulos",
-            errorCode: FailureCode.INVALID_GENRE_COUNT,
+            errorCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
             genres: undefined as any,
             scenario: "quando os gêneros são indefinidos",
-            errorCode: FailureCode.INVALID_GENRE_COUNT,
+            errorCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
             genres: [],
             scenario: "quando o array de gêneros está vazio",
-            errorCode: FailureCode.INVALID_GENRE_COUNT,
+            errorCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
             genres: tooManyGenres,
             scenario: "quando há mais que o número máximo de gêneros",
-            errorCode: FailureCode.INVALID_GENRE_COUNT,
+            errorCode: FailureCode.LENGTH_OUT_OF_RANGE,
           },
           {
             genres: duplicatedGenres,
@@ -92,7 +92,7 @@ describe("MovieGenre", () => {
           {
             genres: [invalidGenreString],
             scenario: "quando contém um gênero inválido",
-            errorCode: FailureCode.INVALID_GENRE,
+            errorCode: FailureCode.INVALID_ENUM_VALUE,
           },
         ];
 

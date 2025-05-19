@@ -7,6 +7,7 @@ import { is } from "../../../../shared/assert/is";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { isNull } from "../../../../shared/validator/validator";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { Validate } from "../../../../shared/validator/validate";
 
 // Enum para os gêneros
 export enum Genre {
@@ -92,8 +93,8 @@ export class MovieGenre {
    * @returns MovieGenre
    */
   public static hydrate(genres: string[]): MovieGenre {
-    TechnicalError.if(isNull(genres), FailureCode.NULL_ARGUMENT);
-    TechnicalError.if(genres.length === 0, FailureCode.EMPTY_FIELD);
+    TechnicalError.if(isNull(genres), FailureCode.MISSING_REQUIRED_DATA);
+    TechnicalError.if(genres.length === 0, FailureCode.MISSING_REQUIRED_DATA);
 
     const movieGenres = genres
       .map((genre) => genre.toUpperCase())
@@ -109,21 +110,19 @@ export class MovieGenre {
    * @returns Result<MovieGenre>
    */
   public static create(genres: Genre[] | string[]): Result<MovieGenre> {
-    if (!genres || genres.length === 0) {
-      return failure([
-        {
-          code: FailureCode.INVALID_GENRE_COUNT,
-          details: {
-            minGenres: MovieGenre.MIN_GENRES,
-          },
+    if (!genres || genres.length === 0)
+      return failure({
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          minGenres: MovieGenre.MIN_GENRES,
+          maxGenres: MovieGenre.MAX_GENRES,
+          validValues: Object.values(Genre),
         },
-      ]);
-    }
-    if (typeof genres[0] === "string") {
+      });
+
+    if (typeof genres[0] === "string")
       return this.createFromStrings(genres as string[]);
-    } else {
-      return this.createFromEnums(genres as Genre[]);
-    }
+    else return this.createFromEnums(genres as Genre[]);
   }
 
   /**
@@ -134,26 +133,15 @@ export class MovieGenre {
   private static createFromEnums(genres: Genre[]): Result<MovieGenre> {
     const failures: SimpleFailure[] = [];
 
-    Assert.untilFirstFailure(
-      failures,
-      not.null(genres, FailureCode.INVALID_GENRE_COUNT, {
-        minGenres: MovieGenre.MIN_GENRES,
-      }),
-      is.true(
+    Validate.array(genres)
+      .field("genres")
+      .failures(failures)
+      .isRequired()
+      .isTrue(
         [...new Set(genres)].length === genres.length,
         FailureCode.DUPLICATE_GENRES,
-      ),
-      is.between(
-        genres,
-        MovieGenre.MIN_GENRES,
-        MovieGenre.MAX_GENRES,
-        FailureCode.INVALID_GENRE_COUNT,
-        {
-          minGenres: MovieGenre.MIN_GENRES,
-          maxGenres: MovieGenre.MAX_GENRES,
-        },
-      ),
-    );
+      )
+      .hasLengthBetween(MovieGenre.MIN_GENRES, MovieGenre.MAX_GENRES);
 
     return failures.length > 0
       ? failure(failures)
@@ -168,46 +156,34 @@ export class MovieGenre {
   public static createFromStrings(genreStrings: string[]): Result<MovieGenre> {
     const failures: SimpleFailure[] = [];
 
-    Assert.untilFirstFailure(
-      failures,
-      {
-        minGenres: MovieGenre.MIN_GENRES,
-        maxGenres: MovieGenre.MAX_GENRES,
-      },
-      not.null(genreStrings, FailureCode.INVALID_GENRE_COUNT),
-      is.greaterOrEqualTo(
-        genreStrings?.length,
-        MovieGenre.MIN_GENRES,
-        FailureCode.INVALID_GENRE_COUNT,
-      ),
-      is.lessOrEqualTo(
-        genreStrings?.length,
-        MovieGenre.MAX_GENRES,
-        FailureCode.INVALID_GENRE_COUNT,
-      ),
-    );
+    Validate.array(genreStrings)
+      .field("genres")
+      .failures(failures)
+      .isRequired()
+      .hasLengthBetween(MovieGenre.MIN_GENRES, MovieGenre.MAX_GENRES);
+
     if (failures.length > 0) return failure(failures);
 
     let uniqueGenres: Set<Genre> = new Set();
 
     genreStrings.forEach((genreString) => {
       const upperCaseGenre = genreString.toUpperCase();
-      if (!Object.values(Genre).includes(upperCaseGenre as Genre)) {
+      if (!Object.values(Genre).includes(upperCaseGenre as Genre))
         failures.push({
-          code: FailureCode.INVALID_GENRE,
+          code: FailureCode.INVALID_ENUM_VALUE,
           details: {
             valueInvalid: upperCaseGenre,
           },
         });
-      }
-      if (uniqueGenres.has(upperCaseGenre as Genre)) {
+
+      if (uniqueGenres.has(upperCaseGenre as Genre))
         failures.push({
           code: FailureCode.DUPLICATE_GENRES,
           details: {
             duplicatedValue: upperCaseGenre,
           },
         });
-      }
+
       uniqueGenres.add(upperCaseGenre as Genre);
     });
 
