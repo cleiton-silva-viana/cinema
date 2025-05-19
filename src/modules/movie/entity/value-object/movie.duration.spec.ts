@@ -50,7 +50,7 @@ describe("MovieDuration", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
+        expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
       });
 
       it("deve falhar ao criar com duração menor que o mínimo permitido", () => {
@@ -63,7 +63,9 @@ describe("MovieDuration", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(FailureCode.MOVIE_DURATION_TOO_SHORT);
+        expect(result.failures[0].code).toBe(
+          FailureCode.MOVIE_DURATION_TOO_SHORT,
+        );
       });
 
       it("deve falhar ao criar com duração maior que o máximo permitido", () => {
@@ -76,7 +78,9 @@ describe("MovieDuration", () => {
         // Assert
         expect(result.invalid).toBe(true);
         expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(FailureCode.MOVIE_DURATION_TOO_LONG);
+        expect(result.failures[0].code).toBe(
+          FailureCode.MOVIE_DURATION_TOO_LONG,
+        );
       });
     });
 
@@ -99,7 +103,7 @@ describe("MovieDuration", () => {
         // Act & Assert
         expect(() => {
           MovieDuration.hydrate(minutes);
-        }).toThrow(FailureCode.NULL_ARGUMENT);
+        }).toThrow(FailureCode.MISSING_REQUIRED_DATA);
       });
     });
   });

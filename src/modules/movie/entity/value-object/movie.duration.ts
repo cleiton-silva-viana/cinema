@@ -6,6 +6,7 @@ import { Assert } from "../../../../shared/assert/assert";
 import { not } from "../../../../shared/assert/not";
 import { is } from "../../../../shared/assert/is";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { Validate } from "../../../../shared/validator/validate";
 
 /**
  * Value Object que representa a duração de um filme em minutos.
@@ -51,21 +52,19 @@ export class MovieDuration {
   public static create(minutes: number): Result<MovieDuration> {
     const failures: SimpleFailure[] = [];
 
-    Assert.untilFirstFailure(
-      failures,
-      { field: "duration" },
-      not.null(minutes, FailureCode.NULL_ARGUMENT),
-      is.greaterOrEqualTo(
-        minutes,
+    Validate.number(minutes)
+      .field("minutes")
+      .failures(failures)
+      .isRequired()
+      .isInteger()
+      .isAtLeast(
         MovieDuration.MIN_DURATION,
         FailureCode.MOVIE_DURATION_TOO_SHORT,
-      ),
-      is.lessOrEqualTo(
-        minutes,
+      )
+      .isAtMost(
         MovieDuration.MAX_DURATION,
         FailureCode.MOVIE_DURATION_TOO_LONG,
-      ),
-    );
+      );
 
     return failures.length > 0
       ? failure(failures)
@@ -81,7 +80,7 @@ export class MovieDuration {
    * @throws TechnicalError com código NULL_ARGUMENT se minutes for nulo
    */
   public static hydrate(minutes: number): MovieDuration {
-    TechnicalError.if(isNull(minutes), FailureCode.NULL_ARGUMENT);
+    TechnicalError.if(isNull(minutes), FailureCode.MISSING_REQUIRED_DATA);
     return new MovieDuration(minutes);
   }
 
