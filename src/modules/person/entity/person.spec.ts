@@ -1,5 +1,6 @@
+import { faker } from "@faker-js/faker/locale/pt_PT";
 import { Person } from "./person";
-import { faker } from "@faker-js/faker";
+import { v4 } from "uuid";
 
 describe("Person", () => {
   const fullName = faker.person.firstName();
@@ -68,7 +69,7 @@ describe("Person", () => {
     describe("updateName", () => {
       it("deve atualizar o nome da pessoa", () => {
         // Arrange
-        const person = Person.create(fullName, birthDate).value;
+        const person = Person.hydrate(v4(), fullName, birthDate);
         const newName = faker.person.fullName();
 
         // Act

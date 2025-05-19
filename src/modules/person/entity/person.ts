@@ -3,6 +3,7 @@ import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
 import { BirthDate } from "../../../shared/value-object/birth.date";
 import { Name } from "../../../shared/value-object/name";
 import { PersonUID } from "./value-object/person.uid";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 
 /**
  * Representa a estrutura base de umz pessoa que contribuiu na produção de um filme no sistema.
@@ -71,7 +72,7 @@ export class Person {
   public updateBirthDate(birthDate: Date): Result<Person> {
     if (!birthDate)
       return failure({
-        code: "NULL_ARGUMENT",
+        code: FailureCode.MISSING_REQUIRED_DATA,
       });
 
     const birthDateResult = BirthDate.create(birthDate);
