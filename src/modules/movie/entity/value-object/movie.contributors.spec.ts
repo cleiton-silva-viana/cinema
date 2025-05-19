@@ -125,14 +125,14 @@ describe("MovieContributors", () => {
       it("deve lançar erro técnico se a entrada for null", () => {
         // Assert
         expect(() => MovieContributors.hydrate(null)).toThrow(
-          FailureCode.NULL_ARGUMENT,
+          FailureCode.MISSING_REQUIRED_DATA,
         );
       });
 
       it("deve lançar erro técnico se a entrada for um array vazio", () => {
         // Assert
         expect(() => MovieContributors.hydrate([])).toThrow(
-          FailureCode.EMPTY_FIELD,
+          FailureCode.MISSING_REQUIRED_DATA,
         );
       });
     });

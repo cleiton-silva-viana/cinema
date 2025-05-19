@@ -118,13 +118,17 @@ export class MovieContributors {
   public static hydrate(
     contributors: IMovieContributorInput[],
   ): MovieContributors {
-    TechnicalError.if(isNull(contributors), FailureCode.NULL_ARGUMENT, {
+    TechnicalError.if(isNull(contributors), FailureCode.MISSING_REQUIRED_DATA, {
       field: "contributors",
     });
 
-    TechnicalError.if(contributors.length === 0, FailureCode.EMPTY_FIELD, {
-      field: "contributors",
-    });
+    TechnicalError.if(
+      contributors.length === 0,
+      FailureCode.MISSING_REQUIRED_DATA,
+      {
+        field: "contributors",
+      },
+    );
 
     const processedContributors: MovieContributor[] = [];
 
