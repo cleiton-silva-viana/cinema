@@ -70,7 +70,7 @@ export class AgeRating {
    * @throws TechnicalError se o rating for nulo
    */
   public static hydrate(rating: string): AgeRating {
-    TechnicalError.if(isNull(rating), FailureCode.NULL_ARGUMENT, {
+    TechnicalError.if(isNull(rating), FailureCode.MISSING_REQUIRED_DATA, {
       field: "ageRating",
     });
 
