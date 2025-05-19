@@ -101,11 +101,11 @@ export class Movie {
    * assegurando que todas as regras de negócio sejam aplicadas.
    *
    * @param uid Identificador único do filme
+   * @param status Status administrativo atual do filme
    * @param title Título do filme em múltiplos idiomas
    * @param description Descrição do filme em múltiplos idiomas
    * @param duration Duração do filme em minutos
    * @param ageRating Classificação etária do filme
-   * @param status Status administrativo atual do filme
    * @param genre Gêneros do filme
    * @param imageUID Identificador da imagem do poster do filme
    * @param displayPeriod Período em que o filme estará disponível para exibição
@@ -185,7 +185,7 @@ export class Movie {
    * @throws TechnicalError se os dados forem inválidos
    */
   public static hydrate(input: IMovieHydrateInput): Movie {
-    TechnicalError.if(isNull(input.uid), FailureCode.NULL_ARGUMENT);
+    TechnicalError.if(isNull(input.uid), FailureCode.MISSING_REQUIRED_DATA);
 
     const uid = MovieUID.hydrate(input.uid);
 
@@ -386,7 +386,7 @@ export class Movie {
 
     if (periodStart > periodEnd)
       return failure({
-        code: FailureCode.INVALID_DATE_SEQUENCE,
+        code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
       });
 
     if (!hasOverlap)

@@ -576,7 +576,7 @@ describe("Movie", () => {
           // Assert
           expect(result.invalid).toBe(true);
           expect(result.failures[0].code).toBe(
-            FailureCode.INVALID_DATE_SEQUENCE,
+            FailureCode.DATE_WITH_INVALID_SEQUENCE,
           );
         });
       });
