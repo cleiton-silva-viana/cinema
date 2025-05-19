@@ -7,14 +7,17 @@ import { Inject, Injectable } from "@nestjs/common";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { PERSON_REPOSITORY } from "../constant/person.constant";
 import { ResourceTypes } from "../../../shared/constant/resource.types";
+import { IPersonDomainService } from "./person.domain.service.interface";
 
 /**
  * Serviço responsável por operações relacionadas a pessoas no sistema.
  * Gerencia pessoas que podem contribuir para filmes em diferentes papéis.
  */
 @Injectable()
-export class PersonService {
-  constructor(@Inject(PERSON_REPOSITORY) private readonly repository: IPersonRepository) {}
+export class PersonDomainService implements IPersonDomainService {
+  constructor(
+    @Inject(PERSON_REPOSITORY) private readonly repository: IPersonRepository,
+  ) {}
 
   /**
    * Busca uma pessoa pelo seu identificador único.
@@ -27,7 +30,10 @@ export class PersonService {
 
     const person = await this.repository.findById(uid);
     return !person
-      ? failure({ code: FailureCode.RESOURCE_NOT_FOUND, details: { resource: ResourceTypes.PERSON } })
+      ? failure({
+          code: FailureCode.RESOURCE_NOT_FOUND,
+          details: { resource: ResourceTypes.PERSON },
+        })
       : success(person);
   }
 

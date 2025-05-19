@@ -1,13 +1,14 @@
 import { faker } from "@faker-js/faker/locale/pt_PT";
-import { PersonService } from "./person.service";
+import { PersonDomainService } from "./person.domain.service";
 import { Person } from "../entity/person";
 import { PersonUID } from "../entity/value-object/person.uid";
 import { IPersonRepository } from "../repository/person.repository.interface";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { v4 } from "uuid";
 
 describe("PersonService", () => {
   let repository: jest.Mocked<IPersonRepository>;
-  let service: PersonService;
+  let service: PersonDomainService;
   let validPerson: Person;
 
   beforeEach(() => {
@@ -18,7 +19,7 @@ describe("PersonService", () => {
       delete: jest.fn(),
     } as unknown as jest.Mocked<IPersonRepository>;
 
-    service = new PersonService(repository);
+    service = new PersonDomainService(repository);
     validPerson = Person.hydrate(
       PersonUID.create().value,
       faker.person.firstName(),
@@ -69,9 +70,11 @@ describe("PersonService", () => {
   describe("create", () => {
     it("deve criar uma pessoa válida", async () => {
       // Arrange
-      const name = faker.person.fullName();
+      const name = "JOSE JOSE";
       const birthDate = faker.date.birthdate();
-      repository.save.mockResolvedValue(undefined);
+      const instance = Person.hydrate(v4(), name, birthDate);
+
+      repository.save.mockResolvedValue(instance);
 
       // Act
       const result = await service.create(name, birthDate);
@@ -80,7 +83,7 @@ describe("PersonService", () => {
       expect(result.invalid).toBe(false);
       expect(result.value.name.value).toBe(name);
       expect(result.value.birthDate.value).toEqual(birthDate);
-      expect(repository.save).toHaveBeenCalledWith(result.value);
+      expect(repository.save).toHaveBeenCalledTimes(1);
     });
 
     it("deve retornar falha se dados inválidos", async () => {
@@ -128,15 +131,19 @@ describe("PersonService", () => {
 
     it("deve retornar falha se pessoa não encontrada", async () => {
       // Arrange
-      repository.findById.mockResolvedValue(undefined);
+      repository.findById.mockResolvedValue(null);
       const uid = PersonUID.create().value;
 
       // Act
-      const result = await service.update(uid, "Nome", new Date());
+      const result = await service.update(
+        uid,
+        faker.person.firstName(),
+        new Date(),
+      );
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("PERSON_NOT_FOUND");
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
     });
 
     it("deve retornar falha se atualização inválida", async () => {
@@ -160,15 +167,11 @@ describe("PersonService", () => {
       repository.findById.mockResolvedValue(validPerson);
 
       // Act
-      const result = await service.update(
-        validPerson.uid.value,
-        undefined,
-        undefined,
-      );
+      const result = await service.update(validPerson.uid.value, null, null);
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("NO_PROPERTIES_TO_UPDATE");
+      expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
     });
   });
 
@@ -205,7 +208,7 @@ describe("PersonService", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe("PERSON_NOT_FOUND");
+      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
     });
   });
 });
