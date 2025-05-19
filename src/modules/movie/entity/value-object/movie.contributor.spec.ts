@@ -38,7 +38,9 @@ describe("MovieContributor", () => {
 
           // Assert
           expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
+          expect(result.failures[0].code).toBe(
+            FailureCode.MISSING_REQUIRED_DATA,
+          );
         });
 
         it(`se role for um valor inválido`, () => {
@@ -87,7 +89,7 @@ describe("MovieContributor", () => {
         cases.forEach(({ scenario, input }) => {
           it(`se ${scenario}`, () => {
             expect(() => MovieContributor.hydrate(input)).toThrow(
-              FailureCode.NULL_ARGUMENT,
+              FailureCode.MISSING_REQUIRED_DATA,
             );
           });
         });

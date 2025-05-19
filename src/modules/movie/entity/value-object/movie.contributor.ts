@@ -107,15 +107,19 @@ export class MovieContributor {
    * @throws TechnicalError com código NULL_ARGUMENT se role for nulo
    */
   public static hydrate(input: IMovieContributorInput) {
-    TechnicalError.if(isNull(input), FailureCode.NULL_ARGUMENT, {
+    TechnicalError.if(isNull(input), FailureCode.MISSING_REQUIRED_DATA, {
       object: "input",
     });
 
-    TechnicalError.if(isNull(input.personUid), FailureCode.NULL_ARGUMENT, {
-      field: "personUid",
-    });
+    TechnicalError.if(
+      isNull(input.personUid),
+      FailureCode.MISSING_REQUIRED_DATA,
+      {
+        field: "personUid",
+      },
+    );
 
-    TechnicalError.if(isNull(input.role), FailureCode.NULL_ARGUMENT, {
+    TechnicalError.if(isNull(input.role), FailureCode.MISSING_REQUIRED_DATA, {
       field: "role",
     });
 
