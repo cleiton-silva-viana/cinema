@@ -190,6 +190,14 @@ export class RoomService implements IRoomService {
     startIn: Date,
     duration: number,
   ): Promise<Result<Room>> {
+    if (!roomId || !startIn || !duration)
+      return failure({
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          fields: ["roomID", "startsIn", "duration"],
+        },
+      });
+
     const now = new Date();
     if (startIn < now)
       return failure({
@@ -258,6 +266,14 @@ export class RoomService implements IRoomService {
     roomId: number,
     bookingUID: string,
   ): Promise<Result<null>> {
+    if (!roomId || !bookingUID)
+      return failure({
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: {
+          fields: ["roomID", "bookingUID"],
+        },
+      });
+
     const findRoomResult = await this.findById(roomId);
     if (findRoomResult.invalid) return failure(findRoomResult.failures);
 

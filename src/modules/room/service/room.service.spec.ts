@@ -413,6 +413,58 @@ describe("RoomService", () => {
       expect(result.failures).toEqual(failures);
       expect(repositoryMock.addBooking).not.toHaveBeenCalled();
     });
+
+    describe("valida inputs com valores nulos", () => {
+      const invalidInputs = [
+        {
+          scenario: "deve retornar failure quando roomId não for fornecido",
+          input: {
+            roomID: null as any,
+          },
+        },
+        {
+          scenario: "deve retornar failure quando startIn não for fornecido",
+          input: {
+            startTime: null as Date,
+          },
+        },
+        {
+          scenario: "deve retornar failure quando duration não for fornecida",
+          input: {
+            duration: null as number,
+          },
+        },
+      ];
+
+      invalidInputs.forEach(({ scenario, input }) => {
+        it(scenario, async () => {
+          // Arrange
+          const params = {
+            roomID: 1,
+            startTime: new Date(new Date().getTime() + 60 * 60 * 1000),
+            duration: 30,
+            ...input,
+          };
+
+          // Act
+          const result = await roomService.scheduleCleaning(
+            params.roomID,
+            params.startTime,
+            params.duration,
+          );
+
+          // Assert
+          expect(result.invalid).toBe(true);
+          expect(result.failures[0].code).toBe(
+            FailureCode.MISSING_REQUIRED_DATA,
+          );
+          expect(result.failures[0].details).toEqual({
+            fields: ["roomID", "startsIn", "duration"],
+          });
+          expect(repositoryMock.addBooking).not.toHaveBeenCalled();
+        });
+      });
+    });
   });
 
   describe("scheduleMaintenance", () => {
@@ -511,6 +563,58 @@ describe("RoomService", () => {
       expect(result.invalid).toBe(true);
       expect(result.failures).toEqual(failures);
       expect(repositoryMock.addBooking).not.toHaveBeenCalled();
+    });
+
+    describe("valida inputs com valores nulos", () => {
+      const invalidInputs = [
+        {
+          scenario: "deve retornar failure quando roomId não for fornecido",
+          input: {
+            roomID: null as any,
+          },
+        },
+        {
+          scenario: "deve retornar failure quando startIn não for fornecido",
+          input: {
+            startTime: null as Date,
+          },
+        },
+        {
+          scenario: "deve retornar failure quando duration não for fornecida",
+          input: {
+            duration: null as number,
+          },
+        },
+      ];
+
+      invalidInputs.forEach(({ scenario, input }) => {
+        it(scenario, async () => {
+          // Arrange
+          const params = {
+            roomID: 1,
+            startTime: new Date(new Date().getTime() + 60 * 60 * 1000),
+            duration: 30,
+            ...input,
+          };
+
+          // Act
+          const result = await roomService.scheduleMaintenance(
+            params.roomID,
+            params.startTime,
+            params.duration,
+          );
+
+          // Assert
+          expect(result.invalid).toBe(true);
+          expect(result.failures[0].code).toBe(
+            FailureCode.MISSING_REQUIRED_DATA,
+          );
+          expect(result.failures[0].details).toEqual({
+            fields: ["roomID", "startsIn", "duration"],
+          });
+          expect(repositoryMock.addBooking).not.toHaveBeenCalled();
+        });
+      });
     });
   });
 
