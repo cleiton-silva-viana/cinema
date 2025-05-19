@@ -16,7 +16,7 @@ export interface IMovieFilterProps {
  * Define métodos para buscar, criar e solicitar a remoção (ou arquivamento) de filmes,
  * encapsulando as regras de negócio e validações necessárias.
  */
-export interface IMovieService {
+export interface IDomainMovieService {
   /**
    * Busca um filme pelo seu UID. Retorna null no Result se não encontrado
    *
@@ -61,20 +61,4 @@ export interface IMovieService {
    * @returns Result<Movie> - Um Result contendo o filme atualizado ou falhas
    */
   approve(uid: string): Promise<Result<Movie>>;
-
-  /**
-   * Solicita o arquivamento de um filme.
-   *
-   * @param uid - Identificador único do filme.
-   */
-  archive(uid: string): Promise<Result<Movie>>;
-
-  /**
-   * Solicita a remoção permanente do filme nos arquivos do sistema.
-   *
-   * Se o filme nunca foi exibido, é realizado um hard delete.
-   *
-   * @param uid - Identificador único do filme.
-   * */
-  delete(uid: string): Promise<Result<null>>;
 }

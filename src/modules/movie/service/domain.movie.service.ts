@@ -2,10 +2,6 @@ import { IMovieRepository } from "../repository/movie.repository.interface";
 import { failure, Result, success } from "../../../shared/result/result";
 import { ICreateMovieInput, Movie, IMovieUpdateInput } from "../entity/movie";
 import { Inject, Injectable } from "@nestjs/common";
-import {
-  IShowtimeService,
-  SHOWTIME_SERVICE,
-} from "../../showtime/service/showtime.service.interface";
 import { MovieUID } from "../entity/value-object/movie.uid";
 import { isNull } from "../../../shared/validator/validator";
 import {
@@ -15,6 +11,7 @@ import {
 import { MOVIE_REPOSITORY } from "../constant/movie.constant";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { ResourceTypes } from "../../../shared/constant/resource.types";
+import { IDomainMovieService } from "./domain.movie.service.interface";
 
 /**
  * Serviço responsável por gerenciar operações relacionadas a filmes.
@@ -31,12 +28,9 @@ import { ResourceTypes } from "../../../shared/constant/resource.types";
  * tratamento de erros e sucesso.
  */
 @Injectable()
-export class MovieService {
+export class DomainMovieService implements IDomainMovieService {
   constructor(
-    @Inject(MOVIE_REPOSITORY)
-    private readonly repository: IMovieRepository,
-    @Inject(SHOWTIME_SERVICE)
-    private readonly showtimeService: IShowtimeService,
+    @Inject(MOVIE_REPOSITORY) private readonly repository: IMovieRepository,
   ) {}
 
   /**
@@ -185,75 +179,5 @@ export class MovieService {
 
     const updatedMovie = await this.repository.update(approveResult.value);
     return success(updatedMovie);
-  }
-
-  /**
-   * Arquiva um filme existente.
-   *
-   * Este método verifica se o filme existe e então o marca como arquivado.
-   * Usado quando um filme já teve exibições e não deve ser excluído permanentemente.
-   * Antes de arquivar, verifica se não há exibições agendadas para o filme.
-   *
-   * @param uid - Identificador único do filme a ser arquivado
-   * @returns Result<Movie> - Sucesso com o filme arquivado, ou falhas caso contrário
-   */
-  public async archive(uid: string): Promise<Result<Movie>> {
-    const findResult = await this.findById(uid);
-    if (findResult.invalid) return failure(findResult.failures);
-    const movie = findResult.value;
-
-    const hasExhibitionsScheduled =
-      await this.showtimeService.movieHasExhibitionsScheduled(movie.uid.value);
-    if (hasExhibitionsScheduled.invalid)
-      return failure(hasExhibitionsScheduled.failures);
-
-    if (hasExhibitionsScheduled.value === true) {
-      return failure({
-        code: FailureCode.MOVIE_ARCHIVE_BLOCKED_BY_SCREENINGS,
-      });
-    }
-
-    const archiveResult = movie.toArchive();
-    if (archiveResult.invalid) return failure(archiveResult.failures);
-    const archivedMovie = archiveResult.value;
-
-    await this.repository.update(archivedMovie);
-    return success(archivedMovie);
-  }
-
-  /**
-   * Exclui permanentemente um filme.
-   *
-   * Este método verifica se o filme existe e se pode ser excluído (não teve exibições).
-   * Se o filme já teve exibições, retorna um erro indicando que deve ser arquivado.
-   *
-   * Possíveis falhas:
-   * - RESOURCE_NOT_FOUND: O filme não foi encontrado
-   * - MOVIE_DELETE_BLOCKED_BY_SHOWINGS: O filme possui exibições e não pode ser excluído
-   *
-   * @param uid - Identificador único do filme a ser excluído
-   * @returns Result<null> - Sucesso se a exclusão for concluída, ou falhas caso contrário
-   */
-  public async delete(uid: string): Promise<Result<null>> {
-    const findResult = await this.findById(uid);
-    if (findResult.invalid) return failure(findResult.failures);
-    const movie = findResult.value;
-
-    const hasShowingsResult = await this.showtimeService.movieHasShowings(
-      movie.uid.value,
-    );
-    if (hasShowingsResult.invalid) return failure(hasShowingsResult.failures);
-
-    if (hasShowingsResult.value) {
-      return failure({
-        code: FailureCode.MOVIE_DELETE_BLOCKED_BY_SHOWINGS,
-        details: {
-          uid: movie.uid.value,
-        },
-      });
-    }
-
-    await this.repository.delete(movie.uid);
-    return success(null);
   }
 }

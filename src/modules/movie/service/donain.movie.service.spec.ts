@@ -1,20 +1,15 @@
-import { MovieService } from "./movie.service";
+import { DomainMovieService } from "./domain.movie.service";
 import { IMovieRepository } from "../repository/movie.repository.interface";
-import { IShowtimeService } from "../../showtime/service/showtime.service.interface";
 import { MovieUID } from "../entity/value-object/movie.uid";
 import { ICreateMovieInput, Movie } from "../entity/movie";
 import { failure, success } from "../../../shared/result/result";
-import {
-  IMovieFilterInput,
-  MovieFilter,
-} from "../entity/value-object/movie.filter";
+import { IMovieFilterInput, MovieFilter } from "../entity/value-object/movie.filter";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { v7 } from "uuid";
 
 describe("MovieService", () => {
-  let movieService: MovieService;
+  let movieService: DomainMovieService;
   let repositoryMock: jest.Mocked<IMovieRepository>;
-  let showtimeServiceMock: jest.Mocked<IShowtimeService>;
   let movieMock: Movie;
   let validMovieUID: MovieUID;
 
@@ -27,15 +22,7 @@ describe("MovieService", () => {
       delete: jest.fn(),
     } as jest.Mocked<IMovieRepository>;
 
-    showtimeServiceMock = {
-      ...jest.requireActual<IShowtimeService>(
-        "../../showtime/service/showtime.service.interface",
-      ),
-      movieHasShowings: jest.fn(),
-      movieHasExhibitionsScheduled: jest.fn(),
-    } as unknown as jest.Mocked<IShowtimeService>;
-
-    movieService = new MovieService(repositoryMock, showtimeServiceMock);
+    movieService = new DomainMovieService(repositoryMock);
 
     validMovieUID = MovieUID.create();
     movieMock = {
@@ -408,196 +395,6 @@ describe("MovieService", () => {
       expect(result.failures.length).toBe(1);
       expect(result.failures[0].code).toBe(fail.code);
       expect(repositoryMock.update).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("archive", () => {
-    it("deve arquivar um filme com sucesso", async () => {
-      // Arrange
-      const archivedMovie = { ...movieMock } as Movie;
-      repositoryMock.findById.mockResolvedValue(movieMock);
-      showtimeServiceMock.movieHasExhibitionsScheduled.mockResolvedValue(
-        success(false),
-      );
-      (movieMock.toArchive as jest.Mock).mockReturnValue(
-        success(archivedMovie),
-      );
-      repositoryMock.update.mockResolvedValue(archivedMovie);
-
-      // Act
-      const result = await movieService.archive(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(false);
-      expect(result.value).toEqual(archivedMovie);
-      expect(movieMock.toArchive).toHaveBeenCalled();
-      expect(repositoryMock.update).toHaveBeenCalledWith(archivedMovie);
-    });
-
-    it("deve retornar falha quando o filme não for encontrado", async () => {
-      // Arrange
-      repositoryMock.findById.mockResolvedValue(null);
-
-      // Act
-      const result = await movieService.archive(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
-      expect(movieMock.toArchive).not.toHaveBeenCalled();
-      expect(repositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("deve retornar falha quando o UID do filme for inválido", async () => {
-      // Arrange
-      const invalidUid = "invalid-uid";
-
-      // Act
-      const result = await movieService.archive(invalidUid);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(repositoryMock.findById).not.toHaveBeenCalled();
-      expect(movieMock.toArchive).not.toHaveBeenCalled();
-    });
-
-    it("deve retornar falha quando o método toArchive do filme falhar", async () => {
-      // Arrange
-      const fail = { code: "ARCHIVE_FAILED" };
-      repositoryMock.findById.mockResolvedValue(movieMock);
-      showtimeServiceMock.movieHasExhibitionsScheduled.mockResolvedValue(
-        success(false),
-      );
-      (movieMock.toArchive as jest.Mock).mockReturnValue(failure(fail));
-
-      // Act
-      const result = await movieService.archive(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toBe(fail.code);
-      expect(repositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("deve retornar falha quando o filme possuir exibições agendadas", async () => {
-      // Arrange
-      repositoryMock.findById.mockResolvedValue(movieMock);
-      showtimeServiceMock.movieHasExhibitionsScheduled.mockResolvedValue(
-        success(true),
-      );
-
-      // Act
-      const result = await movieService.archive(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(
-        FailureCode.MOVIE_ARCHIVE_BLOCKED_BY_SCREENINGS,
-      );
-      expect(movieMock.toArchive).not.toHaveBeenCalled();
-      expect(repositoryMock.update).not.toHaveBeenCalled();
-    });
-
-    it("deve retornar falha quando a verificação de exibições agendadas falhar", async () => {
-      // Arrange
-      const fail = { code: "SHOWTIME_CHECK_FAILED" };
-      repositoryMock.findById.mockResolvedValue(movieMock);
-      showtimeServiceMock.movieHasExhibitionsScheduled.mockResolvedValue(
-        failure(fail),
-      );
-
-      // Act
-      const result = await movieService.archive(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toBe(fail.code);
-      expect(movieMock.toArchive).not.toHaveBeenCalled();
-      expect(repositoryMock.update).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("delete", () => {
-    it("deve excluir um filme que nunca teve exibições", async () => {
-      // Arrange
-      repositoryMock.findById.mockResolvedValue(movieMock);
-      showtimeServiceMock.movieHasShowings.mockResolvedValue(success(false));
-      repositoryMock.delete.mockResolvedValue(true);
-
-      // Act
-      const result = await movieService.delete(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(false);
-      expect(showtimeServiceMock.movieHasShowings).toHaveBeenCalledWith(
-        validMovieUID.value,
-      );
-      expect(repositoryMock.delete).toHaveBeenCalledWith(validMovieUID);
-    });
-
-    it("deve retornar falha quando o filme tiver exibições", async () => {
-      // Arrange
-      repositoryMock.findById.mockResolvedValue(movieMock);
-      showtimeServiceMock.movieHasShowings.mockResolvedValue(success(true));
-
-      // Act
-      const result = await movieService.delete(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toBe(
-        FailureCode.MOVIE_DELETE_BLOCKED_BY_SHOWINGS,
-      );
-      expect(repositoryMock.delete).not.toHaveBeenCalled();
-    });
-
-    it("deve retornar falha quando a verificação de exibições falhar", async () => {
-      // Arrange
-      const fail = { code: "SHOWTIME_CHECK_ERROR" };
-      repositoryMock.findById.mockResolvedValue(movieMock);
-      showtimeServiceMock.movieHasShowings.mockResolvedValue(failure(fail));
-
-      // Act
-      const result = await movieService.delete(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures.length).toBe(1);
-      expect(result.failures[0].code).toBe(fail.code);
-      expect(repositoryMock.delete).not.toHaveBeenCalled();
-    });
-
-    it("deve retornar falha quando o filme não for encontrado", async () => {
-      // Arrange
-      repositoryMock.findById.mockResolvedValue(null);
-
-      // Act
-      const result = await movieService.delete(validMovieUID.value);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND);
-      expect(showtimeServiceMock.movieHasShowings).not.toHaveBeenCalled();
-      expect(repositoryMock.delete).not.toHaveBeenCalled();
-    });
-
-    it("deve retornar falha quando o UID for inválido", async () => {
-      // Arrange
-      const invalidUid = "invalid-uid";
-      const failures = [{ code: "INVALID_UUID" }];
-      jest.spyOn(MovieUID, "parse").mockReturnValue(failure(failures));
-
-      // Act
-      const result = await movieService.delete(invalidUid);
-
-      // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures).toEqual(failures);
-      expect(repositoryMock.findById).not.toHaveBeenCalled();
-      expect(showtimeServiceMock.movieHasShowings).not.toHaveBeenCalled();
     });
   });
 });
