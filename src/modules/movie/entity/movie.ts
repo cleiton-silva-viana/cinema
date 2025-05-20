@@ -9,9 +9,9 @@ import {
   IMultilingualInput,
 } from "../../../shared/value-object/multilingual-content";
 import {
-  DisplayPeriod,
-  ICreateDisplayPeriodInput,
-} from "./value-object/display.period";
+  MovieDisplayPeriod,
+  ICreateMovieDisplayPeriodInput,
+} from "./value-object/movie.display.period";
 import { MovieDuration } from "./value-object/movie.duration";
 import { MovieAdministrativeStatus } from "../type/movie.administrative.status";
 import { MovieContributors } from "./value-object/movie.contributors";
@@ -58,7 +58,7 @@ export interface IMovieHydrateInput {
   status: MovieAdministrativeStatus;
   genres?: string[];
   imageUID: string;
-  displayPeriod?: ICreateDisplayPeriodInput;
+  displayPeriod?: ICreateMovieDisplayPeriodInput;
   contributors: IMovieContributorInput[];
 }
 
@@ -73,7 +73,7 @@ export interface IMovieUpdateInput {
   ageRating?: string;
   genres?: string[];
   imageUID?: string;
-  displayPeriod?: ICreateDisplayPeriodInput;
+  displayPeriod?: ICreateMovieDisplayPeriodInput;
   contributors?: IMovieContributorInput[];
 }
 
@@ -120,7 +120,7 @@ export class Movie {
     public readonly status: MovieAdministrativeStatus,
     public readonly genre: MovieGenre,
     public readonly imageUID: ImageUID,
-    public readonly displayPeriod: DisplayPeriod | null,
+    public readonly displayPeriod: MovieDisplayPeriod | null,
     public readonly contributors: MovieContributors,
   ) {}
 
@@ -211,7 +211,7 @@ export class Movie {
       : null;
 
     const displayPeriod = input.displayPeriod
-      ? DisplayPeriod.hydrate(
+      ? MovieDisplayPeriod.hydrate(
           input.displayPeriod.startDate,
           input.displayPeriod.endDate,
         )
@@ -247,7 +247,7 @@ export class Movie {
     let description: MovieDescription = this.description;
     let duration: MovieDuration = this.duration;
     let genres: MovieGenre = this.genre;
-    let displayPeriod: DisplayPeriod = this.displayPeriod;
+    let displayPeriod: MovieDisplayPeriod = this.displayPeriod;
     let contributors: MovieContributors = this.contributors;
 
     if (updates.title) {
@@ -279,7 +279,7 @@ export class Movie {
     }
 
     if (updates.displayPeriod) {
-      const result = DisplayPeriod.create(
+      const result = MovieDisplayPeriod.create(
         updates.displayPeriod.startDate,
         updates.displayPeriod.endDate,
       );

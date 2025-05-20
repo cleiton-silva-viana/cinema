@@ -15,7 +15,7 @@ import { PersonRole } from "./value-object/movie.contributor";
 import { PersonUID } from "../../person/entity/value-object/person.uid";
 import { Genre } from "./value-object/movie.genre";
 import { MovieAdministrativeStatus } from "../type/movie.administrative.status";
-import { DisplayPeriod } from "./value-object/display.period";
+import { MovieDisplayPeriod } from "./value-object/movie.display.period";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { v7 } from "uuid";
 
@@ -481,7 +481,7 @@ describe("Movie", () => {
           // Arrange
           const movie = Movie.hydrate(
             createHydrateInput({
-              displayPeriod: null as DisplayPeriod,
+              displayPeriod: null as MovieDisplayPeriod,
             }),
           );
           const proposedDate = new Date();
