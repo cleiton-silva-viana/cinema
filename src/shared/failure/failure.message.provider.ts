@@ -1,6 +1,6 @@
 import { IFailureMessageProvider } from "./failure.message.provider.interface";
 
-const fails = require('./failure.messages.json');
+const fails = require("./failure.messages.json");
 
 /**
  * Interface que representa a estrutura de uma mensagem de erro no arquivo failure.messages.json
