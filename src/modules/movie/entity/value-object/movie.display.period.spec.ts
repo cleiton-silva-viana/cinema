@@ -1,7 +1,7 @@
-import { DisplayPeriod, ScreeningStatus } from "./display.period";
+import { MovieDisplayPeriod, ScreeningStatus } from "./movie.display.period";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 
-describe("DisplayPeriod", () => {
+describe("MovieDisplayPeriod", () => {
   // Datas para testes
   const ONE_DAY = 1000 * 60 * 60 * 24;
   const NOW = new Date();
@@ -47,11 +47,11 @@ describe("DisplayPeriod", () => {
         successCases.forEach(({ startDate, endDate, scenario }) => {
           it(`deve criar um período de exibição ${scenario}`, () => {
             // Act
-            const result = DisplayPeriod.create(startDate, endDate);
+            const result = MovieDisplayPeriod.create(startDate, endDate);
 
             // Assert
             expect(result.invalid).toBe(false);
-            expect(result.value).toBeInstanceOf(DisplayPeriod);
+            expect(result.value).toBeInstanceOf(MovieDisplayPeriod);
             expect(result.value.startDate).toBe(startDate);
             expect(result.value.endDate).toBe(endDate);
           });
@@ -101,7 +101,7 @@ describe("DisplayPeriod", () => {
         failureCases.forEach(({ startDate, endDate, scenario, errorCode }) => {
           it(`deve rejeitar um período ${scenario}`, () => {
             // Act
-            const result = DisplayPeriod.create(startDate, endDate);
+            const result = MovieDisplayPeriod.create(startDate, endDate);
 
             // Assert
             expect(result.invalid).toBe(true);
@@ -114,7 +114,7 @@ describe("DisplayPeriod", () => {
     describe("hydrate", () => {
       it("deve hidratar um período corretamente", () => {
         // Act
-        const hydrated = DisplayPeriod.hydrate(FUTURE_DATE, FAR_FUTURE_DATE);
+        const hydrated = MovieDisplayPeriod.hydrate(FUTURE_DATE, FAR_FUTURE_DATE);
 
         // Assert
         expect(hydrated.startDate).toBe(FUTURE_DATE);
@@ -138,7 +138,7 @@ describe("DisplayPeriod", () => {
           endDate: null,
         },
       ])("deve lançar erro técnico se $scenario", ({ startDate, endDate }) => {
-        expect(() => DisplayPeriod.hydrate(startDate, endDate)).toThrow(
+        expect(() => MovieDisplayPeriod.hydrate(startDate, endDate)).toThrow(
           FailureCode.MISSING_REQUIRED_DATA,
         );
       });
@@ -174,7 +174,7 @@ describe("DisplayPeriod", () => {
       testCases.forEach(({ scenario, startDate, endDate, expectedStatus }) => {
         it(scenario, () => {
           // Arrange
-          const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
+          const displayPeriod = MovieDisplayPeriod.hydrate(startDate, endDate);
 
           // Act
           const result = displayPeriod.screeningStatus;
@@ -190,7 +190,7 @@ describe("DisplayPeriod", () => {
         // Arrange
         const startDate = new Date(Date.now() - ONE_DAY); // 1 dia atrás
         const endDate = new Date(Date.now() + ONE_DAY); // // 1 dia à frente
-        const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
+        const displayPeriod = MovieDisplayPeriod.hydrate(startDate, endDate);
 
         // Act
         const result = displayPeriod.isActive;
@@ -215,7 +215,7 @@ describe("DisplayPeriod", () => {
       testCases.forEach(({ scenario, startDate, endDate }) => {
         it(scenario, () => {
           // Arrange
-          const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
+          const displayPeriod = MovieDisplayPeriod.hydrate(startDate, endDate);
 
           // Act
           const result = displayPeriod.isActive;
@@ -245,7 +245,7 @@ describe("DisplayPeriod", () => {
       testCases.forEach(({ scenario, startDate, endDate, expected }) => {
         it(scenario, () => {
           // Arrange
-          const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
+          const displayPeriod = MovieDisplayPeriod.hydrate(startDate, endDate);
 
           // Act
           const result = displayPeriod.hasEnded;
@@ -275,7 +275,7 @@ describe("DisplayPeriod", () => {
       testCases.forEach(({ scenario, startDate, endDate, expected }) => {
         it(scenario, () => {
           // Arrange
-          const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
+          const displayPeriod = MovieDisplayPeriod.hydrate(startDate, endDate);
 
           // Act
           const result = displayPeriod.hasNotStarted;
@@ -324,7 +324,7 @@ describe("DisplayPeriod", () => {
         successCases.forEach(({ scenario, rangeStart, rangeEnd }) => {
           it(`deve retornar true ${scenario}`, () => {
             // Arrange
-            const displayPeriod = DisplayPeriod.hydrate(
+            const displayPeriod = MovieDisplayPeriod.hydrate(
               FUTURE_DATE,
               FAR_FUTURE_DATE,
             );
@@ -369,7 +369,7 @@ describe("DisplayPeriod", () => {
         failureCases.forEach(({ scenario, rangeStart, rangeEnd }) => {
           it(`deve retornar false ${scenario}`, () => {
             // Arrange
-            const displayPeriod = DisplayPeriod.hydrate(
+            const displayPeriod = MovieDisplayPeriod.hydrate(
               FUTURE_DATE,
               FAR_FUTURE_DATE,
             );

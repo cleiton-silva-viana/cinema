@@ -27,7 +27,7 @@ export enum ScreeningStatus {
   ENDED = "ended",
 }
 
-export interface ICreateDisplayPeriodInput {
+export interface ICreateMovieDisplayPeriodInput {
   startDate: Date;
   endDate: Date;
 }
@@ -41,7 +41,7 @@ export interface ICreateDisplayPeriodInput {
  * - A data de término deve ser pelo menos 14 dias após a data de início
  * - A data de término não pode ser mais de 30 dias após a data de início
  */
-export class DisplayPeriod {
+export class MovieDisplayPeriod {
   private static readonly MIN_DATE_FOR_DISPLAY_PERIOD: Date = new Date();
 
   /**
@@ -70,7 +70,7 @@ export class DisplayPeriod {
   ) {}
 
   /**
-   * Cria uma instância de DisplayPeriod com validação
+   * Cria uma instância de MovieDisplayPeriod com validação
    *
    * Regras de validação:
    * - A data de início não pode ser nula
@@ -82,14 +82,14 @@ export class DisplayPeriod {
    *
    * @param startDate Data de início da exibição
    * @param endDate Data de término da exibição
-   * @returns Result<DisplayPeriod> com sucesso ou falhas de validação
+   * @returns Result<MovieDisplayPeriod> com sucesso ou falhas de validação
    */
-  public static create(startDate: Date, endDate: Date): Result<DisplayPeriod> {
+  public static create(startDate: Date, endDate: Date): Result<MovieDisplayPeriod> {
     const failures: SimpleFailure[] = [];
 
     const maxStartDate = new Date();
     maxStartDate.setMonth(
-      maxStartDate.getMonth() + DisplayPeriod.MAX_START_DATE_MONTHS_AHEAD,
+      maxStartDate.getMonth() + MovieDisplayPeriod.MAX_START_DATE_MONTHS_AHEAD,
     ); // máximo de 2 meses
 
     Validate.date(startDate)
@@ -97,19 +97,19 @@ export class DisplayPeriod {
       .failures(failures)
       .isRequired()
       .isAfter(
-        DisplayPeriod.MIN_DATE_FOR_DISPLAY_PERIOD,
+        MovieDisplayPeriod.MIN_DATE_FOR_DISPLAY_PERIOD,
         FailureCode.DATE_CANNOT_BE_PAST,
       )
       .isBefore(maxStartDate, FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT)
       .then(() => {
         const minEndDate = new Date(startDate.getTime());
         minEndDate.setDate(
-          minEndDate.getDate() + DisplayPeriod.MIN_DISPLAY_PERIOD_DAYS,
+          minEndDate.getDate() + MovieDisplayPeriod.MIN_DISPLAY_PERIOD_DAYS,
         );
 
         const maxEndDate = new Date(startDate.getTime());
         maxEndDate.setDate(
-          maxEndDate.getDate() + DisplayPeriod.MAX_DISPLAY_PERIOD_DAYS,
+          maxEndDate.getDate() + MovieDisplayPeriod.MAX_DISPLAY_PERIOD_DAYS,
         );
 
         Validate.date(endDate)
@@ -122,21 +122,21 @@ export class DisplayPeriod {
 
     return failures.length > 0
       ? failure(failures)
-      : success(new DisplayPeriod(startDate, endDate));
+      : success(new MovieDisplayPeriod(startDate, endDate));
   }
 
   /**
-   * Cria uma instância de DisplayPeriod diretamente a partir de dados do banco de dados
+   * Cria uma instância de MovieDisplayPeriod diretamente a partir de dados do banco de dados
    * @param startDate Data de início da exibição
    * @param endDate Data de término da exibição
-   * @returns DisplayPeriod
+   * @returns MovieDisplayPeriod
    */
-  public static hydrate(startDate: Date, endDate: Date): DisplayPeriod {
+  public static hydrate(startDate: Date, endDate: Date): MovieDisplayPeriod {
     TechnicalError.if(
       isNull(startDate) || isNull(endDate),
       FailureCode.MISSING_REQUIRED_DATA,
     );
-    return new DisplayPeriod(startDate, endDate);
+    return new MovieDisplayPeriod(startDate, endDate);
   }
 
   /**
