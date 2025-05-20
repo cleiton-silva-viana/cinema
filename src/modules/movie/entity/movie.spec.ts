@@ -402,100 +402,95 @@ describe("Movie", () => {
       };
 
       describe("Cenários válidos", () => {
-        it("deve aceitar período proposto totalmente dentro do período de exibição", () => {
+        it("deve aceitar data proposta dentro do período de exibição", () => {
           // Arrange
           const { movie } = setupAvailabilityTest();
-          const periodStart = createRelativeDate(1);
-          const periodEnd = createRelativeDate(9);
+          const proposedDate = createRelativeDate(5);
 
           // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
+          const result = movie.isAvailableForPeriod(proposedDate);
 
           // Assert
-          expect(result.invalid).toBe(false);
+          expect(result).toBe(true);
         });
 
-        it("deve aceitar período proposto exatamente igual ao período de exibição", () => {
-          // Arrange
-          const { startDate, endDate, movie } = setupAvailabilityTest();
-          const periodStart = new Date(startDate);
-          const periodEnd = new Date(endDate);
-
-          // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
-
-          // Assert
-          expect(result.invalid).toBe(false);
-        });
-
-        it("deve aceitar período proposto com sobreposição parcial no início", () => {
-          // Arrange
-          const { movie } = setupAvailabilityTest();
-          const periodStart = createRelativeDate(-5);
-          const periodEnd = createRelativeDate(5);
-
-          // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
-
-          // Assert
-          expect(result.invalid).toBe(false);
-        });
-
-        it("deve aceitar período proposto com sobreposição parcial no fim", () => {
-          // Arrange
-          const { movie } = setupAvailabilityTest();
-          const periodStart = createRelativeDate(5);
-          const periodEnd = createRelativeDate(15);
-
-          // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
-
-          // Assert
-          expect(result.invalid).toBe(false);
-        });
-
-        it("deve aceitar período proposto com ponto de contato no início", () => {
+        it("deve aceitar data proposta no primeiro dia do período de exibição", () => {
           // Arrange
           const { startDate, movie } = setupAvailabilityTest();
-          const periodStart = createRelativeDate(-10);
-          const periodEnd = new Date(startDate);
+          const proposedDate = new Date(startDate);
 
           // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
+          const result = movie.isAvailableForPeriod(proposedDate);
 
           // Assert
-          expect(result.invalid).toBe(false);
+          expect(result).toBe(true);
         });
 
-        it("deve aceitar período proposto com ponto de contato no fim", () => {
+        it("deve aceitar data proposta no último dia do período de exibição", () => {
           // Arrange
           const { endDate, movie } = setupAvailabilityTest();
-          const periodStart = new Date(endDate);
-          const periodEnd = createRelativeDate(20);
+          const proposedDate = new Date(endDate);
 
           // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
+          const result = movie.isAvailableForPeriod(proposedDate);
 
           // Assert
-          expect(result.invalid).toBe(false);
+          expect(result).toBe(true);
         });
 
-        it("deve aceitar período proposto que engloba completamente o período de exibição", () => {
+        it("deve aceitar data proposta no último dia do período mesmo com horário após 23:59", () => {
           // Arrange
-          const { movie } = setupAvailabilityTest();
-          const periodStart = createRelativeDate(-5);
-          const periodEnd = createRelativeDate(15);
+          const { endDate, movie } = setupAvailabilityTest();
+          const proposedDate = new Date(endDate);
+          proposedDate.setHours(23, 59, 59, 999);
 
           // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
+          const result = movie.isAvailableForPeriod(proposedDate);
 
           // Assert
-          expect(result.invalid).toBe(false);
+          expect(result).toBe(true);
         });
       });
 
       describe("Cenários inválidos", () => {
-        it("deve falhar quando o filme está arquivado", () => {
+        it("deve rejeitar data proposta antes do período de exibição", () => {
+          // Arrange
+          const { movie } = setupAvailabilityTest();
+          const proposedDate = createRelativeDate(-15);
+
+          // Act
+          const result = movie.isAvailableForPeriod(proposedDate);
+
+          // Assert
+          expect(result).toBe(false);
+        });
+
+        it("deve rejeitar data proposta após o período de exibição", () => {
+          // Arrange
+          const { movie } = setupAvailabilityTest();
+          const proposedDate = createRelativeDate(15);
+
+          // Act
+          const result = movie.isAvailableForPeriod(proposedDate);
+
+          // Assert
+          expect(result).toBe(false);
+        });
+
+        it("deve rejeitar quando o filme não tem período de exibição definido", () => {
+          // Arrange
+          const movie = Movie.hydrate(
+            createHydrateInput({
+              displayPeriod: null as DisplayPeriod,
+            }),
+          );
+          const proposedDate = new Date();
+
+          // Act & Assert
+          expect(() => movie.isAvailableForPeriod(proposedDate)).toThrow();
+        });
+
+        it("deve rejeitar quando o filme está arquivado", () => {
           // Arrange
           const { startDate, endDate } = setupAvailabilityTest();
           const movie = Movie.hydrate(
@@ -504,80 +499,13 @@ describe("Movie", () => {
               status: MovieAdministrativeStatus.ARCHIVED,
             }),
           );
+          const proposedDate = new Date(startDate);
 
           // Act
-          const result = movie.isAvailableForPeriod(startDate, endDate);
+          const result = movie.isAvailableForPeriod(proposedDate);
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(FailureCode.RESOURCE_ARCHIVED);
-        });
-
-        it("deve falhar quando o filme não tem período de exibição definido", () => {
-          // Arrange
-          const { startDate, endDate } = setupAvailabilityTest();
-          const movie = Movie.hydrate(
-            createHydrateInput({
-              displayPeriod: null as DisplayPeriod,
-            }),
-          );
-
-          // Act
-          const result = movie.isAvailableForPeriod(startDate, endDate);
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            FailureCode.MISSING_REQUIRED_DATA,
-          );
-        });
-
-        it("deve falhar quando período proposto está antes do período de exibição", () => {
-          // Arrange
-          const { movie } = setupAvailabilityTest();
-          const periodStart = createRelativeDate(-20);
-          const periodEnd = createRelativeDate(-10);
-
-          // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            FailureCode.MOVIE_NOT_AVAILABLE_IN_PERIOD,
-          );
-        });
-
-        it("deve falhar quando período proposto está depois do período de exibição", () => {
-          // Arrange
-          const { movie } = setupAvailabilityTest();
-          const periodStart = createRelativeDate(20);
-          const periodEnd = createRelativeDate(30);
-
-          // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            FailureCode.MOVIE_NOT_AVAILABLE_IN_PERIOD,
-          );
-        });
-
-        it("deve falhar quando período proposto tem datas invertidas", () => {
-          // Arrange
-          const { movie } = setupAvailabilityTest();
-          const periodStart = createRelativeDate(5);
-          const periodEnd = createRelativeDate(2);
-
-          // Act
-          const result = movie.isAvailableForPeriod(periodStart, periodEnd);
-
-          // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            FailureCode.DATE_WITH_INVALID_SEQUENCE,
-          );
+          expect(result).toBe(false);
         });
       });
     });

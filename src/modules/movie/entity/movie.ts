@@ -350,57 +350,35 @@ export class Movie {
   }
 
   /**
-   * Verifica se o filme estará disponível para exibição em um determinado período.
-   *
-   * Este método realiza as seguintes validações:
-   * 1. Verifica se o filme não está arquivado (filmes arquivados não podem ser agendados)
-   * 2. Verifica se o filme possui um período de exibição definido
-   * 3. Verifica se o período solicitado está dentro do período de exibição do filme
-   * 4. Verifica se a sequência de datas é válida (data inicial anterior à final)
-   *
-   * @param startDate Data de início do período solicitado
-   * @param endDate Data de fim do período solicitado
-   * @returns Result<boolean> Resultado indicando se o filme estará disponível.
-   * Em caso de falha, retorna o motivo específico da indisponibilidade.
+   * Verifica se o filme está disponível para exibição na data especificada.
+   * Considera apenas o dia/mês/ano, ignorando o horário específico.
+   * @param date Data da exibição proposta
+   * @returns boolean Indica se o filme está disponível nesta data
    */
-  public isAvailableForPeriod(startDate: Date, endDate: Date): Result<boolean> {
-    if (this.status === MovieAdministrativeStatus.ARCHIVED)
-      return failure({
-        code: FailureCode.RESOURCE_ARCHIVED,
-      });
+  public isAvailableForPeriod(date: Date): boolean {
+    if (this.status !== MovieAdministrativeStatus.APPROVED) return false;
 
-    if (!this.displayPeriod)
-      return failure({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-        details: {
-          field: "displayPeriod",
-        },
-      });
+    const requestedDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
 
-    const movieStart = this.displayPeriod.startDate.getTime();
-    const movieEnd = this.displayPeriod.endDate.getTime();
-    const periodStart = startDate.getTime();
-    const periodEnd = endDate.getTime();
+    const startDate = new Date(
+      this.displayPeriod.startDate.getFullYear(),
+      this.displayPeriod.startDate.getMonth(),
+      this.displayPeriod.startDate.getDate(),
+    );
 
-    const hasOverlap = !(periodEnd < movieStart || periodStart > movieEnd);
+    const endDate = new Date(
+      this.displayPeriod.endDate.getFullYear(),
+      this.displayPeriod.endDate.getMonth(),
+      this.displayPeriod.endDate.getDate(),
+    );
 
-    if (periodStart > periodEnd)
-      return failure({
-        code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
-      });
+    endDate.setHours(23, 59, 59, 999);
 
-    if (!hasOverlap)
-      return failure({
-        code: FailureCode.MOVIE_NOT_AVAILABLE_IN_PERIOD,
-        details: {
-          proposedPeriodStart: startDate,
-          proposedPeriodEnd: endDate,
-          movieDisplayPeriodStart: this.displayPeriod.startDate,
-          movieDisplayPeriodEnd: this.displayPeriod.endDate,
-        },
-      });
-
-    return success(true);
+    return requestedDate >= startDate && requestedDate <= endDate;
   }
 
   /**
