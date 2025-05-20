@@ -12,6 +12,7 @@ import { SeatRow } from "./value-object/seat.row";
 import { IRoomBookingData, RoomSchedule } from "./value-object/room.schedule";
 import { ScreeningUID } from "../../screening/aggregate/value-object/screening.uid";
 import { BookingSlot, BookingType } from "./value-object/booking.slot";
+import { ensureNotNull } from "../../../shared/validator/common.validators";
 
 /**
  * Interface que define os parâmetros necessários para criar uma sala de cinema.
@@ -288,16 +289,7 @@ export class Room {
     startTime: Date,
     durationInMinutes: number,
   ): Result<Room> {
-    const failures: SimpleFailure[] = [];
-
-    Room.checkNullOrUndefinedValues("screeningUID", screeningUID, failures);
-    Room.checkNullOrUndefinedValues("startTime", startTime, failures);
-    Room.checkNullOrUndefinedValues(
-      "durationInMinutes",
-      durationInMinutes,
-      failures,
-    );
-
+    const failures = ensureNotNull({ screeningUID, startTime, durationInMinutes })
     if (failures.length > 0) return failure(failures);
 
     const isAvailable = this.isPeriodAvailable(startTime, durationInMinutes);
@@ -374,15 +366,7 @@ export class Room {
     startTime: Date,
     durationInMinutes: number,
   ): Result<Room> {
-    const failures: SimpleFailure[] = [];
-
-    Room.checkNullOrUndefinedValues("startTime", startTime, failures);
-    Room.checkNullOrUndefinedValues(
-      "durationInMinutes",
-      durationInMinutes,
-      failures,
-    );
-
+    const failures = ensureNotNull({ startTime, durationInMinutes });
     if (failures.length > 0) return failure(failures);
 
     const endTime = Room.calculateEndTime(startTime, durationInMinutes);
@@ -419,15 +403,7 @@ export class Room {
     startTime: Date,
     durationInMinutes: number,
   ): Result<Room> {
-    const failures: SimpleFailure[] = [];
-
-    Room.checkNullOrUndefinedValues("startTime", startTime, failures);
-    Room.checkNullOrUndefinedValues(
-      "durationInMinutes",
-      durationInMinutes,
-      failures,
-    );
-
+    const failures = ensureNotNull({ startTime, durationInMinutes });
     if (failures.length > 0) return failure(failures);
 
     const endTime = Room.calculateEndTime(startTime, durationInMinutes);
@@ -510,15 +486,7 @@ export class Room {
     startTime: Date,
     durationInMinutes: number,
   ): Result<boolean> {
-    const failures: SimpleFailure[] = [];
-
-    Room.checkNullOrUndefinedValues("startTime", startTime, failures);
-    Room.checkNullOrUndefinedValues(
-      "durationInMinutes",
-      durationInMinutes,
-      failures,
-    );
-
+    const failures = ensureNotNull({ startTime, durationInMinutes })
     if (failures.length > 0) return failure(failures);
 
     const totalDuration =
@@ -685,27 +653,5 @@ export class Room {
     return new Date(
       startTime.getTime() + Room.minutesToMilliseconds(durationInMinutes),
     );
-  }
-
-  /**
-   * Verifica se um valor é nulo ou indefinido e adiciona uma falha apropriada à lista de falhas.
-   *
-   * @param fieldName - O nome do campo sendo verificado
-   * @param value - O valor a ser verificado
-   * @param failures - A lista de falhas onde adicionar o erro, se encontrado
-   * @private
-   */
-  private static checkNullOrUndefinedValues(
-    field: string,
-    value: any,
-    failures: SimpleFailure[],
-  ): void {
-    if (isNull(value))
-      failures.push({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-        details: {
-          field,
-        },
-      });
   }
 }
