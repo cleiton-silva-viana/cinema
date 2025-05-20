@@ -630,6 +630,10 @@ export class Room {
     };
   }
 
+  get layout(): SeatLayout {
+    return this._layout
+  }
+
   /**
    * Converte minutos em milissegundos
    */
