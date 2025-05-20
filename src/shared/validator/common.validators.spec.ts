@@ -1,146 +1,76 @@
-import {
-  ensureNotNull,
-  ensureStringNotEmpty,
-  collectNullFields,
-} from "./common.validators";
+import { ensureNotNull, collectNullFields } from "./common.validators";
 import { FailureCode } from "../failure/failure.codes.enum";
-import { SimpleFailure } from "../failure/simple.failure.type";
 import { faker } from "@faker-js/faker";
 
 describe("Common Validators", () => {
   describe("ensureNotNull", () => {
-    it("deve retornar true quando o valor não é nulo", () => {
+    it("deve retornar um array vazio quando não há campos nulos", () => {
       // Arrange
-      const failures: SimpleFailure[] = [];
+      const validField = faker.string.alphanumeric();
 
       // Act
-      const result = ensureNotNull(
-        faker.string.alphanumeric(),
-        "campo",
-        failures,
-      );
+      const failures = ensureNotNull({
+        campo: validField,
+      });
 
       // Assert
-      expect(result).toBe(true);
+      expect(failures).toBeInstanceOf(Array);
       expect(failures.length).toBe(0);
     });
 
-    it("deve retornar false e adicionar falha quando o valor é null", () => {
+    it("deve adicionar falha quando o valor é null", () => {
       // Arrange
-      const failures: SimpleFailure[] = [];
       const fieldName = "nullField";
 
       // Act
-      const result = ensureNotNull(null, fieldName, failures);
+      const failures = ensureNotNull({
+        [fieldName]: null,
+      });
 
       // Assert
-      expect(result).toBe(false);
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
       expect(failures[0].details.field).toBe(fieldName);
     });
 
-    it("deve retornar false e adicionar falha quando o valor é undefined", () => {
+    it("deve adicionar falha quando o valor é undefined", () => {
       // Arrange
-      const failures: SimpleFailure[] = [];
       let undefinedValue;
       const fieldName = "undefinedField";
 
       // Act
-      const result = ensureNotNull(undefinedValue, fieldName, failures);
+      const failures = ensureNotNull({
+        [fieldName]: undefinedValue,
+      });
 
       // Assert
-      expect(result).toBe(false);
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
       expect(failures[0].details.field).toBe(fieldName);
     });
 
-    it("deve usar o código de erro personalizado quando fornecido", () => {
+    it("deve validar múltiplos campos corretamente", () => {
       // Arrange
-      const failures: SimpleFailure[] = [];
-      const code = FailureCode.INVALID_VALUE_FORMAT;
+      const validField = faker.string.alphanumeric();
 
       // Act
-      const result = ensureNotNull(null, "campo", failures, code);
+      const failures = ensureNotNull({
+        validField: validField,
+        nullField: null,
+        undefinedField: undefined,
+      });
 
       // Assert
-      expect(result).toBe(false);
-      expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(code);
-    });
-  });
+      expect(failures.length).toBe(2);
 
-  describe("ensureStringNotEmpty", () => {
-    it("deve retornar true quando a string não está vazia", () => {
-      // Arrange
-      const failures: SimpleFailure[] = [];
+      const fieldNames = failures.map((failure) => failure.details.field);
+      expect(fieldNames).toContain("nullField");
+      expect(fieldNames).toContain("undefinedField");
+      expect(fieldNames).not.toContain("validField");
 
-      // Act
-      const result = ensureStringNotEmpty("texto válido", "campo", failures);
-
-      // Assert
-      expect(result).toBe(true);
-      expect(failures.length).toBe(0);
-    });
-
-    it("deve retornar false e adicionar falha quando a string é vazia", () => {
-      // Arrange
-      const failures: SimpleFailure[] = [];
-      const fieldName = "emptyField";
-
-      // Act
-      const result = ensureStringNotEmpty("", fieldName, failures);
-
-      // Assert
-      expect(result).toBe(false);
-      expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
-      expect(failures[0].details.field).toBe(fieldName);
-    });
-
-    it("deve retornar false e adicionar falha quando a string contém apenas espaços", () => {
-      // Arrange
-      const failures: SimpleFailure[] = [];
-      const fieldName = "fieldWithWitheSpace";
-
-      // Act
-      const result = ensureStringNotEmpty("   ", fieldName, failures);
-
-      // Assert
-      expect(result).toBe(false);
-      expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
-      expect(failures[0].details.field).toBe(fieldName);
-    });
-
-    it("deve retornar false e adicionar falha quando o valor é null", () => {
-      // Arrange
-      const failures: SimpleFailure[] = [];
-      const fieldName = "nullField";
-
-      // Act
-      const result = ensureStringNotEmpty(null as any, fieldName, failures);
-
-      // Assert
-      expect(result).toBe(false);
-      expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
-      expect(failures[0].details.field).toBe(fieldName);
-    });
-
-    it("deve usar o código de erro personalizado quando fornecido", () => {
-      // Arrange
-      const failures: SimpleFailure[] = [];
-      const code = FailureCode.STRING_INVALID_FORMAT;
-
-      // Act
-      const result = ensureStringNotEmpty("", "campo", failures, code);
-
-      // Assert
-      expect(result).toBe(false);
-      expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(code);
+      failures.forEach((failure) => {
+        expect(failure.code).toBe(FailureCode.MISSING_REQUIRED_DATA);
+      });
     });
   });
 
