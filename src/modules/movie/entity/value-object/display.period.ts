@@ -143,7 +143,7 @@ export class DisplayPeriod {
    * Determina o status de exibição com base nas datas
    * @returns ScreeningStatus
    */
-  public getScreeningStatus(): ScreeningStatus {
+  get screeningStatus(): ScreeningStatus {
     const now = new Date();
 
     if (now < this.startDate) {
@@ -161,7 +161,7 @@ export class DisplayPeriod {
    * Verifica se o período está ativo atualmente
    * @returns boolean
    */
-  public isActive(): boolean {
+  get isActive(): boolean {
     const now = new Date();
     return now >= this.startDate && now <= this.endDate;
   }
@@ -170,7 +170,7 @@ export class DisplayPeriod {
    * Verifica se o período já terminou
    * @returns boolean
    */
-  public hasEnded(): boolean {
+  get hasEnded(): boolean {
     return new Date() > this.endDate;
   }
 
@@ -178,7 +178,7 @@ export class DisplayPeriod {
    * Verifica se o período ainda não começou
    * @returns boolean
    */
-  public hasNotStarted(): boolean {
+  get hasNotStarted(): boolean {
     return new Date() < this.startDate;
   }
 

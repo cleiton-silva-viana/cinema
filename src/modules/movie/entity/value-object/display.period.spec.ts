@@ -177,7 +177,7 @@ describe("DisplayPeriod", () => {
           const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
           // Act
-          const result = displayPeriod.getScreeningStatus();
+          const result = displayPeriod.screeningStatus;
 
           // Assert
           expect(result).toBe(expectedStatus);
@@ -193,7 +193,7 @@ describe("DisplayPeriod", () => {
         const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
         // Act
-        const result = displayPeriod.isActive();
+        const result = displayPeriod.isActive;
 
         // Assert
         expect(result).toBe(true);
@@ -218,7 +218,7 @@ describe("DisplayPeriod", () => {
           const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
           // Act
-          const result = displayPeriod.isActive();
+          const result = displayPeriod.isActive;
 
           // Assert
           expect(result).toBe(false);
@@ -248,7 +248,7 @@ describe("DisplayPeriod", () => {
           const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
           // Act
-          const result = displayPeriod.hasEnded();
+          const result = displayPeriod.hasEnded;
 
           // Assert
           expect(result).toBe(expected);
@@ -278,7 +278,7 @@ describe("DisplayPeriod", () => {
           const displayPeriod = DisplayPeriod.hydrate(startDate, endDate);
 
           // Act
-          const result = displayPeriod.hasNotStarted();
+          const result = displayPeriod.hasNotStarted;
 
           // Assert
           expect(result).toBe(expected);
