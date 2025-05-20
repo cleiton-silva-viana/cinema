@@ -39,7 +39,7 @@ describe("Email", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(FailureCode.EMPTY_FIELD);
+      expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
     });
 
     describe("deve falhar ao criar um Email com formato inválido", () => {
@@ -74,7 +74,7 @@ describe("Email", () => {
 
           // Assert
           expect(failures.length).toBe(1);
-          expect(failures[0].code).toBe(FailureCode.INVALID_EMAIL_FORMAT);
+          expect(failures[0].code).toBe(FailureCode.EMAIL_WITH_INVALID_FORMAT);
         });
       });
     });
@@ -99,7 +99,7 @@ describe("Email", () => {
 
           // Assert
           expect(failures.length).toBe(1);
-          expect(failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
+          expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
         });
       });
     });
@@ -123,7 +123,7 @@ describe("Email", () => {
       values.forEach((value) => {
         expect(() => {
           Email.hydrate(value);
-        }).toThrow(FailureCode.NULL_ARGUMENT);
+        }).toThrow(FailureCode.MISSING_REQUIRED_DATA);
       });
     });
   });

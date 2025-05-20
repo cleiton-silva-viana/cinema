@@ -3,9 +3,10 @@ import { Assert, Flow } from "../../../../shared/assert/assert";
 import { not } from "../../../../shared/assert/not";
 import { is } from "../../../../shared/assert/is";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { isNull } from "../../../../shared/validator/validator";
+import { isEmail, isNull } from "../../../../shared/validator/validator";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { Validate } from "../../../../shared/validator/validate";
 
 export class Email {
   private constructor(public readonly value: string) {}
@@ -13,19 +14,18 @@ export class Email {
   public static create(email: string): Result<Email> {
     const failures: SimpleFailure[] = [];
 
-    Assert.all(
-      failures,
-      { field: "email" },
-      not.null(email, FailureCode.NULL_ARGUMENT, {}, Flow.stop),
-      not.empty(email, FailureCode.EMPTY_FIELD, {}, Flow.stop),
-      is.email(email, FailureCode.INVALID_EMAIL_FORMAT),
-    );
+    Validate.string(email)
+      .field("email")
+      .failures(failures)
+      .isRequired()
+      .isNotEmpty(FailureCode.MISSING_REQUIRED_DATA)
+      .isTrue(isEmail(email), FailureCode.EMAIL_WITH_INVALID_FORMAT);
 
     return failures.length > 0 ? failure(failures) : success(new Email(email));
   }
 
   public static hydrate(email: string): Email {
-    TechnicalError.if(isNull(email), FailureCode.NULL_ARGUMENT);
+    TechnicalError.if(isNull(email), FailureCode.MISSING_REQUIRED_DATA);
     return new Email(email);
   }
 
