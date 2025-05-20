@@ -32,7 +32,7 @@ describe("CPF", () => {
 
       // Assert
       expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(FailureCode.EMPTY_FIELD);
+      expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
     });
 
     describe("deve falhar ao criar um CPF com valor inválido", () => {
@@ -59,7 +59,7 @@ describe("CPF", () => {
 
           // Assert
           expect(failures.length).toBe(1);
-          expect(failures[0].code).toBe(FailureCode.INVALID_CPF_FORMAT);
+          expect(failures[0].code).toBe(FailureCode.CPF_WITH_INVALID_FORMAT);
         });
       });
     });
@@ -84,7 +84,7 @@ describe("CPF", () => {
 
           // Assert
           expect(failures.length).toBe(1);
-          expect(failures[0].code).toBe(FailureCode.NULL_ARGUMENT);
+          expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
         });
       });
     });
