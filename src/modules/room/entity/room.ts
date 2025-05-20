@@ -110,14 +110,15 @@ export class Room {
   /**
    * Construtor privado para garantir que instâncias sejam criadas apenas através dos métodos factory.
    *
-   * @param roomUID Identificador único da sala
+   * @param uid Identificador único da sala
    * @param identifier Número da sala
    * @param _layout Layout dos assentos da sala
    * @param _screen Objeto Screen representando a tela da sala
+   * @param _schedule Objeto contendo a agenda da sala
    * @param status Status atual da sala
    */
   private constructor(
-    public readonly roomUID: RoomUID,
+    public readonly uid: RoomUID,
     public readonly identifier: RoomIdentifier,
     private readonly _layout: SeatLayout,
     private readonly _screen: Screen,
@@ -262,7 +263,7 @@ export class Room {
       ? success(this)
       : success(
           new Room(
-            this.roomUID,
+            this.uid,
             this.identifier,
             this._layout,
             this._screen,
@@ -352,7 +353,7 @@ export class Room {
 
     return success(
       new Room(
-        this.roomUID,
+        this.uid,
         this.identifier,
         this._layout,
         this._screen,
@@ -396,7 +397,7 @@ export class Room {
       ? failure(maintenanceResult.failures)
       : success(
           new Room(
-            this.roomUID,
+            this.uid,
             this.identifier,
             this._layout,
             this._screen,
@@ -441,7 +442,7 @@ export class Room {
       ? failure(cleaningResult.failures)
       : success(
           new Room(
-            this.roomUID,
+            this.uid,
             this.identifier,
             this._layout,
             this._screen,
@@ -462,7 +463,7 @@ export class Room {
       ? failure(newScheduleResult.failures)
       : success(
           new Room(
-            this.roomUID,
+            this.uid,
             this.identifier,
             this._layout,
             this._screen,
@@ -483,7 +484,7 @@ export class Room {
 
     return success(
       new Room(
-        this.roomUID,
+        this.uid,
         this.identifier,
         this._layout,
         this._screen,
