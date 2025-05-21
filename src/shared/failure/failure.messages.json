@@ -164,7 +164,7 @@
       "en": "There is a conflict when trying to '{action}' on resource '{resource}'."
     }
   },
-  "CONTENT_INVALID_LANGUAGE": {
+  "CONTENT_WITH_INVALID_LANGUAGE": {
     "status": 400,
     "title": {
       "pt": "Idioma Inválido",
@@ -1119,6 +1119,28 @@
     "template": {
       "pt": "O campo '{field}' deve ter entre {min} e {max} caracteres. Tamanho atual: {length}.",
       "en": "The field '{field}' must be between {min} and {max} characters. Current length: {length}."
+    }
+  },
+  "TEXT_DUPLICATED_FOR_LANGUAGE": {
+    "status": 400,
+    "title": {
+      "pt": "Texto Duplicado para Idioma",
+      "en": "Text Duplicated for Language"
+    },
+    "template": {
+      "pt": "Conteúdo duplicado encontrado para o idioma '{language}'. Cada idioma deve ser único.",
+      "en": "Duplicate content found for language '{language}'. Each language must be unique."
+    }
+  },
+  "TEXT_LANGUAGE_REQUIRED": {
+    "status": 400,
+    "title": {
+      "pt": "Idioma Obrigatório Ausente",
+      "en": "Missing Required Language"
+    },
+    "template": {
+      "pt": "O idioma obrigatório '{requiredLanguage}' não foi fornecido.",
+      "en": "The required language '{requiredLanguage}' was not provided."
     }
   }
 }
