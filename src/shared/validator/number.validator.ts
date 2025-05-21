@@ -20,15 +20,15 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
   public isInRange(
     min: number,
     max: number,
-    code: string = FailureCode.VALUE_OUT_OF_RANGE,
+    code: FailureCode = FailureCode.VALUE_OUT_OF_RANGE,
     details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value >= min && this._value <= max), {
       code,
       details: {
-        minValue: min,
-        maxValue: max,
         value: this._value,
+        min_value: min,
+        max_value: max,
         ...details,
       },
     });
@@ -49,7 +49,7 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
       code,
       details: {
         value: this._value,
-        maxValue: max,
+        max_value: max,
         ...details,
       },
     });
@@ -63,14 +63,14 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
    */
   public isAtLeast(
     min: number,
-    code: string = FailureCode.VALUE_LESS_THAN_MIN,
+    code: FailureCode = FailureCode.VALUE_LESS_THAN_MIN,
     details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value >= min), {
       code,
       details: {
         value: this._value,
-        minValue: min,
+        min_value: min,
         ...details,
       },
     });
@@ -82,7 +82,7 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
    * @param details Detalhes adicionais para a mensagem de erro
    */
   public isPositive(
-    code: string = FailureCode.VALUE_NOT_POSITIVE,
+    code: FailureCode = FailureCode.VALUE_NOT_POSITIVE,
     details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value > 0), {
@@ -100,7 +100,7 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
    * @param details Detalhes adicionais para a mensagem de erro
    */
   public isNegative(
-    code: string = FailureCode.VALUE_CANNOT_BE_NEGATIVE,
+    code: FailureCode = FailureCode.VALUE_CANNOT_BE_NEGATIVE,
     details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !(this._value < 0), {
@@ -118,7 +118,7 @@ export class NumberValidator extends BaseValidator<NumberValidator> {
    * @param details Detalhes adicionais para a mensagem de erro
    */
   public isInteger(
-    code: string = FailureCode.VALUE_NOT_INTEGER,
+    code: FailureCode = FailureCode.VALUE_NOT_INTEGER,
     details: Record<string, any> = {},
   ): NumberValidator {
     return this.validate(() => !Number.isInteger(this._value), {
