@@ -5,7 +5,8 @@ export type ImageHandlerConfig = {
   compress: CompressionType;
   extension: ImageExtension;
   aspect: AspectRatio; // Aspect ratio *desejado* para a saída
-  sizes: { // Larguras desejadas para cada tamanho
+  sizes: {
+    // Larguras desejadas para cada tamanho
     small: ImageSize;
     normal: ImageSize;
     large: ImageSize;
@@ -24,7 +25,7 @@ export enum ImageExtension {
 }
 
 export enum AspectRatio {
-  Square = '1:1',
-  Landscape = '16:9',
-  Portrait = '9:16',
+  Square = "square",
+  Landscape = "landscape", // 16:9
+  Portrait = "portrait", // 9:16
 }
