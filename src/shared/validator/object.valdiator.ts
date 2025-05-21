@@ -21,15 +21,12 @@ export class ObjectValidator<T extends object> extends BaseValidator<
    */
   public hasProperty(
     prop: keyof T,
-    code: FailureCode = FailureCode.OBJECT_MISSING_PROPERTY,
+    code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
     details: Record<string, any> = {},
   ): ObjectValidator<T> {
     return this.validate(() => !(prop in this._value), {
       code,
-      details: {
-        property: prop,
-        ...details,
-      },
+      details,
     });
   }
 
@@ -39,7 +36,7 @@ export class ObjectValidator<T extends object> extends BaseValidator<
    * @param details Detalhes adicionais para a mensagem de erro
    */
   public isNotEmpty(
-    code: FailureCode = FailureCode.OBJECT_IS_EMPTY,
+    code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
     details: Record<string, any> = {},
   ): ObjectValidator<T> {
     return this.validate(() => !(Object.keys(this._value).length > 0), {
@@ -77,9 +74,7 @@ export class ObjectValidator<T extends object> extends BaseValidator<
     if (isNull(this._value) || !(propertyName in this._value)) {
       this._failures.push({
         code: FailureCode.MISSING_REQUIRED_DATA,
-        details: {
-          field: propertyName,
-        },
+        details: { property_name: propertyName },
       });
       return this;
     }

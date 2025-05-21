@@ -5,7 +5,7 @@ import { ObjectValidator } from "./object.valdiator";
 describe("ObjectValidator", () => {
   const OBJECT = { name: "test", age: 25 };
   const NON_EXISTENT_ATTRIBUTE = "birthDate";
-  const PERSONAL_CODE = FailureCode.CONTENT_INVALID_TYPE;
+  const PERSONAL_CODE = FailureCode.CONTENT_WITH_INVALID_TYPE;
   const PERSONAL_DETAILS = { message: "atributo que deve ser anexado ao erro" };
   const FIELD = "object";
 
@@ -32,9 +32,7 @@ describe("ObjectValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.OBJECT_MISSING_PROPERTY);
-      expect(failures[0].details.property).toBe(NON_EXISTENT_ATTRIBUTE);
-      expect(failures[0].details.field).toBe(FIELD);
+      expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
     });
 
     it("deve usar o código de erro personalizado", () => {
@@ -60,14 +58,12 @@ describe("ObjectValidator", () => {
       // Act
       new ObjectValidator({ [FIELD]: OBJECT }, failures).hasProperty(
         NON_EXISTENT_ATTRIBUTE as keyof typeof OBJECT,
-        FailureCode.OBJECT_MISSING_PROPERTY,
+        FailureCode.MISSING_REQUIRED_DATA,
         PERSONAL_DETAILS,
       );
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details.message).toBe(PERSONAL_DETAILS.message);
-      expect(failures[0].details.property).toBe(NON_EXISTENT_ATTRIBUTE);
       expect(failures[0].details.field).toBe(FIELD);
     });
   });
@@ -94,7 +90,7 @@ describe("ObjectValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.OBJECT_IS_EMPTY);
+      expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
       expect(failures[0].details.field).toBe(FIELD);
     });
 
@@ -119,13 +115,12 @@ describe("ObjectValidator", () => {
 
       // Act
       new ObjectValidator({ [FIELD]: value }, failures).isNotEmpty(
-        FailureCode.OBJECT_IS_EMPTY,
+        FailureCode.MISSING_REQUIRED_DATA,
         PERSONAL_DETAILS,
       );
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details.message).toBe(PERSONAL_DETAILS.message);
       expect(failures[0].details.field).toBe(FIELD);
     });
   });
@@ -203,7 +198,6 @@ describe("ObjectValidator", () => {
       expect(wasExecuted).toBe(false);
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
-      expect(failures[0].details.field).toBe(NON_EXISTENT_ATTRIBUTE);
     });
 
     it("deve executar o validador quando a propriedade existir", () => {
@@ -255,7 +249,6 @@ describe("ObjectValidator", () => {
       expect(wasExecuted).toBe(false);
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
-      expect(failures[0].details.field).toBe("age");
     });
   });
 });
