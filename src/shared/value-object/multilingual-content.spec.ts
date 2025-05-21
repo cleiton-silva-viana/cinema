@@ -1,5 +1,7 @@
 import { MultilingualContent, SupportedLanguage } from "./multilingual-content";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { validateAndCollect } from "../validator/common.validators";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 class TestMultilingualContent extends MultilingualContent {}
 
@@ -24,6 +26,12 @@ describe("MultilingualContent", () => {
 
   describe("static methods", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       describe("casos de sucesso", () => {
         const successCases = [
           {
@@ -45,15 +53,18 @@ describe("MultilingualContent", () => {
         successCases.forEach(({ contents, scenario }) => {
           it(`deve criar objeto MultilingualContent ${scenario}`, () => {
             // Act
-            const result = TestMultilingualContent.create(contents);
+            const result = validateAndCollect(
+              TestMultilingualContent.create(contents),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(false);
-            expect(result.value.languages().length).toBe(2);
-            expect(result.value.hasLanguage(SupportedLanguage.PT)).toBe(true);
-            expect(result.value.hasLanguage(SupportedLanguage.EN)).toBe(true);
-            expect(result.value.content(SupportedLanguage.PT)).toBe(pt.text);
-            expect(result.value.content(SupportedLanguage.EN)).toBe(en.text);
+            expect(result).toBeDefined();
+            expect(result.languages().length).toBe(2);
+            expect(result.hasLanguage(SupportedLanguage.PT)).toBe(true);
+            expect(result.hasLanguage(SupportedLanguage.EN)).toBe(true);
+            expect(result.content(SupportedLanguage.PT)).toBe(pt.text);
+            expect(result.content(SupportedLanguage.EN)).toBe(en.text);
           });
         });
       });
@@ -73,23 +84,26 @@ describe("MultilingualContent", () => {
           {
             contents: [],
             scenario: "quando o array está vazio",
-            errorCode: FailureCode.OBJECT_IS_EMPTY,
+            errorCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
             contents: [fr],
             scenario: "quando o idioma é inválido",
-            errorCode: FailureCode.INVALID_LANGUAGE,
+            errorCode: FailureCode.CONTENT_WITH_INVALID_LANGUAGE,
           },
         ];
 
         failureCases.forEach(({ contents, scenario, errorCode }) => {
           it(`deve falhar ao criar ${scenario}`, () => {
             // Act
-            const result = TestMultilingualContent.create(contents);
+            const result = validateAndCollect(
+              TestMultilingualContent.create(contents),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(errorCode);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(errorCode);
           });
         });
       });
@@ -103,13 +117,14 @@ describe("MultilingualContent", () => {
           ];
 
           // Act
-          const result = TestMultilingualContent.create(invalidContent);
+          const result = validateAndCollect(
+            TestMultilingualContent.create(invalidContent),
+            failures,
+          );
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            FailureCode.STRING_INVALID_FORMAT,
-          );
+          expect(result).toBeNull();
+          expect(failures[0].code).toBe(FailureCode.STRING_INVALID_FORMAT);
         });
 
         it("deve falhar quando o texto não segue o formato esperado", () => {
@@ -120,13 +135,14 @@ describe("MultilingualContent", () => {
           ];
 
           // Act
-          const result = TestMultilingualContent.create(invalidContent);
+          const result = validateAndCollect(
+            TestMultilingualContent.create(invalidContent),
+            failures,
+          );
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(
-            FailureCode.STRING_INVALID_FORMAT,
-          );
+          expect(result).toBeNull();
+          expect(failures[0].code).toBe(FailureCode.STRING_INVALID_FORMAT);
         });
       });
     });

@@ -198,10 +198,9 @@ export abstract class MultilingualContent {
     );
     if (!languageEnum) {
       failures.push({
-        code: FailureCode.INVALID_LANGUAGE,
+        code: FailureCode.CONTENT_WITH_INVALID_LANGUAGE,
         details: {
-          providedLanguage: content.language,
-          supportedLanguages: Object.values(SupportedLanguage),
+          language: content.language,
         },
       });
       return;
@@ -221,11 +220,7 @@ export abstract class MultilingualContent {
     contents: any[],
     failures: SimpleFailure[],
   ): void {
-    Validate.array(contents)
-      .field("contents")
-      .failures(failures)
-      .isRequired()
-      .isNotEmpty();
+    Validate.array({ contents }, failures).isRequired().isNotEmpty();
   }
 
   /**
@@ -244,9 +239,7 @@ export abstract class MultilingualContent {
   ): boolean {
     const flag = failures.length;
 
-    Validate.object(content)
-      .field("content")
-      .failures(failures)
+    Validate.object({ content }, failures)
       .isRequired()
       .isNotEmpty()
       .hasProperty("text")
@@ -254,17 +247,13 @@ export abstract class MultilingualContent {
 
     if (flag > failures.length) return false;
 
-    Validate.string(content.text)
-      .field("text")
-      .failures(failures)
+    Validate.string({ text: content.text }, failures)
       .isRequired()
       .isNotEmpty()
       .hasLengthBetween(this.MIN_LENGTH, this.MAX_LENGTH)
       .matchesPattern(this.FORMAT_REGEX);
 
-    Validate.string(content.language)
-      .field("language")
-      .failures(failures)
+    Validate.string({ language: content.language }, failures)
       .isRequired()
       .isNotEmpty()
       .isInEnum(SupportedLanguage);
@@ -311,14 +300,12 @@ export abstract class MultilingualContent {
   ): void {
     const languages = new Set(contents.map((content) => content.language));
 
-    Validate.array(contents).field("contents").failures(failures);
-
     for (const requiredLang of this.REQUIRED_LANGUAGES) {
       if (!languages.has(requiredLang)) {
         failures.push({
           code: FailureCode.TEXT_LANGUAGE_REQUIRED,
           details: {
-            requiredLanguage: requiredLang,
+            language: requiredLang,
           },
         });
       }
