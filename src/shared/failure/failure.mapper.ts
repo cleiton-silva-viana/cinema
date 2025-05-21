@@ -1,6 +1,6 @@
 import { HttpStatus } from "@nestjs/common";
 import { SimpleFailure } from "./simple.failure.type";
-import { RichFailureType } from "./rich.failure.type";
+import { RichFailure } from "./rich.failure.type";
 import { IFailureMessageProvider } from "./failure.message.provider.interface";
 import { IFailureMapper } from "./failure.mapper.interface";
 import { FailureMessageProvider } from "./failure.message.provider";
@@ -47,39 +47,48 @@ export class FailureMapper implements IFailureMapper {
   public toRichFailure(
     failure: SimpleFailure,
     language: "pt" | "en" = "pt",
-  ): RichFailureType {
+  ): RichFailure {
     const messageConfig = this.messageProvider.getMessageConfig(failure.code);
 
-    if (!messageConfig) {
-      // Improved handling for unknown error codes
-      const defaultMessages = {
-        pt: `Erro não catalogado: ${failure.code}`,
-        en: `Uncatalogued error: ${failure.code}`,
-      };
+    const messageTemplate =
+      messageConfig.template?.[language] || messageConfig.template?.en;
+    const title = messageConfig.template[language] || messageConfig.template.en;
 
-      return {
-        code: failure.code,
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        title: defaultMessages[language] || defaultMessages.en,
-        details: {
-          ...this.convertDetailsToRecord(failure.details || {}),
-        },
-      };
-    }
-
-    // Obtém a mensagem no idioma solicitado ou em inglês como fallback
-    const title = messageConfig.message[language] || messageConfig.message.en;
-
-    // Converte o status code numérico para o enum HttpStatus
     const status = messageConfig.statusCode as HttpStatus;
 
-    // Cria o objeto RichFailureType
+    let formattedMessage = title;
+    if (messageTemplate) {
+      formattedMessage = this.formatMessageWithTemplate(
+        messageTemplate,
+        failure.details || {},
+      );
+    }
+
     return {
       code: failure.code,
       status,
       title,
-      details: this.convertDetailsToRecord(failure.details || {}),
+      message: formattedMessage,
     };
+  }
+
+  /**
+   * Formata uma mensagem substituindo os placeholders pelos valores dos detalhes
+   *
+   * @param template Template da mensagem com placeholders no formato {placeholder}
+   * @param details Objeto com os valores para substituir os placeholders
+   * @returns Mensagem formatada com os valores substituídos
+   */
+  private formatMessageWithTemplate(
+    template: string,
+    details: Record<string, any>,
+  ): string {
+    return template.replace(/{(\w+)}/g, (match, placeholder) => {
+      if (details && details[placeholder] !== undefined) {
+        return String(details[placeholder]);
+      }
+      return match; // Mantém o placeholder se não houver valor correspondente
+    });
   }
 
   /**
@@ -92,32 +101,7 @@ export class FailureMapper implements IFailureMapper {
   public toRichFailures(
     failures: SimpleFailure[],
     language: "pt" | "en" = "pt",
-  ): RichFailureType[] {
+  ): RichFailure[] {
     return failures.map((failure) => this.toRichFailure(failure, language));
-  }
-
-  /**
-   * Converte o objeto de detalhes de um SimpleFailure para o formato esperado em RichFailureType
-   *
-   * @param details Objeto de detalhes do SimpleFailure
-   * @returns Objeto de detalhes no formato esperado pelo RichFailureType
-   */
-  private convertDetailsToRecord(
-    details: Record<string, any>,
-  ): Record<string, string | number> {
-    const result: Record<string, string | number> = {};
-
-    // Itera sobre as propriedades do objeto de detalhes
-    for (const [key, value] of Object.entries(details)) {
-      // Ignora propriedades complexas como objetos e arrays
-      if (typeof value === "string" || typeof value === "number") {
-        result[key] = value;
-      } else if (value !== null && value !== undefined) {
-        // Converte outros tipos para string
-        result[key] = String(value);
-      }
-    }
-
-    return result;
   }
 }

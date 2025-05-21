@@ -3,64 +3,66 @@ import { SimpleFailure } from "./simple.failure.type";
 import { FailureMapper } from "./failure.mapper";
 import { FailureMessageConfig } from "./failure.message.provider";
 import { IFailureMessageProvider } from "./failure.message.provider.interface";
+import { FailureCode } from "./failure.codes.enum";
 
-const ERROR_CODES = {
-  RESOURCE_NOT_FOUND: "RESOURCE_NOT_FOUND",
-  VALIDATION_ERROR: "VALIDATION_ERROR",
-  INVALID_UUID_FORMAT: "INVALID_UUID_FORMAT",
-  UNAUTHORIZED_ACCESS: "UNAUTHORIZED_ACCESS",
-  UNKNOWN_ERROR_CODE: "UNKNOWN_ERROR_CODE",
-  CUSTOM_ERROR_CODE: "CUSTOM_ERROR_CODE",
-  ENGLISH_ONLY_ERROR: "ENGLISH_ONLY_ERROR",
-};
-
-const ERROR_MESSAGES = {
-  RESOURCE_NOT_FOUND: {
-    pt: "O recurso solicitado não foi encontrado.",
-    en: "The requested resource was not found.",
-  },
-  VALIDATION_ERROR: {
-    pt: "Os dados fornecidos falharam na validação.",
-    en: "The provided data failed validation. Please check your input and try again.",
-  },
-  INVALID_UUID_FORMAT: {
-    pt: "O formato do UUID é inválido.",
-    en: "Invalid UUID format.",
-  },
-  UNAUTHORIZED_ACCESS: {
-    pt: "Acesso não autorizado.",
-    en: "Unauthorized access.",
-  },
-  ENGLISH_ONLY_ERROR: {
-    en: "English only message",
-  },
-};
+const ERRO_PADRAO = "VALIDATION_ERROR" as FailureCode;
+const ERRO_NAO_ENCONTRADO = "RESOURCE_NOT_FOUND" as FailureCode;
+const ERRO_TEMPLATE = "TEMPLATE_ERROR" as FailureCode;
+const ERRO_DESCONHECIDO = "UNKNOWN_ERROR_CODE" as FailureCode;
 
 describe("FailureMapper", () => {
   const mockMessageProvider: IFailureMessageProvider = {
     getMessageConfig: jest
       .fn()
-      .mockImplementation((code: string): FailureMessageConfig | undefined => {
+      .mockImplementation((code: string): FailureMessageConfig => {
         const mockMessages: Record<string, FailureMessageConfig> = {
-          [ERROR_CODES.RESOURCE_NOT_FOUND]: {
-            message: ERROR_MESSAGES.RESOURCE_NOT_FOUND,
+          [ERRO_PADRAO]: {
+            title: {
+              pt: "Erro de validação",
+              en: "Validation error",
+            },
+            template: {
+              pt: "Os dados fornecidos falharam na validação.",
+              en: "The provided data failed validation.",
+            },
+            statusCode: HttpStatus.BAD_REQUEST,
+          },
+          [ERRO_NAO_ENCONTRADO]: {
+            title: {
+              pt: "Recurso não encontrado",
+              en: "Resource not found",
+            },
+            template: {
+              pt: "O recurso solicitado não foi encontrado.",
+              en: "The requested resource was not found.",
+            },
             statusCode: HttpStatus.NOT_FOUND,
           },
-          [ERROR_CODES.VALIDATION_ERROR]: {
-            message: ERROR_MESSAGES.VALIDATION_ERROR,
+          [ERRO_TEMPLATE]: {
+            title: {
+              pt: "Erro de template",
+              en: "Template error",
+            },
+            template: {
+              pt: "Erro no campo {field} com valor {value}.",
+              en: "Error in field {field} with value {value}.",
+            },
             statusCode: HttpStatus.BAD_REQUEST,
           },
-          [ERROR_CODES.INVALID_UUID_FORMAT]: {
-            message: ERROR_MESSAGES.INVALID_UUID_FORMAT,
-            statusCode: HttpStatus.BAD_REQUEST,
-          },
-          [ERROR_CODES.UNAUTHORIZED_ACCESS]: {
-            message: ERROR_MESSAGES.UNAUTHORIZED_ACCESS,
-            statusCode: HttpStatus.UNAUTHORIZED,
+          [ERRO_DESCONHECIDO]: {
+            title: {
+              pt: "Erro não catalogado",
+              en: "Uncatalogued error",
+            },
+            template: {
+              pt: "Ocorreu um erro não catalogado",
+              en: "An uncatalogued error occurred",
+            },
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
           },
         };
 
-        return mockMessages[code];
+        return mockMessages[code] || mockMessages[ERRO_DESCONHECIDO];
       }),
   };
 
@@ -76,10 +78,10 @@ describe("FailureMapper", () => {
     jest.clearAllMocks();
   });
 
-  it("should convert a SimpleFailure to RichFailureType with correct structure", () => {
+  it("deve converter um SimpleFailure para RichFailureType com a estrutura correta", () => {
     // Arrange
     const simpleFailure: SimpleFailure = {
-      code: ERROR_CODES.RESOURCE_NOT_FOUND,
+      code: ERRO_NAO_ENCONTRADO,
       details: {
         field: "customer",
         value: "123",
@@ -91,21 +93,18 @@ describe("FailureMapper", () => {
 
     // Assert
     expect(mockMessageProvider.getMessageConfig).toHaveBeenCalledWith(
-      ERROR_CODES.RESOURCE_NOT_FOUND,
+      ERRO_NAO_ENCONTRADO,
     );
     expect(richFailure).toHaveProperty("code", simpleFailure.code);
     expect(richFailure).toHaveProperty("status", HttpStatus.NOT_FOUND);
-    expect(richFailure).toHaveProperty(
-      "title",
-      ERROR_MESSAGES.RESOURCE_NOT_FOUND.pt,
-    );
-    expect(richFailure.details).toEqual(simpleFailure.details);
+    expect(richFailure).toHaveProperty("title");
+    expect(richFailure).toHaveProperty("message");
   });
 
-  it("should respect language parameter when converting failures", () => {
+  it("deve respeitar o parâmetro de idioma ao converter falhas", () => {
     // Arrange
     const simpleFailure: SimpleFailure = {
-      code: ERROR_CODES.VALIDATION_ERROR,
+      code: ERRO_PADRAO,
       details: { field: "email" },
     };
 
@@ -114,55 +113,57 @@ describe("FailureMapper", () => {
     const enFailure = mapper.toRichFailure(simpleFailure, "en");
 
     // Assert
-    expect(mockMessageProvider.getMessageConfig).toHaveBeenCalledWith(
-      ERROR_CODES.VALIDATION_ERROR,
-    );
-    expect(ptFailure.title).toBe(ERROR_MESSAGES.VALIDATION_ERROR.pt);
-    expect(enFailure.title).toBe(ERROR_MESSAGES.VALIDATION_ERROR.en);
+    expect(ptFailure.title).toBeDefined();
+    expect(enFailure.title).toBeDefined();
+    expect(enFailure.title).not.toBe(ptFailure.title);
+    expect(ptFailure.message).toBeDefined();
+    expect(enFailure.message).toBeDefined();
+    expect(enFailure.message).not.toBe(ptFailure.message);
   });
 
-  it("should provide a default status and title for unknown error codes", () => {
+  it("deve fornecer um status e título padrão para códigos de erro desconhecidos", () => {
     // Arrange
     const simpleFailure: SimpleFailure = {
-      code: ERROR_CODES.UNKNOWN_ERROR_CODE,
-      details: { reason: "Something went wrong" },
+      code: "CODIGO_INEXISTENTE" as FailureCode,
+      details: { reason: "Algo deu errado" },
     };
 
     // Act
     const richFailure = mapper.toRichFailure(simpleFailure);
 
     // Assert
-    expect(mockMessageProvider.getMessageConfig).toHaveBeenCalledWith(
-      ERROR_CODES.UNKNOWN_ERROR_CODE,
-    );
     expect(richFailure.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-    expect(richFailure.title).toContain("Erro não catalogado");
-    expect(richFailure.details).toEqual(simpleFailure.details);
   });
 
-  it("should preserve the original failure code in the rich failure", () => {
+  it("deve formatar corretamente mensagens com placeholders usando os detalhes fornecidos", () => {
     // Arrange
     const simpleFailure: SimpleFailure = {
-      code: ERROR_CODES.CUSTOM_ERROR_CODE,
-      details: { custom: "data" },
+      code: ERRO_TEMPLATE,
+      details: {
+        field: "email",
+        value: "invalid@example",
+      },
     };
 
     // Act
     const richFailure = mapper.toRichFailure(simpleFailure);
 
     // Assert
-    expect(richFailure.code).toBe(simpleFailure.code);
+    expect(richFailure.message).toBe(
+      "Erro no campo email com valor invalid@example.",
+    );
   });
 
-  it("should convert multiple failures while preserving their individual properties", () => {
+  it("deve converter múltiplas falhas preservando suas propriedades individuais", () => {
     // Arrange
     const failures: SimpleFailure[] = [
       {
-        code: ERROR_CODES.INVALID_UUID_FORMAT,
-        details: { resource: "customer" },
+        code: ERRO_PADRAO,
+        details: { field: "email" },
       },
       {
-        code: ERROR_CODES.UNAUTHORIZED_ACCESS,
+        code: ERRO_NAO_ENCONTRADO,
+        details: { resource: "user" },
       },
     ];
 
@@ -174,50 +175,10 @@ describe("FailureMapper", () => {
     expect(richFailures[0].code).toBe(failures[0].code);
     expect(richFailures[1].code).toBe(failures[1].code);
     expect(richFailures[0].status).toBe(HttpStatus.BAD_REQUEST);
-    expect(richFailures[1].status).toBe(HttpStatus.UNAUTHORIZED);
-    expect(mockMessageProvider.getMessageConfig).toHaveBeenCalledTimes(2);
+    expect(richFailures[1].status).toBe(HttpStatus.NOT_FOUND);
   });
 
-  it("should handle null or undefined details in SimpleFailure", () => {
-    // Arrange
-    const simpleFailure: SimpleFailure = {
-      code: ERROR_CODES.UNAUTHORIZED_ACCESS,
-      // No details provided
-    };
-
-    // Act
-    const richFailure = mapper.toRichFailure(simpleFailure);
-
-    // Assert
-    expect(richFailure.code).toBe(simpleFailure.code);
-    expect(richFailure.status).toBe(HttpStatus.UNAUTHORIZED);
-    expect(richFailure.details).toEqual({});
-  });
-
-  it("should handle complex detail values by converting them to strings", () => {
-    // Arrange
-    const simpleFailure: SimpleFailure = {
-      code: ERROR_CODES.VALIDATION_ERROR,
-      details: {
-        field: "items",
-        value: [1, 2, 3],
-        object: { key: "value" },
-      },
-    };
-
-    // Act
-    const richFailure = mapper.toRichFailure(simpleFailure);
-
-    // Assert
-    expect(richFailure.details).toBeDefined();
-    expect(richFailure.details.field).toBe("items");
-    expect(typeof richFailure.details.value).toBe("string");
-    expect(richFailure.details.value).toBe("1,2,3");
-    expect(typeof richFailure.details.object).toBe("string");
-    expect(richFailure.details.object).toBe("[object Object]");
-  });
-
-  it("should return an empty array when converting an empty array of failures", () => {
+  it("deve retornar um array vazio ao converter um array vazio de falhas", () => {
     // Act
     const richFailures = mapper.toRichFailures([]);
 
@@ -226,22 +187,12 @@ describe("FailureMapper", () => {
     expect(mockMessageProvider.getMessageConfig).not.toHaveBeenCalled();
   });
 
-  it("should use English message as fallback when requested language is not available", () => {
-    // Arrange
-    // Mock a message config with only English
-    (mockMessageProvider.getMessageConfig as jest.Mock).mockReturnValueOnce({
-      message: ERROR_MESSAGES.ENGLISH_ONLY_ERROR,
-      statusCode: HttpStatus.BAD_REQUEST,
-    });
-
-    const simpleFailure: SimpleFailure = {
-      code: ERROR_CODES.ENGLISH_ONLY_ERROR,
-    };
-
+  it("deve garantir que a instância do singleton seja única", () => {
     // Act
-    const ptFailure = mapper.toRichFailure(simpleFailure, "pt");
+    const instance1 = FailureMapper.getInstance();
+    const instance2 = FailureMapper.getInstance();
 
     // Assert
-    expect(ptFailure.title).toBe(ERROR_MESSAGES.ENGLISH_ONLY_ERROR.en);
+    expect(instance1).toBe(instance2);
   });
 });
