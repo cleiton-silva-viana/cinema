@@ -1,6 +1,8 @@
 import { BirthDate } from "./birth.date";
 import { TechnicalError } from "../error/technical.error";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { validateAndCollect } from "../validator/common.validators";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 describe("BirthDate", () => {
   const originalDateNow = Date.now;
@@ -14,6 +16,12 @@ describe("BirthDate", () => {
   });
 
   describe("create", () => {
+    let failures: SimpleFailure[];
+
+    beforeEach(() => {
+      failures = [];
+    });
+
     describe("deve criar um objeto válido", () => {
       const successCases = [
         {
@@ -33,11 +41,11 @@ describe("BirthDate", () => {
       successCases.forEach(({ date, scenario }) => {
         it(`objeto BirthDate ${scenario}`, () => {
           // Act
-          const result = BirthDate.create(date);
+          const result = validateAndCollect(BirthDate.create(date), failures);
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.value.getTime()).toBe(date.getTime());
+          expect(result).toBeDefined();
+          expect(result.value.getTime()).toBe(date.getTime());
         });
       });
     });
@@ -63,10 +71,10 @@ describe("BirthDate", () => {
       failureCases.forEach(({ date, scenario, errorCodeExpected }) => {
         it(`objeto BirthDate ${scenario}`, () => {
           // Act
-          const result = BirthDate.create(date);
-          const failures = result.failures;
+          const result = validateAndCollect(BirthDate.create(date), failures);
 
           // Assert
+          expect(result).toBeNull();
           expect(failures.length).toBe(1);
           expect(failures[0].code).toBe(errorCodeExpected);
         });
@@ -79,10 +87,11 @@ describe("BirthDate", () => {
 
       // Act
       for (const date of invalidValues) {
-        const result = BirthDate.create(date);
+        const result = validateAndCollect(BirthDate.create(date), failures);
 
         // Assert
-        expect(result.invalid).toBe(true);
+        expect(result).toBeNull();
+        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
       }
     });
   });
@@ -115,39 +124,39 @@ describe("BirthDate", () => {
     it("deve retornar verdadeiro quando as datas de nascimento são iguais", () => {
       // Arrange
       const birthDate = new Date(1990, 0, 1);
-      const result1 = BirthDate.create(birthDate);
-      const result2 = BirthDate.create(birthDate);
+      const result1 = BirthDate.hydrate(birthDate);
+      const result2 = BirthDate.hydrate(birthDate);
 
       // Assert
-      expect(result1.value.equal(result2.value)).toBe(true);
+      expect(result1.equal(result2)).toBe(true);
     });
 
     it("deve retornar falso quando as datas de nascimento são diferentes", () => {
       // Arrange
-      const result1 = BirthDate.create(new Date(1990, 0, 1));
-      const result2 = BirthDate.create(new Date(1991, 0, 1));
+      const result1 = BirthDate.hydrate(new Date(1990, 0, 1));
+      const result2 = BirthDate.hydrate(new Date(1991, 0, 1));
 
       // Assert
-      expect(result1.value.equal(result2.value)).toBe(false);
+      expect(result1.equal(result2)).toBe(false);
     });
 
     it("deve retornar falso quando comparado com null", () => {
       // Arrange
-      const result = BirthDate.create(new Date(1990, 0, 1));
+      const result = BirthDate.hydrate(new Date(1990, 0, 1));
 
       // Assert
-      expect(result.value.equal(null as unknown as BirthDate)).toBe(false);
+      expect(result.equal(null as unknown as BirthDate)).toBe(false);
     });
 
     it("deve retornar falso quando comparado com um objeto que não é BirthDate", () => {
       // Arrange
-      const result = BirthDate.create(new Date(1990, 0, 1));
+      const result = BirthDate.hydrate(new Date(1990, 0, 1));
       const notBirthDateObject = { value: new Date(1990, 0, 1) };
 
       // Assert
-      expect(
-        result.value.equal(notBirthDateObject as unknown as BirthDate),
-      ).toBe(false);
+      expect(result.equal(notBirthDateObject as unknown as BirthDate)).toBe(
+        false,
+      );
     });
   });
 });

@@ -41,9 +41,7 @@ export class BirthDate {
   public static create(birthDate: Date): Result<BirthDate> {
     const failures: SimpleFailure[] = [];
 
-    Validate.date(birthDate)
-      .field("birthDate")
-      .failures(failures)
+    Validate.date({ birthDate }, failures)
       .isRequired()
       .isAfter(BirthDate.MAX_BIRTH_DATE)
       .isBefore(BirthDate.MIN_BIRTH_DATE);
