@@ -17,32 +17,22 @@ export type FailureDetails = {
    * Exemplo: para um email inválido, poderia ser 'usuario@dominio'
    */
   value?: any;
-
-  /**
-   * O valor mínimo permitido (para números ou comprimentos).
-   * Exemplo: 0 para números positivos, 8 para comprimento mínimo de senha
-   */
+  min_value?: number
+  max_value?: number
   min?: number;
-
-  /**
-   * O valor máximo permitido (para números ou comprimentos).
-   * Exemplo: 100 para percentuais, 255 para comprimento máximo de texto
-   */
   max?: number;
-
-  /**
-   * Valor que indica a quantidade de algo
-   * */
   count?: number;
 
   date?: string
   max_date?: string
+  min_date?: string
   start_date?: string
   end_date?: string
   max_days?: number
   min_days?: number
 
   object_type?: string
+  property_name?: string
 
 /*  /!**
    * O tipo de dado esperado para o campo.
