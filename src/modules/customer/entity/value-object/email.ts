@@ -14,9 +14,7 @@ export class Email {
   public static create(email: string): Result<Email> {
     const failures: SimpleFailure[] = [];
 
-    Validate.string(email)
-      .field("email")
-      .failures(failures)
+    Validate.string({ email }, failures)
       .isRequired()
       .isNotEmpty(FailureCode.MISSING_REQUIRED_DATA)
       .isTrue(isEmail(email), FailureCode.EMAIL_WITH_INVALID_FORMAT);

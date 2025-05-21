@@ -1,11 +1,19 @@
 import { Email } from "./email";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { faker } from "@faker-js/faker";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("Email", () => {
   const EMAIL_STRING = faker.internet.email();
 
   describe("create", () => {
+    let failures: SimpleFailure[];
+
+    beforeEach(() => {
+      failures = [];
+    });
+
     describe("deve criar um email válido", () => {
       const successCases = [
         { email: "test@example.com", scenario: "com formato padrão" },
@@ -23,23 +31,22 @@ describe("Email", () => {
       successCases.forEach(({ email, scenario }) => {
         it(`objeto Email ${scenario}`, () => {
           // Act
-          const result = Email.create(email);
+          const result = validateAndCollect(Email.create(email), failures);
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Email);
-          expect(result.value.value).toBe(email);
+          expect(result).toBeDefined();
+          expect(result.value).toBe(email);
         });
       });
     });
 
     it("deve falhar ao usar um valor vazio para criar um Email", () => {
       // Act
-      const result = Email.create("");
+      const result = validateAndCollect(Email.create(""), failures);
 
       // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
+      expect(result).toBeNull();
+      expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
     });
 
     describe("deve falhar ao criar um Email com formato inválido", () => {
@@ -69,10 +76,10 @@ describe("Email", () => {
       failureCases.forEach(({ email, scenario }) => {
         it(`objeto Email ${scenario}`, () => {
           // Act
-          const result = Email.create(email);
-          const failures = result.failures;
+          const result = validateAndCollect(Email.create(email), failures);
 
           // Assert
+          expect(result).toBeNull();
           expect(failures.length).toBe(1);
           expect(failures[0].code).toBe(FailureCode.EMAIL_WITH_INVALID_FORMAT);
         });
@@ -94,10 +101,10 @@ describe("Email", () => {
       failureCases.forEach(({ email, scenario }) => {
         it(scenario, () => {
           // Act
-          const result = Email.create(email);
-          const failures = result.failures;
+          const result = validateAndCollect(Email.create(email), failures);
 
           // Assert
+          expect(result).toBeNull();
           expect(failures.length).toBe(1);
           expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
         });
@@ -131,39 +138,37 @@ describe("Email", () => {
   describe("equal", () => {
     it("deve retornar verdadeiro quando emails são iguais", () => {
       // Arrange
-      const result1 = Email.create(EMAIL_STRING);
-      const result2 = Email.create(EMAIL_STRING);
+      const result1 = Email.hydrate(EMAIL_STRING);
+      const result2 = Email.hydrate(EMAIL_STRING);
 
       // Assert
-      expect(result1.value.equal(result2.value)).toBe(true);
+      expect(result1.equal(result2)).toBe(true);
     });
 
     it("deve retornar falso quando emails são diferentes", () => {
       // Arrange
-      const result1 = Email.create(EMAIL_STRING);
-      const result2 = Email.create(faker.internet.email());
+      const result1 = Email.hydrate(EMAIL_STRING);
+      const result2 = Email.hydrate(faker.internet.email());
 
       // Assert
-      expect(result1.value.equal(result2.value)).toBe(false);
+      expect(result1.equal(result2)).toBe(false);
     });
 
     it("deve retornar falso quando comparado com nulo", () => {
       // Arrange
-      const result = Email.create(EMAIL_STRING);
+      const result = Email.hydrate(EMAIL_STRING);
 
       // Assert
-      expect(result.value.equal(null)).toBe(false);
+      expect(result.equal(null)).toBe(false);
     });
 
     it("deve retornar falso quando comparado com objeto não-Email", () => {
       // Arrange
-      const result = Email.create(EMAIL_STRING);
+      const result = Email.hydrate(EMAIL_STRING);
       const notEmailObject = { value: EMAIL_STRING };
 
       // Assert
-      expect(result.value.equal(notEmailObject as unknown as Email)).toBe(
-        false,
-      );
+      expect(result.equal(notEmailObject as unknown as Email)).toBe(false);
     });
   });
 });
