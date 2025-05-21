@@ -10,7 +10,7 @@ import { HttpStatus } from "@nestjs/common";
  * Ela fornece informações suficientes para que o cliente compreenda e,
  * potencialmente, trate o erro adequadamente.
  */
-export type RichFailureType = {
+export type RichFailure = {
   /**
    * O código de erro único e padronizado que identifica o tipo específico da falha.
    * Este código é consistente entre a `SimpleFailure` interna e a `RichFailureType` externa,
