@@ -19,7 +19,7 @@ describe("DateValidator", () => {
   describe("Construtor e inicialização", () => {
     it("deve criar uma instância válida com uma data", () => {
       // Arrange & Act
-      const validator = new DateValidator(new Date());
+      const validator = new DateValidator({ data: new Date() }, []);
 
       // Assert
       expect(validator).toBeInstanceOf(DateValidator);
@@ -27,19 +27,23 @@ describe("DateValidator", () => {
 
     it("deve lidar com valores null", () => {
       // Arrange & Act & Assert
-      expect(() => new DateValidator(null as any)).not.toThrow();
+      expect(() => new DateValidator({ data: null as any }, [])).not.toThrow();
     });
 
     it("deve lidar com valores undefined", () => {
       // Arrange & Act & Assert
-      expect(() => new DateValidator(undefined as any)).not.toThrow();
+      expect(
+        () => new DateValidator({ data: undefined as any }, []),
+      ).not.toThrow();
     });
 
     it("deve lidar com valores que não são datas", () => {
       // Arrange & Act & Assert
-      expect(() => new DateValidator("2023-01-01" as any)).not.toThrow();
-      expect(() => new DateValidator(123 as any)).not.toThrow();
-      expect(() => new DateValidator({} as any)).not.toThrow();
+      expect(
+        () => new DateValidator({ data: "2023-01-01" as any }, []),
+      ).not.toThrow();
+      expect(() => new DateValidator({ data: 123 as any }, [])).not.toThrow();
+      expect(() => new DateValidator({ data: {} as any }, [])).not.toThrow();
     });
   });
 
@@ -49,7 +53,7 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(dataMiddle).failures(failures).isAfter(startDate);
+      new DateValidator({ data: dataMiddle }, failures).isAfter(startDate);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -60,7 +64,7 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(startDate).failures(failures).isAfter(endDate);
+      new DateValidator({ data: startDate }, failures).isAfter(endDate);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -75,7 +79,7 @@ describe("DateValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new DateValidator(startDate).failures(failures).isAfter(endDate, code);
+      new DateValidator({ data: startDate }, failures).isAfter(endDate, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -87,9 +91,11 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(startDate)
-        .failures(failures)
-        .isAfter(endDate, FailureCode.DATE_NOT_AFTER_LIMIT, commonDetails);
+      new DateValidator({ data: startDate }, failures).isAfter(
+        endDate,
+        FailureCode.DATE_NOT_AFTER_LIMIT,
+        commonDetails,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -105,7 +111,7 @@ describe("DateValidator", () => {
       // Act & Assert
       for (const date of invalidDate) {
         expect(() => {
-          new DateValidator(startDate).isAfter(date);
+          new DateValidator({ data: startDate }, []).isAfter(date);
         }).toThrow();
       }
     });
@@ -119,7 +125,7 @@ describe("DateValidator", () => {
         const failures: SimpleFailure[] = [];
 
         // Act
-        new DateValidator(value).failures(failures).isAfter(endDate);
+        new DateValidator({ data: value }, failures).isAfter(endDate);
 
         // Assert
         expect(failures.length).toBe(1);
@@ -134,7 +140,7 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(startDate).failures(failures).isBefore(endDate);
+      new DateValidator({ data: startDate }, failures).isBefore(endDate);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -145,7 +151,7 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(endDate).failures(failures).isBefore(startDate);
+      new DateValidator({ data: endDate }, failures).isBefore(startDate);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -162,7 +168,7 @@ describe("DateValidator", () => {
         const failures: SimpleFailure[] = [];
 
         // Act
-        new DateValidator(date).failures(failures).isBefore(endDate);
+        new DateValidator({ data: date }, failures).isBefore(endDate);
 
         // Assert
         expect(failures.length).toBe(1);
@@ -176,7 +182,7 @@ describe("DateValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new DateValidator(endDate).failures(failures).isBefore(startDate, code);
+      new DateValidator({ data: endDate }, failures).isBefore(startDate, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -188,9 +194,11 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(endDate)
-        .failures(failures)
-        .isBefore(startDate, FailureCode.DATE_NOT_BEFORE_LIMIT, commonDetails);
+      new DateValidator({ data: endDate }, failures).isBefore(
+        startDate,
+        FailureCode.DATE_NOT_BEFORE_LIMIT,
+        commonDetails,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -206,7 +214,7 @@ describe("DateValidator", () => {
       for (const date of invalidLimits) {
         // Assert
         expect(() => {
-          new DateValidator(startDate).isBefore(date);
+          new DateValidator({ data: startDate }, []).isBefore(date);
         }).toThrow();
       }
     });
@@ -238,9 +246,10 @@ describe("DateValidator", () => {
           const failures: SimpleFailure[] = [];
 
           // Act
-          new DateValidator(date)
-            .failures(failures)
-            .isBetween(startDate, endDate);
+          new DateValidator({ data: date }, failures).isBetween(
+            startDate,
+            endDate,
+          );
 
           // Assert
           expect(failures.length).toBe(0);
@@ -268,9 +277,10 @@ describe("DateValidator", () => {
           const failures: SimpleFailure[] = [];
 
           // Act
-          new DateValidator(date)
-            .failures(failures)
-            .isBetween(startDate, endDate);
+          new DateValidator({ data: date }, failures).isBetween(
+            startDate,
+            endDate,
+          );
 
           // Assert
           expect(failures.length).toBe(1);
@@ -288,9 +298,11 @@ describe("DateValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new DateValidator(dataAfter)
-        .failures(failures)
-        .isBetween(startDate, endDate, code);
+      new DateValidator({ data: dataAfter }, failures).isBetween(
+        startDate,
+        endDate,
+        code,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -302,14 +314,12 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(dataAfter)
-        .failures(failures)
-        .isBetween(
-          startDate,
-          endDate,
-          FailureCode.DATE_OUT_OF_RANGE,
-          commonDetails,
-        );
+      new DateValidator({ data: dataAfter }, failures).isBetween(
+        startDate,
+        endDate,
+        FailureCode.DATE_OUT_OF_RANGE,
+        commonDetails,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -328,9 +338,10 @@ describe("DateValidator", () => {
 
         // Act & Assert
         expect(() => {
-          new DateValidator(dataMiddle)
-            .failures(failures)
-            .isBetween(date, endDate);
+          new DateValidator({ data: dataMiddle }, failures).isBetween(
+            date,
+            endDate,
+          );
         }).toThrow();
       }
     });
@@ -344,9 +355,10 @@ describe("DateValidator", () => {
 
         // Act & Assert
         expect(() => {
-          new DateValidator(dataMiddle)
-            .failures(failures)
-            .isBetween(startDate, date);
+          new DateValidator({ data: dataMiddle }, failures).isBetween(
+            startDate,
+            date,
+          );
         }).toThrow();
       }
     });
@@ -356,9 +368,10 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(dataMiddle)
-        .failures(failures)
-        .isBetween(endDate, startDate);
+      new DateValidator({ data: dataMiddle }, failures).isBetween(
+        endDate,
+        startDate,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -372,8 +385,7 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(dataAfter)
-        .failures(failures)
+      new DateValidator({ data: dataAfter }, failures)
         .isBefore(startDate) // Falha aqui
         .isAfter(endDate); // Não deve ser executado
 
@@ -387,8 +399,7 @@ describe("DateValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new DateValidator(dataAfter)
-        .failures(failures)
+      new DateValidator({ data: dataAfter }, failures)
         .isBefore(startDate) // Falha aqui
         .continue()
         .isAfter(startDate); // Deve ser executado
@@ -406,8 +417,7 @@ describe("DateValidator", () => {
       const afterDate = new Date(value.getTime() + ONE_DAY);
 
       // Act
-      new DateValidator(value)
-        .failures(failures)
+      new DateValidator({ data: value }, failures)
         .isBefore(beforeDate) // Falha aqui
         .continue()
         .isAfter(afterDate); // Falha aqui também
@@ -424,8 +434,7 @@ describe("DateValidator", () => {
       const value = dataMiddle;
 
       // Act
-      new DateValidator(value)
-        .failures(failures)
+      new DateValidator({ data: value }, failures)
         .if(value.getMonth() === startDate.getMonth()) // Janeiro (true)
         .isBefore(endDate) // Não falha
         .if(value.getFullYear() !== startDate.getFullYear()) // Falso
@@ -443,7 +452,7 @@ describe("DateValidator", () => {
       const value = new Date("1900-01-01");
 
       // Act
-      new DateValidator(value).failures(failures).isAfter(startDate);
+      new DateValidator({ data: value }, failures).isAfter(startDate);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -456,7 +465,7 @@ describe("DateValidator", () => {
       const value = new Date("2100-01-01");
 
       // Act
-      new DateValidator(value).failures(failures).isBefore(startDate);
+      new DateValidator({ data: value }, failures).isBefore(startDate);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -470,7 +479,7 @@ describe("DateValidator", () => {
 
       // Act & Assert
       expect(() => {
-        new DateValidator(value).failures(failures).isAfter(startDate);
+        new DateValidator({ data: value }, failures).isAfter(startDate);
       }).not.toThrow();
     });
   });

@@ -1,13 +1,14 @@
 import { BaseValidator } from "./base.validator.ts";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { TechnicalError } from "../error/technical.error";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 /**
  * Validador para datas
  */
 export class DateValidator extends BaseValidator<DateValidator> {
-  constructor(value: Date) {
-    super(value);
+  constructor(value: Record<string, Date>, failures: SimpleFailure[]) {
+    super(value, failures);
   }
 
   /**
