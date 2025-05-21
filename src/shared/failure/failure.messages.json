@@ -1076,5 +1076,49 @@
       "pt": "Nenhum item válido foi encontrado no campo '{field}'.",
       "en": "No valid item was found in field '{field}'."
     }
+  },
+  "STRING_CANNOT_BE_EMPTY": {
+    "status": 400,
+    "title": {
+      "pt": "String Não Pode Ser Vazia",
+      "en": "String Cannot Be Empty"
+    },
+    "template": {
+      "pt": "O campo '{field}' não pode ser uma string vazia.",
+      "en": "The field '{field}' cannot be an empty string."
+    }
+  },
+  "STRING_CANNOT_BE_BLANK": {
+    "status": 400,
+    "title": {
+      "pt": "String Não Pode Ser Em Branco",
+      "en": "String Cannot Be Blank"
+    },
+    "template": {
+      "pt": "O campo '{field}' não pode conter apenas espaços em branco.",
+      "en": "The field '{field}' cannot contain only whitespace."
+    }
+  },
+  "STRING_INVALID_FORMAT": {
+    "status": 400,
+    "title": {
+      "pt": "Formato de String Inválido",
+      "en": "Invalid String Format"
+    },
+    "template": {
+      "pt": "O formato do campo '{field}' é inválido. {reason}",
+      "en": "The format of field '{field}' is invalid. {reason}"
+    }
+  },
+  "STRING_LENGTH_OUT_OF_RANGE": {
+    "status": 400,
+    "title": {
+      "pt": "Tamanho da String Fora do Intervalo",
+      "en": "String Length Out of Range"
+    },
+    "template": {
+      "pt": "O campo '{field}' deve ter entre {min} e {max} caracteres. Tamanho atual: {length}.",
+      "en": "The field '{field}' must be between {min} and {max} characters. Current length: {length}."
+    }
   }
 }
