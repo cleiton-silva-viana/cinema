@@ -27,9 +27,7 @@ export class CPF {
   public static create(cpf: string): Result<CPF> {
     const failures: SimpleFailure[] = [];
 
-    Validate.string(cpf)
-      .field("cpf")
-      .failures(failures)
+    Validate.string({ cpf }, failures)
       .isRequired()
       .isNotEmpty(FailureCode.MISSING_REQUIRED_DATA)
       .matchesPattern(CPF.FORMAT_REGEX, FailureCode.CPF_WITH_INVALID_FORMAT);
