@@ -10,7 +10,7 @@ describe("ArrayValidator", () => {
       const value = [1, 2, 3];
 
       // Act
-      new ArrayValidator(value).failures(failures).field("itens").isNotEmpty();
+      new ArrayValidator({ itens: value }, failures).isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -22,7 +22,7 @@ describe("ArrayValidator", () => {
       const value: number[] = [];
 
       // Act
-      new ArrayValidator(value).failures(failures).field("itens").isNotEmpty();
+      new ArrayValidator({ itens: value }, failures).isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -36,10 +36,7 @@ describe("ArrayValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .isNotEmpty(code);
+      new ArrayValidator({ itens: value }, failures).isNotEmpty(code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -53,10 +50,10 @@ describe("ArrayValidator", () => {
       const details = { message: "Lista não pode estar vazia" };
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .isNotEmpty(FailureCode.OBJECT_IS_EMPTY, details);
+      new ArrayValidator({ itens: value }, failures).isNotEmpty(
+        FailureCode.OBJECT_IS_EMPTY,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -73,10 +70,7 @@ describe("ArrayValidator", () => {
       const max = 5;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .hasLengthBetween(min, max);
+      new ArrayValidator({ itens: value }, failures).hasLengthBetween(min, max);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -90,10 +84,7 @@ describe("ArrayValidator", () => {
       const max = 5;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .hasLengthBetween(min, max);
+      new ArrayValidator({ itens: value }, failures).hasLengthBetween(min, max);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -111,10 +102,7 @@ describe("ArrayValidator", () => {
       const max = 5;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .hasLengthBetween(min, max);
+      new ArrayValidator({ itens: value }, failures).hasLengthBetween(min, max);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -133,10 +121,11 @@ describe("ArrayValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .hasLengthBetween(min, max, code);
+      new ArrayValidator({ itens: value }, failures).hasLengthBetween(
+        min,
+        max,
+        code,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -152,10 +141,12 @@ describe("ArrayValidator", () => {
       const details = { message: "Quantidade de itens inválida" };
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .hasLengthBetween(min, max, FailureCode.LENGTH_OUT_OF_RANGE, details);
+      new ArrayValidator({ itens: value }, failures).hasLengthBetween(
+        min,
+        max,
+        FailureCode.LENGTH_OUT_OF_RANGE,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -174,10 +165,7 @@ describe("ArrayValidator", () => {
       const value = [1, 2, 3];
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .contains(item);
+      new ArrayValidator({ itens: value }, failures).contains(item);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -190,10 +178,7 @@ describe("ArrayValidator", () => {
       const value = [1, 2, 3];
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .contains(item);
+      new ArrayValidator({ itens: value }, failures).contains(item);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -209,10 +194,7 @@ describe("ArrayValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .contains(item, code);
+      new ArrayValidator({ itens: value }, failures).contains(item, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -227,10 +209,11 @@ describe("ArrayValidator", () => {
       const details = { message: "Item obrigatório não encontrado" };
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .contains(item, FailureCode.MISSING_REQUIRED_DATA, details);
+      new ArrayValidator({ itens: value }, failures).contains(
+        item,
+        FailureCode.MISSING_REQUIRED_DATA,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -247,10 +230,7 @@ describe("ArrayValidator", () => {
       const predicate = (item: number) => item % 2 === 0;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .every(predicate);
+      new ArrayValidator({ itens: value }, failures).every(predicate);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -263,10 +243,7 @@ describe("ArrayValidator", () => {
       const predicate = (item: number) => item % 2 === 0;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .every(predicate);
+      new ArrayValidator({ itens: value }, failures).every(predicate);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -281,10 +258,7 @@ describe("ArrayValidator", () => {
       const code = FailureCode.INVALID_VALUE_FORMAT;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .every(predicate, code);
+      new ArrayValidator({ itens: value }, failures).every(predicate, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -299,10 +273,11 @@ describe("ArrayValidator", () => {
       const details = { message: "Todos os itens devem ser pares" };
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .every(predicate, FailureCode.CONTENT_INVALID_ITEMS, details);
+      new ArrayValidator({ itens: value }, failures).every(
+        predicate,
+        FailureCode.CONTENT_INVALID_ITEMS,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -318,10 +293,7 @@ describe("ArrayValidator", () => {
       const predicate = (item: number) => item % 2 === 0;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .some(predicate);
+      new ArrayValidator({ itens: value }, failures).some(predicate);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -334,10 +306,7 @@ describe("ArrayValidator", () => {
       const predicate = (item: number) => item % 2 === 0;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .some(predicate);
+      new ArrayValidator({ itens: value }, failures).some(predicate);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -352,10 +321,7 @@ describe("ArrayValidator", () => {
       const code = FailureCode.INVALID_VALUE_FORMAT;
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .some(predicate, code);
+      new ArrayValidator({ itens: value }, failures).some(predicate, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -370,10 +336,11 @@ describe("ArrayValidator", () => {
       const details = { message: "Pelo menos um item deve ser par" };
 
       // Act
-      new ArrayValidator(value)
-        .failures(failures)
-        .field("itens")
-        .some(predicate, FailureCode.MISSING_VALID_ITEM, details);
+      new ArrayValidator({ itens: value }, failures).some(
+        predicate,
+        FailureCode.MISSING_VALID_ITEM,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);

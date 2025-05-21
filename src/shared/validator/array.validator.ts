@@ -1,12 +1,13 @@
 import { BaseValidator } from "./base.validator.ts";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 /**
  * Validador para arrays
  */
 export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
-  constructor(value: T[]) {
-    super(value);
+  constructor(value: Record<string, Array<T>>, failures: SimpleFailure[] = []) {
+    super(value, failures);
   }
 
   /**
