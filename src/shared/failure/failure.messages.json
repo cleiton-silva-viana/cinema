@@ -318,6 +318,17 @@
       "en": "The date range is too large. The maximum allowed period is {max_days} days."
     }
   },
+  "VALUE_OUT_OF_RANGE": {
+    "status": 400,
+    "title": {
+      "pt": "Valor Fora do Intervalo",
+      "en": "Value Out of Range"
+    },
+    "template": {
+      "pt": "O valor '{value}' fornecido para '{field}' está fora do intervalo permitido ({minValue} - {maxValue}).",
+      "en": "The value '{value}' provided for '{field}' is out of the allowed range ({minValue} - {maxValue})."
+    }
+  },
   "INVALID_ENUM_VALUE": {
     "status": 400,
     "title": {
