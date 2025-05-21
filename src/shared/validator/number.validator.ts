@@ -1,12 +1,13 @@
 import { FailureCode } from "../failure/failure.codes.enum";
 import { BaseValidator } from "./base.validator.ts";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 /**
  * Validador para números
  */
 export class NumberValidator extends BaseValidator<NumberValidator> {
-  constructor(value: number) {
-    super(value);
+  constructor(value: Record<string, number>, failures: SimpleFailure[]) {
+    super(value, failures);
   }
 
   /**

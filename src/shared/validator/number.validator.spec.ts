@@ -13,10 +13,7 @@ describe("NumberValidator", () => {
       const VALUE = 2;
 
       // Act
-      new NumberValidator(VALUE)
-        .failures(failures)
-        .field("valor")
-        .isInRange(MIN, MAX);
+      new NumberValidator({ valor: VALUE }, failures).isInRange(MIN, MAX);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -28,10 +25,7 @@ describe("NumberValidator", () => {
       const VALUE = 0;
 
       // Act
-      new NumberValidator(VALUE)
-        .failures(failures)
-        .field("valor")
-        .isInRange(MIN, MAX);
+      new NumberValidator({ valor: VALUE }, failures).isInRange(MIN, MAX);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -47,10 +41,7 @@ describe("NumberValidator", () => {
       const VALUE = 11;
 
       // Act
-      new NumberValidator(VALUE)
-        .failures(failures)
-        .field("valor")
-        .isInRange(MIN, MAX);
+      new NumberValidator({ valor: VALUE }, failures).isInRange(MIN, MAX);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -67,10 +58,7 @@ describe("NumberValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new NumberValidator(VALUE)
-        .failures(failures)
-        .field("valor")
-        .isInRange(MIN, MAX, code);
+      new NumberValidator({ valor: VALUE }, failures).isInRange(MIN, MAX, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -84,10 +72,12 @@ describe("NumberValidator", () => {
       const details = { message: "Valor fora do intervalo permitido" };
 
       // Act
-      new NumberValidator(VALUE)
-        .failures(failures)
-        .field("valor")
-        .isInRange(MIN, MAX, FailureCode.VALUE_OUT_OF_RANGE, details);
+      new NumberValidator({ valor: VALUE }, failures).isInRange(
+        MIN,
+        MAX,
+        FailureCode.VALUE_OUT_OF_RANGE,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -105,10 +95,7 @@ describe("NumberValidator", () => {
       const value = 9;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isAtMost(MAX);
+      new NumberValidator({ valor: value }, failures).isAtMost(MAX);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -120,10 +107,7 @@ describe("NumberValidator", () => {
       const value = 11;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isAtMost(MAX);
+      new NumberValidator({ valor: value }, failures).isAtMost(MAX);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -139,10 +123,7 @@ describe("NumberValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isAtMost(MAX, code);
+      new NumberValidator({ valor: value }, failures).isAtMost(MAX, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -156,10 +137,11 @@ describe("NumberValidator", () => {
       const details = { message: "Valor excede o máximo permitido" };
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isAtMost(MAX, FailureCode.VALUE_GREATER_THAN_MAX, details);
+      new NumberValidator({ valor: value }, failures).isAtMost(
+        MAX,
+        FailureCode.VALUE_GREATER_THAN_MAX,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -177,10 +159,7 @@ describe("NumberValidator", () => {
       const min = 5;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isAtLeast(min);
+      new NumberValidator({ valor: value }, failures).isAtLeast(min);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -193,10 +172,7 @@ describe("NumberValidator", () => {
       const min = 5;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isAtLeast(min);
+      new NumberValidator({ valor: value }, failures).isAtLeast(min);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -213,10 +189,7 @@ describe("NumberValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isAtLeast(min, code);
+      new NumberValidator({ valor: value }, failures).isAtLeast(min, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -231,10 +204,11 @@ describe("NumberValidator", () => {
       const details = { message: "Valor abaixo do mínimo permitido" };
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isAtLeast(min, FailureCode.VALUE_LESS_THAN_MIN, details);
+      new NumberValidator({ valor: value }, failures).isAtLeast(
+        min,
+        FailureCode.VALUE_LESS_THAN_MIN,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -251,7 +225,7 @@ describe("NumberValidator", () => {
       const value = 5;
 
       // Act
-      new NumberValidator(value).failures(failures).field("valor").isPositive();
+      new NumberValidator({ valor: value }, failures).isPositive();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -263,7 +237,7 @@ describe("NumberValidator", () => {
       const value = 0;
 
       // Act
-      new NumberValidator(value).failures(failures).field("valor").isPositive();
+      new NumberValidator({ valor: value }, failures).isPositive();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -277,7 +251,7 @@ describe("NumberValidator", () => {
       const value = -5;
 
       // Act
-      new NumberValidator(value).failures(failures).field("valor").isPositive();
+      new NumberValidator({ valor: value }, failures).isPositive();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -292,10 +266,7 @@ describe("NumberValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isPositive(code);
+      new NumberValidator({ valor: value }, failures).isPositive(code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -309,10 +280,10 @@ describe("NumberValidator", () => {
       const details = { message: "Valor deve ser positivo" };
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isPositive(FailureCode.VALUE_NOT_POSITIVE, details);
+      new NumberValidator({ valor: value }, failures).isPositive(
+        FailureCode.VALUE_NOT_POSITIVE,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -328,7 +299,7 @@ describe("NumberValidator", () => {
       const value = -5;
 
       // Act
-      new NumberValidator(value).failures(failures).field("valor").isNegative();
+      new NumberValidator({ valor: value }, failures).isNegative();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -340,7 +311,7 @@ describe("NumberValidator", () => {
       const value = 0;
 
       // Act
-      new NumberValidator(value).failures(failures).field("valor").isNegative();
+      new NumberValidator({ valor: value }, failures).isNegative();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -354,7 +325,7 @@ describe("NumberValidator", () => {
       const value = 5;
 
       // Act
-      new NumberValidator(value).failures(failures).field("valor").isNegative();
+      new NumberValidator({ valor: value }, failures).isNegative();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -369,10 +340,7 @@ describe("NumberValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isNegative(code);
+      new NumberValidator({ valor: value }, failures).isNegative(code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -386,10 +354,10 @@ describe("NumberValidator", () => {
       const details = { message: "Valor deve ser negativo" };
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isNegative(FailureCode.VALUE_CANNOT_BE_NEGATIVE, details);
+      new NumberValidator({ valor: value }, failures).isNegative(
+        FailureCode.VALUE_CANNOT_BE_NEGATIVE,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -405,7 +373,7 @@ describe("NumberValidator", () => {
       const value = 5;
 
       // Act
-      new NumberValidator(value).failures(failures).field("valor").isInteger();
+      new NumberValidator({ valor: value }, failures).isInteger();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -417,7 +385,7 @@ describe("NumberValidator", () => {
       const value = 5.5;
 
       // Act
-      new NumberValidator(value).failures(failures).field("valor").isInteger();
+      new NumberValidator({ valor: value }, failures).isInteger();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -432,10 +400,7 @@ describe("NumberValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isInteger(code);
+      new NumberValidator({ valor: value }, failures).isInteger(code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -449,10 +414,10 @@ describe("NumberValidator", () => {
       const details = { message: "Valor deve ser um número inteiro" };
 
       // Act
-      new NumberValidator(value)
-        .failures(failures)
-        .field("valor")
-        .isInteger(FailureCode.VALUE_NOT_INTEGER, details);
+      new NumberValidator({ valor: value }, failures).isInteger(
+        FailureCode.VALUE_NOT_INTEGER,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
