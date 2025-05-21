@@ -1,6 +1,12 @@
-import { ensureNotNull, collectNullFields } from "./common.validators";
+import {
+  ensureNotNull,
+  collectNullFields,
+  validateAndCollect,
+} from "./common.validators";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { faker } from "@faker-js/faker";
+import { failure, Result, success } from "../result/result";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 describe("Common Validators", () => {
   describe("ensureNotNull", () => {
@@ -141,6 +147,97 @@ describe("Common Validators", () => {
       expect(resultado).not.toContain("falsy");
       expect(resultado).not.toContain("emptyString");
       expect(resultado.length).toBe(2);
+    });
+  });
+
+  describe("validateAndCollect", () => {
+    const failure1 = {
+      code: FailureCode.MISSING_REQUIRED_DATA,
+      details: {
+        message: "Erro 1",
+      },
+    };
+    const failure2 = {
+      code: FailureCode.MISSING_REQUIRED_DATA,
+      details: {
+        message: "Erro 2",
+      },
+    };
+
+    it("deve retornar o valor e não adicionar falhas quando o resultado é um sucesso", () => {
+      // Arrange
+      const successValue = { id: 1, name: "Test Item" };
+      const result: Result<typeof successValue> = success(successValue);
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      const collectedValue = validateAndCollect(result, failures);
+
+      // Assert
+      expect(collectedValue).toBe(successValue);
+      expect(failures.length).toBe(0);
+    });
+
+    it("deve retornar null e adicionar a falha ao array quando o resultado é uma falha com um único erro", () => {
+      // Arrange
+      const result: Result<never> = failure(failure1);
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      const collectedValue = validateAndCollect(result, failures);
+
+      // Assert
+      expect(collectedValue).toBeNull();
+      expect(failures.length).toBe(1);
+      expect(failures).toContainEqual(failure1);
+    });
+
+    it("deve retornar null e adicionar as falhas ao array quando o resultado é uma falha com múltiplos erros", () => {
+      // Arrange
+      const errors: SimpleFailure[] = [failure2, failure1];
+      const result: Result<never> = failure(errors);
+      const failures: SimpleFailure[] = [];
+
+      // Act
+      const collectedValue = validateAndCollect(result, failures);
+
+      // Assert
+      expect(collectedValue).toBeNull();
+      expect(failures.length).toBe(2);
+      expect(failures).toEqual(expect.arrayContaining(errors));
+    });
+
+    it("deve anexar falhas a um array de falhas pré-existente quando o resultado é uma falha", () => {
+      // Arrange
+      const preExistingError = failure1;
+      const newError = failure2;
+      const result: Result<never> = failure(newError);
+      const failures: SimpleFailure[] = [preExistingError];
+
+      // Act
+      const collectedValue = validateAndCollect(result, failures);
+
+      // Assert
+      expect(collectedValue).toBeNull();
+      expect(failures.length).toBe(2);
+      expect(failures).toContainEqual(preExistingError);
+      expect(failures).toContainEqual(newError);
+    });
+
+    it("deve retornar o valor e não modificar um array de falhas pré-existente quando o resultado é um sucesso", () => {
+      // Arrange
+      const successValue = "dados de sucesso";
+      const result: Result<string> = success(successValue);
+      const preExistingError = failure2;
+      const failures: SimpleFailure[] = [preExistingError];
+
+      // Act
+      const collectedValue = validateAndCollect(result, failures);
+
+      // Assert
+      expect(collectedValue).toBe(successValue);
+      expect(failures.length).toBe(1);
+      expect(failures).toContainEqual(preExistingError);
     });
   });
 });

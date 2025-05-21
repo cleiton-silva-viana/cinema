@@ -2,6 +2,7 @@ import { SimpleFailure } from "../failure/simple.failure.type";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { isNull } from "./validator";
 import { fa } from "@faker-js/faker";
+import { Result } from "../result/result";
 
 /**
  * Verifica se valores são nulos ou indefinidos e cria falhas para cada campo inválido.
@@ -68,4 +69,25 @@ export function collectNullFields(
   }
 
   return nullFields;
+}
+
+/**
+ * Simplifica o processo de validação e coleta de falhas ao trabalhar com objetos Result<T>.
+ * Verifica se um resultado é válido e, caso contrário, adiciona suas falhas a uma coleção existente.
+ *
+ * @template T O tipo do valor contido no Result em caso de sucesso
+ * @param result O objeto Result a ser validado
+ * @param failures Array onde as falhas serão coletadas, caso existam
+ * @returns O valor contido no Result se for um sucesso, ou null se for uma falha
+ */
+export function validateAndCollect<T>(
+  result: Result<T>,
+  failures: SimpleFailure[],
+): T | null {
+  if (result.isInvalid()) {
+    failures.push(...result.failures);
+    return null;
+  } else {
+    return result.value;
+  }
 }
