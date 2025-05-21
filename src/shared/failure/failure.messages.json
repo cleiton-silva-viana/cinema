@@ -351,6 +351,39 @@
       "en": "The value '{value}' provided for '{field}' is less than the minimum allowed value ({min_value})."
     }
   },
+  "VALUE_NOT_INTEGER": {
+    "status": 400,
+    "title": {
+      "pt": "Valor Não Inteiro",
+      "en": "Value Not Integer"
+    },
+    "template": {
+      "pt": "O valor para o campo '{field}' deve ser um número inteiro. Valor fornecido: {value}.",
+      "en": "The value for field '{field}' must be an integer. Provided value: {value}."
+    }
+  },
+  "VALUE_CANNOT_BE_NEGATIVE": {
+    "status": 400,
+    "title": {
+      "pt": "Valor Não Pode Ser Negativo",
+      "en": "Value Cannot Be Negative"
+    },
+    "template": {
+      "pt": "O valor para o campo '{field}' não pode ser negativo. Valor fornecido: {value}.",
+      "en": "The value for field '{field}' cannot be negative. Provided value: {value}."
+    }
+  },
+  "VALUE_NOT_POSITIVE": {
+    "status": 400,
+    "title": {
+      "pt": "Valor Não Positivo",
+      "en": "Value Not Positive"
+    },
+    "template": {
+      "pt": "O valor para o campo '{field}' deve ser um número positivo. Valor fornecido: {value}.",
+      "en": "The value for field '{field}' must be a positive number. Provided value: {value}."
+    }
+  },
   "INVALID_ENUM_VALUE": {
     "status": 400,
     "title": {
