@@ -35,6 +35,13 @@ export type FailureDetails = {
    * */
   count?: number;
 
+  date?: string
+  max_date?: string
+  start_date?: string
+  end_date?: string
+  max_days?: number
+
+  object_type?: string
 
 /*  /!**
    * O tipo de dado esperado para o campo.
@@ -87,7 +94,7 @@ export type FailureDetails = {
    * Permite outros detalhes específicos não mapeados acima.
    * Campos adicionais podem ser incluídos conforme necessário.
    */
-  [key: string]: any;
+/*  [key: string]: any;*/
 };
 
 /**
