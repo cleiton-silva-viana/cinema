@@ -4,86 +4,96 @@ import { TechnicalError } from "../error/technical.error";
 
 describe("Result", () => {
   describe("success", () => {
-    it("should create a Result instance representing success with the correct value", () => {
+    it("deve criar um objeto Result representando sucesso com o valor correto", () => {
       // Arrange
       const data: string = "a simple data";
 
       // Act
-      const result = success<string, SimpleFailure>(data);
+      const result = success(data);
 
       // Assert
-      expect(result).toBeInstanceOf(Result);
+      expect(result.type).toBe("success");
       expect(result.invalid).toBe(false);
-      expect(result.value).toBe(data);
+      if (result.invalid === false) expect(result.value).toBe(data);
+      else fail("Esperado que o resultado fosse um sucesso");
     });
 
-    it("should throw TechnicalError when accessing 'failures' on a success result", () => {
+    it("deve ter a propriedade 'failures' como indefinida em um resultado de sucesso (comportamento de objeto simples)", () => {
       // Arrange
       const data: string = "successful data";
       const result = success(data);
 
       // Act & Assert
-      expect(() => result.failures).toThrow(TechnicalError);
+      expect((result as any).failures).toBeUndefined();
     });
 
-    it("should handle null or undefined as a success value", () => {
+    it("deve lidar com null ou undefined como um valor de sucesso", () => {
       // Arrange
-      const datas = [null, undefined];
+      const datas: any[] = [null, undefined];
 
       // Act
       datas.forEach((data) => {
         const result = success(data);
 
         // Assert
+        expect(result.type).toBe("success");
         expect(result.invalid).toBe(false);
-        expect(result.value).toBe(data);
-        expect(() => result.failures).toThrow(TechnicalError);
+        if (result.type === "success") expect(result.value).toBe(data);
+        else fail("Esperado que o resultado fosse um sucesso");
+
+        // Acessar (result as any).failures em um objeto de sucesso resultará em undefined.
+        expect((result as any).failures).toBeUndefined();
       });
     });
   });
 
   describe("failure", () => {
-    it("should create a Result instance representing failure with a single error", () => {
+    it("deve criar um objeto Result representando falha com um único erro", () => {
       // Arrange
-      const fail: SimpleFailure = {
+      const failData: SimpleFailure = {
+        // Renomeado para evitar conflito com a função fail do Jasmine
         code: "ERR_SINGLE",
         details: { field: "field" },
       };
 
       // Act
-      const result = failure<any, SimpleFailure>(fail); // Usando 'any' para V, pois não temos valor
+      const result = failure(failData); // A função failure retorna Result<never>
 
       // Assert
-      expect(result).toBeInstanceOf(Result);
+      expect(result.type).toBe("failure");
       expect(result.invalid).toBe(true);
-      // Verificar se o array de falhas contém exatamente o erro esperado
-      expect(result.failures).toEqual([fail]);
+      if (result.invalid) expect(result.failures).toEqual([failData]);
+      else fail("Esperado que o resultado fosse uma falha");
     });
 
-    it("should throw TechnicalError when accessing 'value' on a failure result", () => {
+    it("deve ter a propriedade 'value' como indefinida em um resultado de falha (comportamento de objeto simples)", () => {
       // Arrange
-      const fail: SimpleFailure = { code: "ERR_ACCESS", details: {} };
-      const result = failure<any, SimpleFailure>(fail);
+      const failData: SimpleFailure = { code: "ERR_ACCESS", details: {} }; // Renomeado
+      const result = failure(failData);
 
       // Act & Assert
-      expect(() => result.value).toThrow(TechnicalError);
+      expect((result as any).value).toBeUndefined();
     });
 
-    it("should create a Result instance representing failure with multiple errors", () => {
+    it("deve criar um objeto Result representando falha com múltiplos erros", () => {
       // Arrange
-      const fails: SimpleFailure[] = [
+      const failsData: SimpleFailure[] = [
+        // Renomeado
         { code: "ERR_MULTI_1", details: { field: "field1" } },
         { code: "ERR_MULTI_2", details: { reason: "reason2" } },
       ];
 
       // Act
-      const result = failure<any, SimpleFailure>(fails);
+      const result = failure(failsData);
 
       // Assert
-      expect(result).toBeInstanceOf(Result);
+      expect(result.type).toBe("failure");
       expect(result.invalid).toBe(true);
-      expect(result.failures).toEqual(fails);
-      expect(() => result.value).toThrow(TechnicalError);
+      if (result.type === "failure") expect(result.failures).toEqual(failsData);
+      else fail("Esperado que o resultado fosse uma falha");
+
+      // Acessar (result as any).value em um objeto de falha resultará em undefined.
+      expect((result as any).value).toBeUndefined();
     });
   });
 });

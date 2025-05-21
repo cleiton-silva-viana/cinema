@@ -1,74 +1,50 @@
 import { SimpleFailure } from "../failure/simple.failure.type";
-import { TechnicalError } from "../error/technical.error";
+
+interface ISuccess<V> {
+  readonly type: "success";
+  readonly invalid: false;
+  readonly value: V;
+}
+
+interface IFailure {
+  readonly type: "failure";
+  readonly invalid: true;
+  readonly failures: ReadonlyArray<SimpleFailure>;
+}
 
 /**
- * Cria uma instância de `Result<T>` representando um resultado bem-sucedido.
- * @template T O tipo do valor encapsulado no resultado.
- * @param value O valor a ser encapsulado (ex: dados, objetos, etc.).
- * @returns Uma instância de `Result<T>` no estado de sucesso, com o valor fornecido e sem falhas.
- */
-export const success = <T, E>(value: T): Result<T> => new Result<T>(value, []);
-
-/**
- * Cria uma instância de `Result<T>` representando um resultado de falha.
- * @template T O tipo do valor esperado (geralmente `null` em casos de falha).
- * @param errors Um único erro (`SimpleFailure`) ou um array de erros a serem encapsulados.
- * @returns Uma instância de `Result<T>` no estado de falha, com valor `null` e as falhas fornecidas.
- */
-export const failure = <T, E>(
-  errors: SimpleFailure | SimpleFailure[],
-): Result<T> => {
-  const errorArray = Array.isArray(errors) ? errors : [errors];
-  return new Result<T>(null, errorArray);
-};
-
-/**
- * Representa o resultado de uma operação que pode ter sucesso (Ok) ou falha (Failure).
- * Um resultado de sucesso contém um `value` e um array de `errors` vazio.
- * Um resultado de falha contém um array de `errors` com uma ou mais falhas e um `value` indefinido.
- * A classe é imutável após a criação.
+ * Representa o resultado de uma operação que pode ter sucesso (ISuccess<V>) ou falha (IFailure).
+ * Use a propriedade `type` ('success' | 'failure') ou `invalid` (boolean) como discriminante.
  *
  * @template V O tipo do valor contido em caso de sucesso.
  */
-export class Result<V> {
-  /**
-   * Indica se o resultado representa a falha.
-   * Use esta propriedade para verificar o estado do resultado.
-   */
-  public readonly invalid: boolean;
+export type Result<V> = ISuccess<V> | IFailure;
 
-  /**
-   * O valor resultante em caso de sucesso.
-   * Será `undefined` se o resultado for de falha.
-   * **Atenção:** Verifique `isSuccess` antes de acessar `value` diretamente.
-   */
-  private readonly _value: V;
+/**
+ * Cria uma instância de `Result<V>` representando um resultado bem-sucedido.
+ * @template V O tipo do valor encapsulado no resultado.
+ * @param value O valor a ser encapsulado.
+ * @returns Uma instância de `ISuccess<V>`.
+ */
+export const success = <V>(value: V): Result<V> => ({
+  type: "success",
+  invalid: false,
+  value,
+});
 
-  /**
-   * Um array contendo as falhas (`SimpleFailure`) ocorridas.
-   * Será um array vazio (`[]`) se o resultado for de sucesso.
-   */
-  private readonly _failures: SimpleFailure[] = [];
-
-  /**
-   * Construtor privado para ser usado pelos métodos fábrica estáticos `ok` e `failure`.
-   * @param value O valor (para sucesso) ou undefined (para falha).
-   * @param errors Um array de SimpleFailure (para falha) ou um array vazio (para sucesso).
-   */
-  // Como alterar a visibilidade desta propriedades para escopo deste arquivo?
-  public constructor(value: V, errors?: SimpleFailure[]) {
-    this._failures = errors || [];
-    this._value = value;
-    this.invalid = this._failures.length > 0;
-  }
-
-  get value(): V {
-    TechnicalError.if(this.invalid, "INVALID_VALUE_RETRIEVAL");
-    return this._value!;
-  }
-
-  get failures(): SimpleFailure[] {
-    TechnicalError.if(!this.invalid, "INVALID_FAILURE_RETRIEVAL");
-    return [...this._failures];
-  }
-}
+/**
+ * Cria uma instância de `Result<never>` representando um resultado de falha.
+ * Especificamente, retorna um `IFailure`.
+ * @param errors Um único erro (`SimpleFailure`) ou um array de erros a serem encapsulados.
+ * @returns Uma instância de `IFailure`, que é compatível com `Result<V>` para qualquer `V`.
+ */
+export const failure = (
+  errors: SimpleFailure | ReadonlyArray<SimpleFailure>,
+): Result<never> => {
+  const errorArray = Array.isArray(errors) ? [...errors] : [errors];
+  return {
+    type: "failure",
+    invalid: true,
+    failures: Object.freeze(errorArray),
+  };
+};
