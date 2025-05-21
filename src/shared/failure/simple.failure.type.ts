@@ -22,6 +22,11 @@ export type FailureDetails = {
   min?: number;
   max?: number;
   count?: number;
+  length?: number;
+  allowed_values?: string[]
+
+  email?: string;
+  uuid?: string;
 
   date?: string
   max_date?: string
