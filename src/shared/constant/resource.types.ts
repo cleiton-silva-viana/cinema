@@ -1,7 +1,8 @@
 export const ResourceTypes = {
-  MOVIE: 'movie',
-  PERSON: 'person',
-  CUSTOMER: 'customer',
-  ROOM: 'room',
-  IMAGE: 'image'
+  MOVIE: 'MOVIE',
+  PERSON: 'PERSON',
+  CUSTOMER: 'CUSTOMER',
+  ROOM: 'ROOM',
+  IMAGE: 'IMAGE',
+  SCREENING: 'SCREENING',
 };
