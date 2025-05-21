@@ -8,6 +8,6 @@ export interface FilePaths {
 }
 
 export interface IStorageService {
-  save(basePath: string, buffers: { small: Buffer; normal: Buffer; large: Buffer; }): Promise<Result<FilePaths>>;
+  save(basePath: string, buffers: { small: Buffer; normal: Buffer; large: Buffer }): Promise<Result<FilePaths>>;
   delete(uid: string): Promise<Result<null>>;
 }
