@@ -11,6 +11,8 @@ export type FailureDetails = {
    * Exemplo: 'email', 'nome', 'dataNascimento'
    */
   field?: string;
+  fields?: string[]
+  language?: string
 
   /**
    * O valor que foi fornecido e considerado inválido.
