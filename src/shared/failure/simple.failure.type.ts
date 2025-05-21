@@ -28,6 +28,8 @@ export type FailureDetails = {
   email?: string;
   uuid?: string;
 
+  target?: string,
+
   date?: string
   max_date?: string
   min_date?: string
