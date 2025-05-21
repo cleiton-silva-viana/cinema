@@ -1,6 +1,5 @@
-import { failure, Result, success } from "./result";
+import { failure, success } from "./result";
 import { SimpleFailure } from "../failure/simple.failure.type";
-import { TechnicalError } from "../error/technical.error";
 
 describe("Result", () => {
   describe("success", () => {
