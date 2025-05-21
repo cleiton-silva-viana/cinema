@@ -19,14 +19,14 @@ export class DateValidator extends BaseValidator<DateValidator> {
    */
   public isAfter(
     limitDate: Date,
-    code: string = FailureCode.DATE_NOT_AFTER_LIMIT,
+    code: FailureCode = FailureCode.DATE_NOT_AFTER_LIMIT, // Código de erro corrigido
     details: Record<string, any> = {},
   ): DateValidator {
     TechnicalError.if(
       !(limitDate instanceof Date),
-      FailureCode.CONTENT_INVALID_TYPE,
+      FailureCode.CONTENT_WITH_INVALID_FORMAT,
       {
-        field: "limitDate",
+        max_date: limitDate.toString(),
       },
     );
 
@@ -40,8 +40,8 @@ export class DateValidator extends BaseValidator<DateValidator> {
     return this.validate(() => date < limitDate, {
       code,
       details: {
-        value: isValid ? date.toISOString() : "N/A",
-        limitDate: limitDate.toISOString(),
+        date: isValid ? date.toISOString() : "N/A",
+        max_date: limitDate.toISOString(),
         ...details,
       },
     });
@@ -55,14 +55,15 @@ export class DateValidator extends BaseValidator<DateValidator> {
    */
   public isBefore(
     limitDate: Date,
-    code: string = FailureCode.DATE_NOT_BEFORE_LIMIT,
+    code: FailureCode = FailureCode.DATE_NOT_BEFORE_LIMIT, // Código de erro corrigido
     details: Record<string, any> = {},
   ): DateValidator {
     TechnicalError.if(
       !(limitDate instanceof Date),
-      FailureCode.CONTENT_INVALID_TYPE,
+      FailureCode.CONTENT_WITH_INVALID_TYPE,
       {
-        field: "limitDate",
+        value: limitDate.toString(),
+        object_type: typeof limitDate,
       },
     );
 
@@ -76,8 +77,8 @@ export class DateValidator extends BaseValidator<DateValidator> {
     return this.validate(() => date > limitDate, {
       code,
       details: {
-        value: isValid ? date.toISOString() : "N/A",
-        limitDate: limitDate?.toISOString(),
+        date: isValid ? date.toISOString() : "N/A",
+        min_date: limitDate?.toISOString(),
         ...details,
       },
     });
@@ -93,7 +94,7 @@ export class DateValidator extends BaseValidator<DateValidator> {
   public isBetween(
     startDate: Date,
     endDate: Date,
-    code: string = FailureCode.DATE_OUT_OF_RANGE,
+    code: FailureCode = FailureCode.DATE_OUT_OF_RANGE,
     details: Record<string, any> = {},
   ): DateValidator {
     const fails: string[] = [];
@@ -101,28 +102,22 @@ export class DateValidator extends BaseValidator<DateValidator> {
     if (!startDate || !(startDate instanceof Date)) fails.push("startDate");
     if (!endDate || !(endDate instanceof Date)) fails.push("endDate");
 
-    TechnicalError.if(fails.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
-      field: fails.toString(),
-    });
+    TechnicalError.if(
+      fails.length > 0,
+      FailureCode.CONTENT_WITH_INVALID_FORMAT,
+      {
+        field: fails.toString(),
+      },
+    );
 
     if (startDate > endDate)
       return this.validate(() => true, {
         code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
         details: {
-          startDate: startDate?.toISOString(),
-          endDate: endDate?.toISOString(),
+          start_date: startDate?.toISOString(),
+          end_date: endDate?.toISOString(),
         },
       });
-
-    const isValid =
-      this._value instanceof Date && !isNaN(this._value.getTime());
-
-    const isValueValid =
-      this._value instanceof Date && !isNaN(this._value.getTime());
-
-    const date = isValueValid
-      ? this._value.getTime()
-      : new Date(new Date(startDate).setDate(startDate.getDate() + 10000));
 
     return this.validate(
       () => {
@@ -132,9 +127,10 @@ export class DateValidator extends BaseValidator<DateValidator> {
       {
         code,
         details: {
-          value: this._value.toISOString(),
-          startDate: startDate?.toISOString(),
-          endDate: endDate?.toISOString(),
+          date: this._value.toISOString(),
+          start_date: startDate?.toISOString(),
+          end_date: endDate?.toISOString(),
+          max_days: endDate.getDay() - startDate.getDay(),
           ...details,
         },
       },

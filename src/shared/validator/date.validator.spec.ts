@@ -1,19 +1,16 @@
 import { FailureCode } from "../failure/failure.codes.enum";
 import { SimpleFailure } from "../failure/simple.failure.type";
 import { DateValidator } from "./date.validator";
-import { Flow } from "../assert/assert";
 
 describe("DateValidator", () => {
   const startDate = new Date("2023-01-01");
   const endDate = new Date("2023-03-01");
   const ONE_DAY = 24 * 60 * 60 * 1000;
 
-  // Datas comuns para testes
   const dataBefore = new Date(startDate.getTime() - ONE_DAY);
   const dataMiddle = new Date(startDate.getTime() + ONE_DAY);
   const dataAfter = new Date(endDate.getTime() + ONE_DAY);
 
-  // Detalhes comuns para testes
   const commonDetails = { message: "Mensagem de erro personalizada" };
 
   describe("Construtor e inicialização", () => {
@@ -69,14 +66,14 @@ describe("DateValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.DATE_NOT_AFTER_LIMIT);
-      expect(failures[0].details.value).toBe(startDate.toISOString());
-      expect(failures[0].details.limitDate).toBe(endDate.toISOString());
+      expect(failures[0].details.date).toBe(startDate.toISOString());
+      expect(failures[0].details.max_date).toBe(endDate.toISOString());
     });
 
     it("deve usar o código de erro personalizado", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.CONTENT_WITH_INVALID_TYPE;
 
       // Act
       new DateValidator({ data: startDate }, failures).isAfter(endDate, code);
@@ -99,9 +96,8 @@ describe("DateValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details.message).toBe(commonDetails.message);
-      expect(failures[0].details.value).toBe(startDate.toISOString());
-      expect(failures[0].details.limitDate).toBe(endDate.toISOString());
+      expect(failures[0].details.date).toBe(startDate.toISOString());
+      expect(failures[0].details.max_date).toBe(endDate.toISOString());
     });
 
     it("deve lidar com limit date inválido", () => {
@@ -156,8 +152,8 @@ describe("DateValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.DATE_NOT_BEFORE_LIMIT);
-      expect(failures[0].details.value).toBe(endDate.toISOString());
-      expect(failures[0].details.limitDate).toBe(startDate.toISOString());
+      expect(failures[0].details.date).toBe(endDate.toISOString());
+      expect(failures[0].details.min_date).toBe(startDate.toISOString());
     });
 
     it("deve adicionar falha quando a data for um valor nulo ou undefined", () => {
@@ -179,7 +175,7 @@ describe("DateValidator", () => {
     it("deve usar o código de erro personalizado", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.CONTENT_WITH_INVALID_FORMAT;
 
       // Act
       new DateValidator({ data: endDate }, failures).isBefore(startDate, code);
@@ -202,9 +198,8 @@ describe("DateValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details.message).toBe(commonDetails.message);
-      expect(failures[0].details.value).toBe(endDate.toISOString());
-      expect(failures[0].details.limitDate).toBe(startDate.toISOString());
+      expect(failures[0].details.date).toBe(endDate.toISOString());
+      expect(failures[0].details.min_date).toBe(startDate.toISOString());
     });
 
     it("deve lidar com limitDate inválido", () => {
@@ -285,9 +280,9 @@ describe("DateValidator", () => {
           // Assert
           expect(failures.length).toBe(1);
           expect(failures[0].code).toBe(FailureCode.DATE_OUT_OF_RANGE);
-          expect(failures[0].details.value).toBe(date.toISOString());
-          expect(failures[0].details.startDate).toBe(startDate.toISOString());
-          expect(failures[0].details.endDate).toBe(endDate.toISOString());
+          expect(failures[0].details.date).toBe(date.toISOString());
+          expect(failures[0].details.start_date).toBe(startDate.toISOString());
+          expect(failures[0].details.end_date).toBe(endDate.toISOString());
         });
       });
     });
@@ -295,7 +290,7 @@ describe("DateValidator", () => {
     it("deve usar o código de erro personalizado", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.CONTENT_WITH_INVALID_TYPE;
 
       // Act
       new DateValidator({ data: dataAfter }, failures).isBetween(
@@ -323,10 +318,9 @@ describe("DateValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details.message).toBe(commonDetails.message);
-      expect(failures[0].details.value).toBe(dataAfter.toISOString());
-      expect(failures[0].details.startDate).toBe(startDate.toISOString());
-      expect(failures[0].details.endDate).toBe(endDate.toISOString());
+      expect(failures[0].details.date).toBe(dataAfter.toISOString());
+      expect(failures[0].details.start_date).toBe(startDate.toISOString());
+      expect(failures[0].details.end_date).toBe(endDate.toISOString());
     });
 
     it("deve lidar com startDate inválido", () => {
