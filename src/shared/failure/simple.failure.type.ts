@@ -40,6 +40,7 @@ export type FailureDetails = {
   start_date?: string
   end_date?: string
   max_days?: number
+  min_days?: number
 
   object_type?: string
 
