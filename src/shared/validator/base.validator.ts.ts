@@ -18,9 +18,8 @@ import { Flow } from "../assert/assert";
  *   // Implementação específica para strings
  * }
  *
- * const validator = new StringValidator()
- *   .field("nome")
- *   .failures(failures)
+ * const failuresArray: SimpleFailure[] = [];
+ * const validator = new StringValidator({ nome: "valor" }, failuresArray)
  *   .isRequired({})
  *   .isEqualTo("valor esperado", {});
  * ```
@@ -44,7 +43,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   /**
    * O nome do campo sendo validado (para mensagens de erro)
    */
-  protected _field: any;
+  protected _field: string;
 
   /**
    * Array onde as falhas de validação serão adicionadas
@@ -52,43 +51,21 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   protected _failures: SimpleFailure[];
 
   /**
-   * Construtor protegido para ser usado apenas por classes derivadas
+   * Construtor protegido para ser usado por classes derivadas.
+   * @param data Um objeto contendo uma única propriedade, onde a chave é o nome do campo e o valor é o valor a ser validado.
+   * @param failures Array onde as falhas de validação serão adicionadas.
+   * @throws Error se o objeto `data` não contiver exatamente uma propriedade.
    */
-  protected constructor(value: any) {
-    this._value = value;
-  }
-
-  /**
-   * Define o nome do campo para as mensagens de erro
-   *
-   * @param field - Nome do campo sendo validado
-   * @returns A instância do validador para encadeamento
-   *
-   * @example
-   * ```typescript
-   * validator.field("email")
-   * ```
-   */
-  public field(field: string): V {
-    this._field = field;
-    return this as unknown as V;
-  }
-
-  /**
-   * Define o array onde as falhas serão adicionadas
-   *
-   * @param failures - Array de falhas que será preenchido durante a validação
-   * @returns A instância do validador para encadeamento
-   *
-   * @example
-   * ```typescript
-   * const failures: SimpleFailure[] = [];
-   * validator.failures(failures)
-   * ```
-   */
-  public failures(failures: SimpleFailure[]): V {
+  protected constructor(data: Record<string, any>, failures: SimpleFailure[]) {
+    const keys = Object.keys(data);
+    if (keys.length !== 1) {
+      throw new Error(
+        "O objeto de dados para o validador deve conter exatamente uma propriedade (nomeDoCampo: valor).",
+      );
+    }
+    this._field = keys[0];
+    this._value = data[this._field];
     this._failures = failures;
-    return this as unknown as V;
   }
 
   /**
@@ -172,13 +149,14 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    *
    * @example
    * ```typescript
-   * validator.isRequired({ field: "nome" })
+   * validator.isRequired({ customDetail: "info" }) // o 'field' já é conhecido
    * ```
    */
   public isRequired(
     details: Record<string, any> = {},
     code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
-  ) {
+  ): V {
+    // Alterado o retorno para V para consistência, embora o original não tivesse.
     return this.validate(() => isNull(this._value), {
       code,
       details,
@@ -195,7 +173,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    *
    * @example
    * ```typescript
-   * validator.isEqualTo("valor esperado", { field: "senha" })
+   * validator.isEqualTo("valor esperado", { customDetail: "info" })
    * ```
    */
   public isEqualTo(
@@ -223,7 +201,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    *
    * @example
    * ```typescript
-   * validator.isTrue(idade >= 18, "IDADE_MINIMA_NAO_ATINGIDA", { idadeMinima: 18 })
+   * validator.isTrue(idade >= 18, FailureCode.AGE_TOO_LOW, { idadeMinima: 18 })
    * ```
    */
   public isTrue(
@@ -251,7 +229,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * @example
    * ```typescript
    * this.validate(() => value.length < 8, {
-   *   code: "PASSWORD_TOO_SHORT",
+   *   code: FailureCode.PASSWORD_TOO_SHORT,
    *   details: { minLength: 8 }
    * })
    * ```

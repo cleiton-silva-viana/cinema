@@ -4,9 +4,8 @@ import { FailureCode } from "../failure/failure.codes.enum";
 import { Flow } from "../assert/assert";
 
 class TestValidator extends BaseValidator<TestValidator> {
-  constructor(value: any) {
-    super(value);
-    this._value = value;
+  constructor(value: any, failures: SimpleFailure[] = []) {
+    super({ test: value }, failures);
   }
 
   getField(): string {
@@ -19,6 +18,18 @@ class TestValidator extends BaseValidator<TestValidator> {
 
   getFlow(): Flow {
     return this._flow;
+  }
+
+  // Método auxiliar para testes
+  field(fieldName: string): TestValidator {
+    this._field = fieldName;
+    return this;
+  }
+
+  // Método auxiliar para testes
+  failures(failures: SimpleFailure[]): TestValidator {
+    this._failures = failures;
+    return this;
   }
 }
 
@@ -38,11 +49,10 @@ describe("BaseValidator", () => {
 
     it("deve definir o array de falhas corretamente", () => {
       // Arrange
-      const validator = new TestValidator("test");
       const failures: SimpleFailure[] = [];
 
       // Act
-      const result = validator.failures(failures);
+      const result = new TestValidator("test").failures(failures);
 
       // Assert
       expect(result.getFailures()).toBe(failures);
@@ -90,7 +100,7 @@ describe("BaseValidator", () => {
       let wasExecuted = false;
 
       // Act
-      new TestValidator("test").failures(failures).then(() => {
+      new TestValidator("test", failures).then(() => {
         wasExecuted = true;
       });
 
@@ -104,8 +114,8 @@ describe("BaseValidator", () => {
       let wasExecuted = false;
 
       // Act
-      new TestValidator(null)
-        .failures(failures)
+      new TestValidator(null, failures)
+        .field(FIELD)
         .isRequired()
         .then(() => {
           wasExecuted = true;
@@ -122,8 +132,7 @@ describe("BaseValidator", () => {
       let executionsCounter = 0;
 
       // Act
-      new TestValidator("test")
-        .failures(failures)
+      new TestValidator("test", failures)
         .then(() => {
           executionsCounter++;
         })
@@ -188,8 +197,7 @@ describe("BaseValidator", () => {
       let wasExecuted = false;
 
       // Act
-      new TestValidator(null)
-        .failures(failures)
+      new TestValidator(null, failures)
         .guard(() => true)
         .then(() => {
           wasExecuted = true;
@@ -206,8 +214,7 @@ describe("BaseValidator", () => {
       let wasExecuted = false;
 
       // Act
-      new TestValidator("test")
-        .failures(failures)
+      new TestValidator("test", failures)
         .guard(() => false)
         .then(() => {
           wasExecuted = true;
@@ -234,10 +241,7 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new TestValidator("test")
-        .failures(failures)
-        .guard(() => false)
-        .isRequired(); // Esta validação não deve ser executada
+      new TestValidator("test", failures).guard(() => false).isRequired(); // Esta validação não deve ser executada
 
       // Assert
       expect(failures.length).toBe(0); // Não deve adicionar falhas, apenas impedir validações subsequentes
@@ -249,8 +253,7 @@ describe("BaseValidator", () => {
       let executionsCounter = 0;
 
       // Act
-      new TestValidator(null)
-        .failures(failures)
+      new TestValidator(null, failures)
         .guard(() => true)
         .then(() => executionsCounter++)
         .guard(() => true)
@@ -265,10 +268,9 @@ describe("BaseValidator", () => {
     it("não deve adicionar falha quando o valor não for nulo ou indefinido", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
-      const validator = new TestValidator("test").failures(failures);
 
       // Act
-      validator.isRequired({});
+      new TestValidator("test", failures).isRequired({});
 
       // Assert
       expect(failures.length).toBe(0);
@@ -292,7 +294,7 @@ describe("BaseValidator", () => {
           const failures: SimpleFailure[] = [];
 
           // Act
-          new TestValidator(value).field(FIELD).failures(failures).isRequired();
+          new TestValidator(value, failures).field(FIELD).isRequired();
 
           // Assert
           expect(failures.length).toBe(1);
@@ -307,9 +309,8 @@ describe("BaseValidator", () => {
         const value: any = null;
 
         // Act
-        new TestValidator(value)
+        new TestValidator(value, failures)
           .field(FIELD)
-          .failures(failures)
           .isRequired({}, CUSTOM_CODE);
 
         // Assert
@@ -328,7 +329,7 @@ describe("BaseValidator", () => {
       const target = "aaa";
 
       // Act
-      new TestValidator(value).failures(failures).isEqualTo(target);
+      new TestValidator(value, failures).isEqualTo(target);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -341,10 +342,7 @@ describe("BaseValidator", () => {
       const target = "aab";
 
       // Act
-      new TestValidator(value)
-        .failures(failures)
-        .field(FIELD)
-        .isEqualTo(target);
+      new TestValidator(value, failures).field(FIELD).isEqualTo(target);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -359,8 +357,7 @@ describe("BaseValidator", () => {
       const target = "aab";
 
       // Act
-      new TestValidator(value)
-        .failures(failures)
+      new TestValidator(value, failures)
         .field("test")
         .isEqualTo(target, {}, CUSTOM_CODE);
 
@@ -376,9 +373,7 @@ describe("BaseValidator", () => {
       const target = "aab";
 
       // Act
-      new TestValidator(value)
-        .failures(failures)
-        .isEqualTo(target, CUSTOM_DETAILS);
+      new TestValidator(value, failures).isEqualTo(target, CUSTOM_DETAILS);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -392,9 +387,10 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new TestValidator("test")
-        .failures(failures)
-        .isTrue(true, FailureCode.CONTENT_INVALID_TYPE);
+      new TestValidator("test", failures).isTrue(
+        true,
+        FailureCode.CONTENT_INVALID_TYPE,
+      );
 
       // Assert
       expect(failures.length).toBe(0);
@@ -405,9 +401,8 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new TestValidator("test")
+      new TestValidator("test", failures)
         .field(FIELD)
-        .failures(failures)
         .isTrue(false, CUSTOM_CODE);
 
       // Assert
@@ -421,8 +416,7 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new TestValidator("test")
-        .failures(failures)
+      new TestValidator("test", failures)
         .field(FIELD)
         .isTrue(false, FailureCode.CONTENT_INVALID_TYPE, CUSTOM_DETAILS);
 
@@ -439,7 +433,7 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new TestValidator(null).failures(failures).if(false).isRequired();
+      new TestValidator(null, failures).if(false).isRequired();
 
       //Assert
       expect(failures.length).toBe(0);
@@ -450,11 +444,7 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new TestValidator(null)
-        .failures(failures)
-        .isRequired()
-        .isRequired()
-        .isRequired();
+      new TestValidator(null, failures).isRequired().isRequired().isRequired();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -465,8 +455,7 @@ describe("BaseValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new TestValidator(null)
-        .failures(failures)
+      new TestValidator(null, failures)
         .isRequired()
         .continue()
         .isRequired()
