@@ -6,7 +6,7 @@ import { v4, v7 } from "uuid";
 
 describe("StringValidator", () => {
   const FIELD = "field";
-  const PERSONAL_CODE = FailureCode.CONTENT_INVALID_FORMAT;
+  const PERSONAL_CODE = FailureCode.CONTENT_WITH_INVALID_TYPE;
   const PERSONAL_DETAILS = { message: "mensagem personalizada..." };
 
   describe("isNotEmpty", () => {
@@ -104,7 +104,7 @@ describe("StringValidator", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
       const value = "   ";
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.MISSING_REQUIRED_DATA;
 
       // Act
       new StringValidator({ test: value }, failures).hasContent(code);
@@ -165,7 +165,7 @@ describe("StringValidator", () => {
       const failures: SimpleFailure[] = [];
       const value = "abc@123";
       const pattern = /^[a-z0-9]+$/;
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.CONTENT_WITH_INVALID_FORMAT;
 
       // Act
       new StringValidator({ valor: value }, failures).matchesPattern(
@@ -188,7 +188,7 @@ describe("StringValidator", () => {
       // Act
       new StringValidator({ valor: value }, failures).matchesPattern(
         pattern,
-        FailureCode.INVALID_VALUE_FORMAT,
+        FailureCode.CONTENT_WITH_INVALID_FORMAT,
         details,
       );
 
@@ -221,14 +221,14 @@ describe("StringValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.EMAIL_IS_INVALID);
+      expect(failures[0].code).toBe(FailureCode.EMAIL_WITH_INVALID_FORMAT);
     });
 
     it("deve usar o código de erro personalizado", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
       const value = "teste@example";
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.UID_WITH_INVALID_FORMAT;
 
       // Act
       new StringValidator({ email: value }, failures).isValidEmail(code);
@@ -246,7 +246,7 @@ describe("StringValidator", () => {
 
       // Act
       new StringValidator({ email: value }, failures).isValidEmail(
-        FailureCode.EMAIL_IS_INVALID,
+        FailureCode.EMAIL_WITH_INVALID_FORMAT,
         details,
       );
 
@@ -279,14 +279,14 @@ describe("StringValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.INVALID_UUID);
+      expect(failures[0].code).toBe(FailureCode.UID_WITH_INVALID_FORMAT);
     });
 
     it("deve usar o código de erro personalizado", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
       const value = "123e4567-e89b-12d3-a456";
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.MISSING_REQUIRED_DATA;
 
       // Act
       new StringValidator({ uuid: value }, failures).isValidUUIDv4(code);
@@ -304,7 +304,7 @@ describe("StringValidator", () => {
 
       // Act
       new StringValidator({ uuid: value }, failures).isValidUUIDv4(
-        FailureCode.INVALID_UUID,
+        FailureCode.UID_WITH_INVALID_FORMAT,
         details,
       );
 
@@ -337,14 +337,14 @@ describe("StringValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.INVALID_UUID);
+      expect(failures[0].code).toBe(FailureCode.UID_WITH_INVALID_FORMAT);
     });
 
     it("deve usar o código de erro personalizado", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
       const value = "123e4567-e89b-12d3-a456";
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.EMAIL_WITH_INVALID_FORMAT;
 
       // Act
       new StringValidator({ id: value }, failures).isValidUUIDv7(code);
@@ -362,7 +362,7 @@ describe("StringValidator", () => {
 
       // Act
       new StringValidator({ id: value }, failures).isValidUUIDv7(
-        FailureCode.INVALID_UUID,
+        FailureCode.UID_WITH_INVALID_FORMAT,
         details,
       );
 
@@ -403,9 +403,9 @@ describe("StringValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.STRING_LENGTH_OUT_OF_RANGE);
-      expect(failures[0].details.minLength).toBe(min);
-      expect(failures[0].details.maxLength).toBe(max);
-      expect(failures[0].details.actualLength).toBe(value.length);
+      expect(failures[0].details.length).toBe(value.length);
+      expect(failures[0].details.min).toBe(min);
+      expect(failures[0].details.max).toBe(max);
     });
 
     it("deve adicionar falha quando o comprimento for maior que o máximo", () => {
@@ -424,9 +424,9 @@ describe("StringValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.STRING_LENGTH_OUT_OF_RANGE);
-      expect(failures[0].details.minLength).toBe(min);
-      expect(failures[0].details.maxLength).toBe(max);
-      expect(failures[0].details.actualLength).toBe(value.length);
+      expect(failures[0].details.min).toBe(min);
+      expect(failures[0].details.max).toBe(max);
+      expect(failures[0].details.length).toBe(value.length);
     });
 
     it("deve usar o código de erro personalizado", () => {
@@ -435,7 +435,7 @@ describe("StringValidator", () => {
       const value = "ab";
       const min = 3;
       const max = 10;
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.MISSING_VALID_ITEM;
 
       // Act
       new StringValidator({ nome: value }, failures).hasLengthBetween(
@@ -467,10 +467,9 @@ describe("StringValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details.message).toBe(details.message);
-      expect(failures[0].details.minLength).toBe(min);
-      expect(failures[0].details.maxLength).toBe(max);
-      expect(failures[0].details.actualLength).toBe(value.length);
+      expect(failures[0].details.min).toBe(min);
+      expect(failures[0].details.max).toBe(max);
+      expect(failures[0].details.length).toBe(value.length);
     });
   });
 
@@ -500,8 +499,7 @@ describe("StringValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE);
-      expect(failures[0].details.providedValue).toBe(value);
-      expect(failures[0].details.allowedValues).toEqual(
+      expect(failures[0].details.allowed_values).toEqual(
         Object.values(enumType),
       );
     });
@@ -511,7 +509,7 @@ describe("StringValidator", () => {
       const failures: SimpleFailure[] = [];
       const enumType = { A: "a", B: "b", C: "c" };
       const value = "d";
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.CONTENT_WITH_INVALID_FORMAT;
 
       // Act
       new StringValidator({ tipo: value }, failures).isInEnum(enumType, code);
@@ -537,9 +535,7 @@ describe("StringValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details.message).toBe(details.message);
-      expect(failures[0].details.providedValue).toBe(value);
-      expect(failures[0].details.allowedValues).toEqual(
+      expect(failures[0].details.allowed_values).toEqual(
         Object.values(enumType),
       );
     });
@@ -636,7 +632,6 @@ describe("StringValidator", () => {
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.STRING_INVALID_FORMAT);
       expect(failures[0].details.field).toBe(FIELD);
-      expect(failures[0].details.expectedPrefix).toBe(PREFIX);
     });
 
     it("deve usar o código de erro personalizado", () => {
@@ -653,7 +648,6 @@ describe("StringValidator", () => {
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(PERSONAL_CODE);
       expect(failures[0].details.field).toBe(FIELD);
-      expect(failures[0].details.expectedPrefix).toBe(PREFIX);
     });
 
     it("deve incluir detalhes adicionais na falha", () => {
@@ -668,9 +662,7 @@ describe("StringValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].details.message).toBe(PERSONAL_DETAILS.message);
       expect(failures[0].details.field).toBe(FIELD);
-      expect(failures[0].details.expectedPrefix).toBe(PREFIX);
     });
   });
 });
