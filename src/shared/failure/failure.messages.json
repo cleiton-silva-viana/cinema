@@ -1,289 +1,1003 @@
 {
-  "NULL_ARGUMENT": {
-    "message": {
-      "pt": "Um argumento obrigatório não foi fornecido ou é nulo.",
-      "en": "A required argument was not provided or is null."
-    },
-    "statusCode": 400
-  },
-  "EMPTY_FIELD": {
-    "message": {
-      "pt": "Um campo obrigatório está vazio ou contém apenas espaços em branco.",
-      "en": "A required field is empty or contains only whitespace."
-    },
-    "statusCode": 400
-  },
   "MISSING_REQUIRED_DATA": {
-    "message": {
-      "pt": "Não foram fornecidos dados necessários para realizar esta operação. Verifique se o objeto de dados não está vazio ou com valores nulos.",
-      "en": "No required data was provided to perform this operation. Please check if the data object is not empty or has null values."
+    "status": 400,
+    "title": {
+      "pt": "Dados Obrigatórios Ausentes",
+      "en": "Missing Required Data"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "Não foram fornecidos os dados de '{resource}' necessários. Verifique se os dados de '{resource}' estão corretamente configurados.",
+      "en": "Required '{resource}' data was not provided. Please ensure '{resource}' data is correctly configured."
+    }
   },
-  "INVALID_UUID": {
-    "message": {
-      "pt": "O identificador único fornecido está em formato inválido ou não corresponde ao tipo esperado.",
-      "en": "The provided unique identifier is in an invalid format or does not match the expected type."
+  "UID_WITH_INVALID_FORMAT": {
+    "status": 400,
+    "title": {
+      "pt": "Identificador Inválido",
+      "en": "Invalid Identifier"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O identificador '{uuid}' está em formato inválido ou não corresponde ao tipo esperado para '{resource}'.",
+      "en": "The identifier '{uuid}' is in an invalid format or does not match the expected type for '{resource}'."
+    }
   },
   "INVALID_FIELD_SIZE": {
-    "message": {
-      "pt": "O campo fornecido possui um tamanho inválido. O tamanho deve estar entre os limites permitidos.",
-      "en": "The provided field has an invalid size. The size must be within the allowed limits."
+    "status": 400,
+    "title": {
+      "pt": "Tamanho Inválido",
+      "en": "Invalid Size"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O campo '{field}' deve ter entre {min} e {max} caracteres.",
+      "en": "The field '{field}' must be between {min} and {max} characters."
+    }
   },
-  "INVALID_NAME_FORMAT": {
-    "message": {
-      "pt": "O nome fornecido contém caracteres inválidos. Use apenas letras e espaços.",
-      "en": "The provided name contains invalid characters. Use only letters and spaces."
+  "NAME_WITH_INVALID_FORMAT": {
+    "status": 400,
+    "title": {
+      "pt": "Nome Inválido",
+      "en": "Invalid Name"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O nome '{value}' contém caracteres inválidos. Use apenas letras e espaços.",
+      "en": "The name '{value}' contains invalid characters. Use only letters and spaces."
+    }
   },
   "INVALID_BIRTH_DATE_TOO_YOUNG": {
-    "message": {
-      "pt": "A data de nascimento indica que a pessoa é menor de idade. É necessário ter pelo menos 18 anos.",
-      "en": "The birth date indicates that the person is underage. Must be at least 18 years old."
+    "status": 400,
+    "title": {
+      "pt": "Idade Mínima Requerida",
+      "en": "Minimum Age Required"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "A idade mínima para '{action}' é de {min} anos.",
+      "en": "The minimum age for '{action}' is {min} years."
+    }
   },
   "INVALID_BIRTH_DATE_TOO_OLD": {
-    "message": {
-      "pt": "A data de nascimento fornecida é muito antiga. A data deve ser posterior a 1900.",
-      "en": "The provided birth date is too old. The date must be after 1900."
+    "status": 400,
+    "title": {
+      "pt": "Data de Nascimento Inválida",
+      "en": "Invalid Birth Date"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "A data de nascimento deve ser posterior a {min}.",
+      "en": "The birth date must be after {min}."
+    }
   },
   "RESOURCE_NOT_FOUND": {
-    "message": {
-      "pt": "O recurso solicitado não foi encontrado.",
-      "en": "The requested resource was not found."
+    "status": 404,
+    "title": {
+      "pt": "Recurso Não Encontrado",
+      "en": "Resource Not Found"
     },
-    "statusCode": 404
+    "template": {
+      "pt": "O {resource} '{id}' não foi encontrado.",
+      "en": "The {resource} '{id}' was not found."
+    }
   },
   "VALIDATION_ERROR": {
-    "message": {
-      "pt": "Os dados fornecidos falharam na validação. Por favor, revise as informações e tente novamente.",
-      "en": "The provided data failed validation. Please check your input and try again."
+    "status": 422,
+    "title": {
+      "pt": "Erro de Validação",
+      "en": "Validation Error"
     },
-    "statusCode": 422
+    "template": {
+      "pt": "O campo '{field}' é inválido: {reason}",
+      "en": "The field '{field}' is invalid: {reason}"
+    }
   },
   "UNAUTHORIZED_ACCESS": {
-    "message": {
-      "pt": "Você não está autorizado a realizar esta ação.",
-      "en": "You are not authorized to perform this action."
+    "status": 401,
+    "title": {
+      "pt": "Acesso Não Autorizado",
+      "en": "Unauthorized Access"
     },
-    "statusCode": 401
+    "template": {
+      "pt": "Você não está autorizado a {action}.",
+      "en": "You are not authorized to {action}."
+    }
   },
   "FORBIDDEN": {
-    "message": {
-      "pt": "Você não tem permissão para acessar este recurso.",
-      "en": "You do not have permission to access this resource."
+    "status": 403,
+    "title": {
+      "pt": "Acesso Proibido",
+      "en": "Forbidden Access"
     },
-    "statusCode": 403
+    "template": {
+      "pt": "Você não tem permissão para acessar o recurso '{resource}'.",
+      "en": "You do not have permission to access the resource '{resource}'."
+    }
   },
   "INTERNAL_SERVER_ERROR": {
-    "message": {
-      "pt": "Ocorreu um erro interno no servidor. Tente novamente mais tarde.",
-      "en": "An internal server error occurred. Please try again later."
+    "status": 500,
+    "title": {
+      "pt": "Erro Interno do Servidor",
+      "en": "Internal Server Error"
     },
-    "statusCode": 500
+    "template": {
+      "pt": "Ocorreu um erro interno no servidor ao processar '{action}'. Tente novamente mais tarde.",
+      "en": "An internal server error occurred while processing '{action}'. Please try again later."
+    }
   },
   "SERVICE_UNAVAILABLE": {
-    "message": {
-      "pt": "Serviço temporariamente indisponível. Por favor, tente novamente mais tarde.",
-      "en": "Service temporarily unavailable. Please try again later."
+    "status": 503,
+    "title": {
+      "pt": "Serviço Indisponível",
+      "en": "Service Unavailable"
     },
-    "statusCode": 503
+    "template": {
+      "pt": "O serviço '{service}' está temporariamente indisponível. Por favor, tente novamente mais tarde.",
+      "en": "The service '{service}' is temporarily unavailable. Please try again later."
+    }
   },
   "BAD_REQUEST": {
-    "message": {
-      "pt": "A requisição está mal formada. Verifique os parâmetros e tente novamente.",
-      "en": "The request is malformed. Please check your parameters and try again."
+    "status": 400,
+    "title": {
+      "pt": "Requisição Inválida",
+      "en": "Bad Request"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "A requisição para '{action}' está mal formada. Verifique os parâmetros e tente novamente.",
+      "en": "The request for '{action}' is malformed. Please check your parameters and try again."
+    }
   },
   "TIMEOUT_ERROR": {
-    "message": {
-      "pt": "O tempo limite da requisição foi excedido. Tente novamente.",
-      "en": "The request timeout has been exceeded. Please try again."
+    "status": 408,
+    "title": {
+      "pt": "Tempo Limite Excedido",
+      "en": "Request Timeout"
     },
-    "statusCode": 408
+    "template": {
+      "pt": "O tempo limite da requisição para '{action}' foi excedido. Tente novamente.",
+      "en": "The request timeout for '{action}' has been exceeded. Please try again."
+    }
   },
   "CONFLICT_ERROR": {
-    "message": {
-      "pt": "Há um conflito com o estado atual do recurso.",
-      "en": "There is a conflict with the current state of the resource."
+    "status": 409,
+    "title": {
+      "pt": "Conflito de Recursos",
+      "en": "Resource Conflict"
     },
-    "statusCode": 409
+    "template": {
+      "pt": "Há um conflito ao tentar '{action}' no recurso '{resource}'.",
+      "en": "There is a conflict when trying to '{action}' on resource '{resource}'."
+    }
   },
   "CONTENT_INVALID_LANGUAGE": {
-    "message": {
-      "pt": "O idioma fornecido não é suportado pela aplicação.",
-      "en": "The provided language is not supported by the application."
+    "status": 400,
+    "title": {
+      "pt": "Idioma Inválido",
+      "en": "Invalid Language"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O idioma '{language}' fornecido não é suportado.",
+      "en": "The provided language '{language}' is not supported."
+    }
   },
-  "CONTENT_INVALID_TYPE": {
-    "message": {
-      "pt": "O tipo de conteúdo fornecido é inválido.",
-      "en": "The provided content type is invalid."
+  "CONTENT_WITH_INVALID_TYPE": {
+    "status": 400,
+    "title": {
+      "pt": "Tipo de Conteúdo Inválido",
+      "en": "Invalid Content Type"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O tipo de conteúdo '{type}' fornecido é inválido para '{resource}'.",
+      "en": "The provided content type '{type}' is invalid for '{resource}'."
+    }
   },
   "CONTENT_DUPLICATE_LANGUAGE": {
-    "message": {
-      "pt": "Foi fornecido conteúdo duplicado para o mesmo idioma.",
-      "en": "Duplicate content was provided for the same language."
+    "status": 400,
+    "title": {
+      "pt": "Idioma Duplicado",
+      "en": "Duplicate Language"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "Conteúdo duplicado fornecido para o idioma '{language}'.",
+      "en": "Duplicate content provided for language '{language}'."
+    }
   },
   "CONTENT_MISSING_REQUIRED_LANGUAGE": {
-    "message": {
-      "pt": "Um idioma obrigatório não foi fornecido.",
-      "en": "A required language was not provided."
+    "status": 400,
+    "title": {
+      "pt": "Idioma Obrigatório Ausente",
+      "en": "Missing Required Language"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O idioma obrigatório '{language}' não foi fornecido.",
+      "en": "The required language '{language}' was not provided."
+    }
   },
-  "CONTENT_INVALID_FORMAT": {
-    "message": {
-      "pt": "O formato do texto fornecido é inválido. Use apenas letras, números, espaços e caracteres básicos de pontuação.",
-      "en": "The provided text format is invalid. Use only letters, numbers, spaces and basic punctuation characters."
+  "CONTENT_WITH_INVALID_FORMAT": {
+    "status": 400,
+    "title": {
+      "pt": "Formato de Conteúdo Inválido",
+      "en": "Invalid Content Format"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O formato do campo '{field}' é inválido. {reason}",
+      "en": "The format of field '{field}' is invalid. {reason}"
+    }
   },
   "EMAIL_ALREADY_IN_USE": {
-    "message": {
-      "pt": "O endereço de e-mail fornecido já está em uso por outro cliente.",
-      "en": "The provided email address is already in use by another customer."
+    "status": 409,
+    "title": {
+      "pt": "Email já em Uso",
+      "en": "Email Already in Use"
     },
-    "statusCode": 409
-  },
-  "INVALID_CPF_FORMAT": {
-    "message": {
-      "pt": "O CPF fornecido está em formato inválido. O formato correto é 000.000.000-00.",
-      "en": "The provided CPF is in an invalid format. The correct format is 000.000.000-00."
-    },
-    "statusCode": 400
+    "template": {
+      "pt": "O endereço de e-mail '{email}' já está em uso.",
+      "en": "The email address '{email}' is already in use."
+    }
   },
   "INVALID_EMAIL_FORMAT": {
-    "message": {
-      "pt": "O endereço de e-mail fornecido está em formato inválido. Por favor, forneça um e-mail válido.",
-      "en": "The provided email address is in an invalid format. Please provide a valid email."
+    "status": 400,
+    "title": {
+      "pt": "Formato de Email Inválido",
+      "en": "Invalid Email Format"
     },
-    "statusCode": 400
-  },
-  "INVALID_GENRE": {
-    "message": {
-      "pt": "O gênero fornecido é inválido. Por favor, selecione um gênero válido.",
-      "en": "The provided genre is invalid. Please select a valid genre."
-    },
-    "statusCode": 400
+    "template": {
+      "pt": "O endereço de email '{email}' fornecido está em formato inválido.",
+      "en": "The provided email address '{email}' is in an invalid format."
+    }
   },
   "INVALID_GENRE_COUNT": {
-    "message": {
-      "pt": "O número de gêneros fornecido é inválido. O filme deve ter entre 1 e 5 gêneros.",
-      "en": "The number of genres provided is invalid. The movie must have between 1 and 5 genres."
+    "status": 400,
+    "title": {
+      "pt": "Quantidade de Gêneros Inválida",
+      "en": "Invalid Genre Count"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O número de gêneros fornecido ({count}) é inválido. Deve ser entre {min} e {max}.",
+      "en": "The number of genres provided ({count}) is invalid. It must be between {min} and {max}."
+    }
   },
-  "DUPLICATE_GENRES": {
-    "message": {
-      "pt": "Foram fornecidos gêneros duplicados. Cada gênero deve ser único.",
-      "en": "Duplicate genres were provided. Each genre must be unique."
+  "INVALID_GENRE": {
+    "status": 400,
+    "title": {
+      "pt": "Gênero Inválido",
+      "en": "Invalid Genre"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O gênero '{genre}' fornecido é inválido.",
+      "en": "The provided genre '{genre}' is invalid."
+    }
   },
-  "DATE_PAST_NOT_ALLOWED": {
-    "message": {
-      "pt": "A data fornecida está no passado. Por favor, selecione uma data atual ou futura.",
-      "en": "The provided date is in the past. Please select a current or future date."
+  "GENRE_IS_DUPLICATED": {
+    "status": 400,
+    "title": {
+      "pt": "Gêneros Duplicados",
+      "en": "Duplicate Genres"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "Gêneros duplicados encontrados: '{genres}'. Cada gênero deve ser único.",
+      "en": "Duplicate genres found: '{genres}'. Each genre must be unique."
+    }
   },
-  "DATE_EXCEEDS_MAX_FUTURE_LIMIT": {
-    "message": {
-      "pt": "A data fornecida excede o limite máximo permitido no futuro. Por favor, selecione uma data dentro do período permitido.",
-      "en": "The provided date exceeds the maximum allowed future limit. Please select a date within the allowed period."
+  "DATE_NOT_AFTER_LIMIT": {
+    "status": 400,
+    "title": {
+      "pt": "Data Excede Limite Futuro",
+      "en": "Date Exceeds Future Limit"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "A data '{date}' excede o limite máximo permitido ({max_date}).",
+      "en": "The date '{date}' exceeds the maximum allowed limit ({max_date})."
+    }
   },
-  "INVALID_DATE_SEQUENCE": {
-    "message": {
-      "pt": "A sequência de datas é inválida. A data inicial deve ser anterior à data final.",
-      "en": "The date sequence is invalid. The start date must be before the end date."
+  "DATE_WITH_INVALID_SEQUENCE": {
+    "status": 400,
+    "title": {
+      "pt": "Sequência de Datas Inválida",
+      "en": "Invalid Date Sequence"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "A sequência de datas é inválida. A data inicial '{start_date}' deve ser anterior à data final '{end_date}'.",
+      "en": "The date sequence is invalid. The start date '{start_date}' must be before the end date '{end_date}'."
+    }
   },
-  "DATE_RANGE_TOO_LARGE": {
-    "message": {
-      "pt": "O intervalo entre as datas é muito grande. Por favor, selecione um período menor.",
-      "en": "The date range is too large. Please select a smaller period."
+  "DATE_OUT_OF_RANGE": {
+    "status": 400,
+    "title": {
+      "pt": "Intervalo de Datas Muito Grande",
+      "en": "Date Range Too Large"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O intervalo entre as datas é muito grande. O período máximo permitido é de {max_days} dias.",
+      "en": "The date range is too large. The maximum allowed period is {max_days} days."
+    }
   },
   "INVALID_ENUM_VALUE": {
-    "message": {
-      "pt": "O valor fornecido não é válido. Por favor, selecione uma das opções permitidas.",
-      "en": "The provided value is invalid. Please select one of the allowed options."
+    "status": 400,
+    "title": {
+      "pt": "Valor Inválido",
+      "en": "Invalid Value"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O valor '{value}' fornecido para '{field}' é inválido. Valores permitidos: {allowed_values}.",
+      "en": "The value '{value}' provided for '{field}' is invalid. Allowed values: {allowed_values}."
+    }
   },
   "MOVIE_MISSING_CONTRIBUTORS": {
-    "message": {
-      "pt": "O filme deve ter pelo menos um contribuidor. Por favor, adicione um ou mais contribuidores.",
-      "en": "The movie must have at least one contributor. Please add one or more contributors."
+    "status": 400,
+    "title": {
+      "pt": "Contribuidores Ausentes",
+      "en": "Missing Contributors"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O filme '{movie_title}' deve ter pelo menos um contribuidor.",
+      "en": "The movie '{movie_title}' must have at least one contributor."
+    }
   },
-  "MOVIE_DIRECTOR_REQUIRED": {
-    "message": {
-      "pt": "O filme deve ter pelo menos um diretor. Por favor, adicione um diretor à lista de contribuidores.",
-      "en": "The movie must have at least one director. Please add a director to the contributors list."
+  "MOVIE_WITHOUT_DIRECTOR": {
+    "status": 400,
+    "title": {
+      "pt": "Diretor Obrigatório",
+      "en": "Director Required"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O filme '{movie_title}' deve ter pelo menos um diretor.",
+      "en": "The movie '{movie_title}' must have at least one director."
+    }
   },
-  "MOVIE_DURATION_TOO_SHORT": {
-    "message": {
-      "pt": "A duração do filme é muito curta. A duração mínima permitida é de 60 minutos.",
-      "en": "The movie duration is too short. The minimum allowed duration is 60 minutes."
+  "MOVIE_WITH_DURATION_TOO_SHORT": {
+    "status": 400,
+    "title": {
+      "pt": "Duração do Filme Curta",
+      "en": "Movie Duration Too Short"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "A duração do filme '{movie_title}' ({duration} minutos) é muito curta. A duração mínima é de {min} minutos.",
+      "en": "The duration of movie '{movie_title}' ({duration} minutes) is too short. The minimum duration is {min} minutes."
+    }
   },
-  "MOVIE_DURATION_TOO_LONG": {
-    "message": {
-      "pt": "A duração do filme é muito longa. A duração máxima permitida é de 300 minutos.",
-      "en": "The movie duration is too long. The maximum allowed duration is 300 minutes."
+  "MOVIE_WITH_DURATION_TOO_LONG": {
+    "status": 400,
+    "title": {
+      "pt": "Duração do Filme Longa",
+      "en": "Movie Duration Too Long"
     },
-    "statusCode": 400
-  },
-  "RESOURCE_ARCHIVED": {
-    "message": {
-      "pt": "O recurso solicitado está arquivado e não pode ser utilizado para esta operação.",
-      "en": "The requested resource is archived and cannot be used for this operation."
-    },
-    "statusCode": 400
+    "template": {
+      "pt": "A duração do filme '{movie_title}' ({duration} minutos) é muito longa. A duração máxima é de {max} minutos.",
+      "en": "The duration of movie '{movie_title}' ({duration} minutes) is too long. The maximum duration is {max} minutes."
+    }
   },
   "MOVIE_NOT_AVAILABLE_IN_PERIOD": {
-    "message": {
-      "pt": "O filme solicitado não está disponível no período especificado.",
-      "en": "The requested movie is not available in the specified period."
+    "status": 400,
+    "title": {
+      "pt": "Filme Indisponível no Período",
+      "en": "Movie Not Available in Period"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "O filme '{movie_title}' não está disponível no período de '{start_date}' a '{end_date}'.",
+      "en": "The movie '{movie_title}' is not available in the period from '{start_date}' to '{end_date}'."
+    }
   },
   "MOVIE_ARCHIVE_BLOCKED_BY_SCREENINGS": {
-    "message": {
-      "pt": "Não é possível arquivar um filme que possui exibições agendadas.",
-      "en": "Cannot archive a movie that has scheduled screenings."
+    "status": 400,
+    "title": {
+      "pt": "Arquivamento Bloqueado",
+      "en": "Archive Blocked"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "Não é possível arquivar o filme '{movie_title}' pois ele possui exibições agendadas.",
+      "en": "Cannot archive movie '{movie_title}' because it has scheduled screenings."
+    }
   },
   "MOVIE_DELETE_BLOCKED_BY_SHOWINGS": {
-    "message": {
-      "pt": "Não é possível excluir um filme que possui ou já teve exibições. Considere arquivá-lo.",
-      "en": "Cannot delete a movie that has or had showings. Consider archiving it instead."
+    "status": 400,
+    "title": {
+      "pt": "Exclusão Bloqueada",
+      "en": "Delete Blocked"
     },
-    "statusCode": 400
+    "template": {
+      "pt": "Não é possível excluir o filme '{movie_title}' pois ele possui ou já teve exibições. Considere arquivá-lo.",
+      "en": "Cannot delete movie '{movie_title}' because it has or had showings. Consider archiving it instead."
+    }
+  },
+  "MOVIE_NOT_AVAILABLE_FOR_VIEWING": {
+    "status": 400,
+    "title": {
+      "pt": "Filme Indisponível para Exibição",
+      "en": "Movie Not Available for Viewing"
+    },
+    "template": {
+      "pt": "O filme '{movie_title}' não está disponível para exibições. Apenas filmes com status APPROVED podem ser agendados.",
+      "en": "Movie '{movie_title}' is not available for viewing. Only movies with APPROVED status can be scheduled."
+    }
+  },
+  "MOVIE_NOT_AVAILABLE_FOR_SCHEDULE_IN_PROVIDED_PERIOD": {
+    "status": 400,
+    "title": {
+      "pt": "Filme Indisponível no Período Fornecido",
+      "en": "Movie Not Available in Provided Period"
+    },
+    "template": {
+      "pt": "O filme '{movie_title}' não está disponível para exibições no período fornecido ('{start_date}' a '{end_date}'). Verifique o período de exibição do filme.",
+      "en": "Movie '{movie_title}' is not available for scheduling in the provided period ('{start_date}' to '{end_date}'). Check the movie's display period."
+    }
+  },
+  "RESOURCE_ARCHIVED": {
+    "status": 400,
+    "title": {
+      "pt": "Recurso Arquivado",
+      "en": "Resource Archived"
+    },
+    "template": {
+      "pt": "O recurso '{resource}' com ID '{id}' está arquivado e não pode ser utilizado para '{action}'.",
+      "en": "The resource '{resource}' with ID '{id}' is archived and cannot be used for '{action}'."
+    }
+  },
+  "INVALID_SCREENING_DURATION": {
+    "status": 400,
+    "title": {
+      "pt": "Duração de Exibição Inválida",
+      "en": "Invalid Screening Duration"
+    },
+    "template": {
+      "pt": "A duração da exibição ({duration} minutos) é inválida. Deve ser entre {min} e {max} minutos.",
+      "en": "The screening duration ({duration} minutes) is invalid. It must be between {min} and {max} minutes."
+    }
+  },
+  "INVALID_CLEANING_DURATION": {
+    "status": 400,
+    "title": {
+      "pt": "Duração de Higienização Inválida",
+      "en": "Invalid Cleaning Duration"
+    },
+    "template": {
+      "pt": "A duração da higienização ({duration} minutos) é inválida. Não pode exceder {max} minutos.",
+      "en": "The cleaning duration ({duration} minutes) is invalid. It cannot exceed {max} minutes."
+    }
+  },
+  "INVALID_MAINTENANCE_DURATION": {
+    "status": 400,
+    "title": {
+      "pt": "Duração de Manutenção Inválida",
+      "en": "Invalid Maintenance Duration"
+    },
+    "template": {
+      "pt": "A duração da manutenção ({duration} dias) é inválida. Não pode exceder {max} dias.",
+      "en": "The maintenance duration ({duration} days) is invalid. It cannot exceed {max} days."
+    }
+  },
+  "VALUES_NOT_EQUAL": {
+    "status": 400,
+    "title": {
+      "pt": "Valores Diferentes",
+      "en": "Values Not Equal"
+    },
+    "template": {
+      "pt": "Os valores fornecidos para '{field1}' e '{field2}' não são iguais ('{value1}' != '{value2}').",
+      "en": "The provided values for '{field1}' and '{field2}' are not equal ('{value1}' != '{value2}')."
+    }
+  },
+  "SHOWTIME_SCHEDULE_WITH_DATE_IN_PAST": {
+    "status": 400,
+    "title": {
+      "pt": "Data de Sessão no Passado",
+      "en": "Showtime Date in Past"
+    },
+    "template": {
+      "pt": "Não é possível agendar a sessão para a data '{date}' no passado.",
+      "en": "It is not possible to schedule the showtime for date '{date}' in the past."
+    }
+  },
+  "SHOWTIME_SCHEDULE_WITH_DATE_TOO_FAR": {
+    "status": 400,
+    "title": {
+      "pt": "Data de Sessão Muito Distante",
+      "en": "Showtime Date Too Far"
+    },
+    "template": {
+      "pt": "A data de agendamento '{date}' para a sessão está muito distante no futuro.",
+      "en": "The scheduling date '{date}' for the showtime is too far in the future."
+    }
+  },
+  "SHOWTIME_SCHEDULE_WITH_DATE_OUTSIDE_DISPLAY_PERIOD": {
+    "status": 400,
+    "title": {
+      "pt": "Data Fora do Período de Exibição",
+      "en": "Date Outside Display Period"
+    },
+    "template": {
+      "pt": "Não é possível agendar a sessão para a data '{date}' fora do período de exibição do filme.",
+      "en": "It is not possible to schedule the showtime for date '{date}' outside the movie's display period."
+    }
+  },
+  "SHOWTIME_SCHEDULE_WITH_DATE_BEFORE_RELEASE": {
+    "status": 400,
+    "title": {
+      "pt": "Data Antes do Lançamento",
+      "en": "Date Before Release"
+    },
+    "template": {
+      "pt": "Não é possível agendar a sessão para a data '{date}' antes do lançamento do filme '{movie_title}'.",
+      "en": "It is not possible to schedule the showtime for date '{date}' before the release of movie '{movie_title}'."
+    }
+  },
+  "SHOWTIME_SCHEDULE_WITH_INVALID_MOVIE_STATUS": {
+    "status": 400,
+    "title": {
+      "pt": "Status de Filme Inválido",
+      "en": "Invalid Movie Status"
+    },
+    "template": {
+      "pt": "Não é possível agendar a sessão para o filme '{movie_title}' com status inválido ('{status}').",
+      "en": "It is not possible to schedule the showtime for movie '{movie_title}' with invalid status ('{status}')."
+    }
+  },
+  "SHOWTIME_WITH_INVALID_STATUS_TRANSITION": {
+    "status": 400,
+    "title": {
+      "pt": "Transição de Status Inválida",
+      "en": "Invalid Status Transition"
+    },
+    "template": {
+      "pt": "Não é possível alterar o status da sessão '{showtime_id}' de '{current_status}' para '{new_status}'.",
+      "en": "Cannot change the status of showtime '{showtime_id}' from '{current_status}' to '{new_status}'."
+    }
+  },
+  "DATE_CANNOT_BE_PAST": {
+    "status": 400,
+    "title": {
+      "pt": "Data no Passado",
+      "en": "Date in the Past"
+    },
+    "template": {
+      "pt": "A data fornecida para '{field}' não pode estar no passado.",
+      "en": "The date provided for '{field}' cannot be in the past."
+    }
+  },
+  "PREFERENTIAL_SEAT_NOT_FOUND_IN_LAYOUT": {
+    "status": 400,
+    "title": {
+      "pt": "Assento Preferencial Não Encontrado",
+      "en": "Preferential Seat Not Found"
+    },
+    "template": {
+      "pt": "O assento preferencial '{seat}' não foi encontrado no layout da sala.",
+      "en": "Preferential seat '{seat}' not found in the room layout."
+    }
+  },
+  "INVALID_SEAT_COLUMN": {
+    "status": 400,
+    "title": {
+      "pt": "Coluna de Assento Inválida",
+      "en": "Invalid Seat Column"
+    },
+    "template": {
+      "pt": "A coluna '{column}' do assento especificada é inválida para a fileira '{row}'.",
+      "en": "The specified seat column '{column}' is invalid for row '{row}'."
+    }
+  },
+  "SEAT_COLUMN_OUT_OF_RANGE": {
+    "status": 400,
+    "title": {
+      "pt": "Quantidade de Assentos Fora do Intervalo",
+      "en": "Seat Count Out of Range"
+    },
+    "template": {
+      "pt": "A quantidade de assentos na fileira '{row}' ({count}) está fora do intervalo permitido ({min}-{max}).",
+      "en": "The number of seats in row '{row}' ({count}) is out of the allowed range ({min}-{max})."
+    }
+  },
+  "PREFERENTIAL_SEATS_LIMIT_EXCEEDED": {
+    "status": 400,
+    "title": {
+      "pt": "Limite de Assentos Preferenciais Excedido",
+      "en": "Preferential Seats Limit Exceeded"
+    },
+    "template": {
+      "pt": "O número de assentos preferenciais ({count}) excede o limite permitido ({max}) para a fileira '{row}'.",
+      "en": "The number of preferential seats ({count}) exceeds the allowed limit ({max}) for row '{row}'."
+    }
+  },
+  "PREFERENTIAL_SEAT_NOT_IN_ROW": {
+    "status": 400,
+    "title": {
+      "pt": "Assento Preferencial Inexistente",
+      "en": "Preferential Seat Not in Row"
+    },
+    "template": {
+      "pt": "O assento preferencial '{seat}' especificado não existe na fileira '{row}'.",
+      "en": "The specified preferential seat '{seat}' does not exist in row '{row}'."
+    }
+  },
+  "DUPLICATE_PREFERENTIAL_SEAT": {
+    "status": 400,
+    "title": {
+      "pt": "Assento Preferencial Duplicado",
+      "en": "Duplicate Preferential Seat"
+    },
+    "template": {
+      "pt": "O assento preferencial '{seat}' especificado já foi definido anteriormente para a fileira '{row}'.",
+      "en": "The specified preferential seat '{seat}' has already been defined for row '{row}'."
+    }
+  },
+  "INVALID_NUMBER_OF_PREFERENTIAL_SEATS": {
+    "status": 400,
+    "title": {
+      "pt": "Número Inválido de Assentos Preferenciais",
+      "en": "Invalid Number of Preferential Seats"
+    },
+    "template": {
+      "pt": "O número total de assentos preferenciais ({count}) está fora da porcentagem permitida ({percentage}%).",
+      "en": "The total number of preferential seats ({count}) is outside the allowed percentage ({percentage}%)."
+    }
+  },
+  "BOOKING_WITH_INVALID_TYPE": {
+    "status": 400,
+    "title": {
+      "pt": "Tipo de Agendamento Inválido",
+      "en": "Invalid Booking Type"
+    },
+    "template": {
+      "pt": "O tipo de agendamento '{type}' fornecido é inválido. Tipos permitidos: {allowed_types}.",
+      "en": "The provided booking type '{type}' is invalid. Allowed types: {allowed_types}."
+    }
+  },
+  "BOOKING_NOT_FOUND_FOR_SCREENING": {
+    "status": 404,
+    "title": {
+      "pt": "Reserva de Exibição Não Encontrada",
+      "en": "Screening Booking Not Found"
+    },
+    "template": {
+      "pt": "Não foi encontrada reserva para a exibição com ID '{screening_id}'.",
+      "en": "No booking found for the screening with ID '{screening_id}'."
+    }
+  },
+  "BOOKING_WITH_INVAlID_TIME_INTERVAL": {
+    "status": 400,
+    "title": {
+      "pt": "Intervalo de Tempo de Agendamento Inválido",
+      "en": "Invalid Booking Time Interval"
+    },
+    "template": {
+      "pt": "O horário de início do agendamento ('{start_time}') deve estar em intervalos específicos de minutos ({interval} minutos).",
+      "en": "The booking start time ('{start_time}') must be at specific minute intervals ({interval} minutes)."
+    }
+  },
+  "BOOKING_NOT_FOUND_IN_FUTURE_SCHEDULE": {
+    "status": 404,
+    "title": {
+      "pt": "Agendamento Não Encontrado",
+      "en": "Booking Not Found"
+    },
+    "template": {
+      "pt": "A atividade agendada com ID '{booking_id}' não foi encontrada entre as atividades programadas para o futuro.",
+      "en": "The scheduled activity with ID '{booking_id}' was not found among future scheduled activities."
+    }
+  },
+  "BOOKING_ALREADY_STARTED": {
+    "status": 400,
+    "title": {
+      "pt": "Atividade Já Iniciada",
+      "en": "Activity Already Started"
+    },
+    "template": {
+      "pt": "Não é possível remover a atividade '{activity_id}' que já começou ou ocorreu no passado.",
+      "en": "It is not possible to remove activity '{activity_id}' that has already started or occurred in the past."
+    }
+  },
+  "INVALID_BOOKING_TYPE_FOR_REMOVAL": {
+    "status": 400,
+    "title": {
+      "pt": "Tipo de Agendamento Inválido para Remoção",
+      "en": "Invalid Booking Type for Removal"
+    },
+    "template": {
+      "pt": "Agendamentos do tipo '{type}' não podem ser removidos diretamente. Apenas limpeza e manutenção são permitidos.",
+      "en": "Bookings of type '{type}' cannot be removed directly. Only cleaning and maintenance are allowed."
+    }
+  },
+  "ROOM_WITH_INVALID_CAPACITY": {
+    "status": 400,
+    "title": {
+      "pt": "Capacidade de Sala Inválida",
+      "en": "Invalid Room Capacity"
+    },
+    "template": {
+      "pt": "A capacidade da sala ({capacity}) está fora dos limites permitidos ({min}-{max}).",
+      "en": "The room capacity ({capacity}) is outside the allowed limits ({min}-{max})."
+    }
+  },
+  "ROOM_NOT_AVAILABLE_FOR_PERIOD": {
+    "status": 400,
+    "title": {
+      "pt": "Sala Indisponível",
+      "en": "Room Not Available"
+    },
+    "template": {
+      "pt": "A sala '{room_name}' não está disponível para o período solicitado ('{start_date}' a '{end_date}').",
+      "en": "Room '{room_name}' is not available for the requested period ('{start_date}' to '{end_date}')."
+    }
+  },
+  "ROOM_OPERATING_HOURS_VIOLATION": {
+    "status": 400,
+    "title": {
+      "pt": "Violação de Horário de Funcionamento da Sala",
+      "en": "Room Operating Hours Violation"
+    },
+    "template": {
+      "pt": "O horário solicitado ('{time}') está fora do período de funcionamento da sala '{room_name}'.",
+      "en": "The requested time ('{time}') is outside the operating hours of room '{room_name}'."
+    }
+  },
+  "ROOM_HAS_FUTURE_BOOKINGS": {
+    "status": 400,
+    "title": {
+      "pt": "Sala com Agendamentos Futuros",
+      "en": "Room Has Future Bookings"
+    },
+    "template": {
+      "pt": "Não é possível fechar a sala '{room_name}' que possui agendamentos futuros.",
+      "en": "Cannot close room '{room_name}' that has future bookings."
+    }
+  },
+  "ROOM_PERIOD_UNAVAILABLE": {
+    "status": 400,
+    "title": {
+      "pt": "Período da Sala Indisponível",
+      "en": "Room Period Unavailable"
+    },
+    "template": {
+      "pt": "O período selecionado para a sala '{room_name}' ('{start_time}' a '{end_time}') não está disponível devido a atividades existentes.",
+      "en": "The selected period for room '{room_name}' ('{start_time}' to '{end_time}') is unavailable due to existing activities."
+    }
+  },
+  "ROOM_CLOSED_FOR_BOOKING": {
+    "status": 400,
+    "title": {
+      "pt": "Sala Fechada para Agendamento",
+      "en": "Room Closed for Booking"
+    },
+    "template": {
+      "pt": "Não é possível agendar atividades na sala '{room_name}' pois ela está fechada.",
+      "en": "It is not possible to schedule activities in room '{room_name}' because it is closed."
+    }
+  },
+  "ROOM_NOT_AVAILABLE_FOR_SCHEDULE": {
+    "status": 400,
+    "title": {
+      "pt": "Sala Indisponível para Agendamento",
+      "en": "Room Not Available for Scheduling"
+    },
+    "template": {
+      "pt": "A sala '{room_name}' não está disponível para agendamento. Verifique o status da sala.",
+      "en": "Room '{room_name}' is not available for scheduling. Check the room status."
+    }
+  },
+  "INSUFFICIENT_TIME_BETWEEN_SCREENINGS": {
+    "status": 400,
+    "title": {
+      "pt": "Tempo Insuficiente Entre Exibições",
+      "en": "Insufficient Time Between Screenings"
+    },
+    "template": {
+      "pt": "É necessário um intervalo mínimo de {min_interval} minutos entre exibições na sala '{room_name}'.",
+      "en": "A minimum interval of {min_interval} minutes between screenings is required in room '{room_name}'."
+    }
+  },
+  "INVALID_OPERATION_DURATION": {
+    "status": 400,
+    "title": {
+      "pt": "Duração de Operação Inválida",
+      "en": "Invalid Operation Duration"
+    },
+    "template": {
+      "pt": "A duração da operação ('{duration}' minutos) é inválida. Deve ser entre {min} e {max} minutos.",
+      "en": "The operation duration ('{duration}' minutes) is invalid. It must be between {min} and {max} minutes."
+    }
+  },
+  "MISSING_EXIT_PERIOD": {
+    "status": 400,
+    "title": {
+      "pt": "Período de Saída Ausente",
+      "en": "Missing Exit Period"
+    },
+    "template": {
+      "pt": "Não é possível criar uma exibição sem um período mínimo de saída dos clientes ({min_exit_time} minutos) após o término do filme. Ajuste os horários.",
+      "en": "Cannot create a screening without a minimum exit period ({min_exit_time} minutes) after the movie ends. Adjust times."
+    }
+  },
+  "CLEANING_ASSOCIATED_WITH_SCREENING": {
+    "status": 400,
+    "title": {
+      "pt": "Limpeza Associada à Exibição",
+      "en": "Cleaning Associated with Screening"
+    },
+    "template": {
+      "pt": "A limpeza com ID '{cleaning_id}' está associada a uma exibição e só pode ser removida através da exibição.",
+      "en": "Cleaning with ID '{cleaning_id}' is associated with a screening and can only be removed through the screening."
+    }
+  },
+  "INVALID_ACTIVITY_TYPE": {
+    "status": 400,
+    "title": {
+      "pt": "Tipo de Atividade Inválido",
+      "en": "Invalid Activity Type"
+    },
+    "template": {
+      "pt": "O tipo de atividade '{type}' selecionado é inválido. Tipos permitidos: {allowed_types}.",
+      "en": "The selected activity type '{type}' is invalid. Allowed types: {allowed_types}."
+    }
+  },
+  "ACTIVITY_DURATION_TOO_SHORT": {
+    "status": 400,
+    "title": {
+      "pt": "Duração de Atividade Muito Curta",
+      "en": "Activity Duration Too Short"
+    },
+    "template": {
+      "pt": "A duração da atividade ('{duration}' minutos) é muito curta. A duração mínima é de {min} minutos.",
+      "en": "The activity duration ('{duration}' minutes) is too short. The minimum duration is {min} minutes."
+    }
+  },
+  "ACTIVITY_DURATION_TOO_LONG": {
+    "status": 400,
+    "title": {
+      "pt": "Duração de Atividade Muito Longa",
+      "en": "Activity Duration Too Long"
+    },
+    "template": {
+      "pt": "A duração da atividade ('{duration}' minutos) é muito longa. A duração máxima é de {max} minutos.",
+      "en": "The activity duration ('{duration}' minutes) is too long. The maximum duration is {max} minutes."
+    }
+  },
+  "OVERLAPPING_ACTIVITIES": {
+    "status": 400,
+    "title": {
+      "pt": "Atividades Sobrepostas",
+      "en": "Overlapping Activities"
+    },
+    "template": {
+      "pt": "A atividade solicitada ('{activity_type}' de '{start_time}' a '{end_time}') se sobrepõe a outra atividade já agendada na sala '{room_name}'.",
+      "en": "The requested activity ('{activity_type}' from '{start_time}' to '{end_time}') overlaps with another already scheduled activity in room '{room_name}'."
+    }
+  },
+  "SCREENING_CANCELLED_STATUS_CHANGE_FORBIDDEN": {
+    "status": 400,
+    "title": {
+      "pt": "Alteração de Status de Exibição Cancelada Proibida",
+      "en": "Cancelled Screening Status Change Forbidden"
+    },
+    "template": {
+      "pt": "Uma exibição cancelada com ID '{screening_id}' não pode mudar de status administrativo.",
+      "en": "A cancelled screening with ID '{screening_id}' cannot change its administrative status."
+    }
+  },
+  "SCREENING_FINALIZED_STATUS_CHANGE_FORBIDDEN": {
+    "status": 400,
+    "title": {
+      "pt": "Alteração de Status de Exibição Finalizada Proibida",
+      "en": "Finalized Screening Status Change Forbidden"
+    },
+    "template": {
+      "pt": "Uma exibição finalizada com ID '{screening_id}' não pode mudar de status de tempo.",
+      "en": "A finalized screening with ID '{screening_id}' cannot change its time status."
+    }
+  },
+  "SCREENING_INVALID_DIRECT_FINALIZATION": {
+    "status": 400,
+    "title": {
+      "pt": "Finalização Direta de Exibição Inválida",
+      "en": "Invalid Direct Screening Finalization"
+    },
+    "template": {
+      "pt": "A exibição com ID '{screening_id}' agendada não pode ser diretamente finalizada sem passar pelo estado EM_ANDAMENTO.",
+      "en": "Scheduled screening with ID '{screening_id}' cannot be directly finalized without going through the IN_PROGRESS state."
+    }
+  },
+  "SCREENING_CANNOT_CANCEL_ACTIVE_OR_FINALIZED": {
+    "status": 400,
+    "title": {
+      "pt": "Impossível Cancelar Exibição Ativa ou Finalizada",
+      "en": "Cannot Cancel Active or Finalized Screening"
+    },
+    "template": {
+      "pt": "Não é possível cancelar a exibição com ID '{screening_id}' que está em andamento ou já foi finalizada.",
+      "en": "It is not possible to cancel screening with ID '{screening_id}' that is in progress or has already been finalized."
+    }
+  },
+  "SCREENING_CANNOT_START": {
+    "status": 400,
+    "title": {
+      "pt": "Impossível Iniciar Exibição",
+      "en": "Cannot Start Screening"
+    },
+    "template": {
+      "pt": "Não é possível iniciar a exibição com ID '{screening_id}' devido ao seu status atual ('{status}').",
+      "en": "It is not possible to start screening with ID '{screening_id}' due to its current status ('{status}')."
+    }
+  },
+  "SCREENING_NOT_IN_SHOWING_PERIOD": {
+    "status": 400,
+    "title": {
+      "pt": "Exibição Fora do Período Programado",
+      "en": "Screening Outside Scheduled Period"
+    },
+    "template": {
+      "pt": "Não é possível iniciar a exibição com ID '{screening_id}' fora do período de exibição programado ('{scheduled_period}').",
+      "en": "It is not possible to start screening with ID '{screening_id}' outside the scheduled showing period ('{scheduled_period}')."
+    }
+  },
+  "SCREENING_NOT_AVAILABLE_FOR_BOOKING_CANCELLATION": {
+    "status": 400,
+    "title": {
+      "pt": "Exibição Indisponível para Cancelamento",
+      "en": "Screening Not Available for Cancellation"
+    },
+    "template": {
+      "pt": "Não é possível cancelar a reserva da exibição com ID '{screening_id}' que não está agendada.",
+      "en": "Cannot cancel booking for screening with ID '{screening_id}' that is not scheduled."
+    }
+  },
+  "CPF_WITH_INVALID_FORMAT": {
+    "status": 400,
+    "title": {
+      "pt": "Formato de CPF Inválido",
+      "en": "Invalid CPF Format"
+    },
+    "template": {
+      "pt": "O CPF '{cpf}' fornecido está em formato inválido. O formato correto é 000.000.000-00.",
+      "en": "The provided CPF '{cpf}' is in an invalid format. The correct format is 000.000.000-00."
+    }
+  },
+  "EMAIL_WITH_INVALID_FORMAT": {
+    "status": 400,
+    "title": {
+      "pt": "Formato de Email Inválido",
+      "en": "Invalid Email Format"
+    },
+    "template": {
+      "pt": "O endereço de e-mail '{email}' fornecido está em formato inválido. Por favor, forneça um e-mail válido.",
+      "en": "The provided email address '{email}' is in an invalid format. Please provide a valid email."
+    }
+  },
+  "VALIDATOR_WITH_INVALID_DATA_STRUCTURE": {
+    "status": 400,
+    "title": {
+      "pt": "Estrutura de Dados do Validador Inválida",
+      "en": "Invalid Validator Data Structure"
+    },
+    "template": {
+      "pt": "O objeto de dados para o validador deve conter exatamente uma propriedade (nomeDoCampo: valor). Estrutura fornecida: {provided_structure}.",
+      "en": "The validator data object must contain exactly one property (fieldName: value). Provided structure: {provided_structure}."
+    }
+  },
+  "UNCATALOGUED_ERROR": {
+    "status": 500,
+    "title": {
+      "pt": "Erro Não Catalogado",
+      "en": "Uncatalogued Error"
+    },
+    "template": {
+      "pt": "Ocorreu um erro não catalogado no sistema. Detalhes: {error_details}.",
+      "en": "An uncatalogued error occurred in the system. Details: {error_details}."
+    }
+  },
+  "CONTENT_WITH_INVALID_ITEMS": {
+    "status": 400,
+    "title": {
+      "pt": "Itens de Conteúdo Inválidos",
+      "en": "Invalid Content Items"
+    },
+    "template": {
+      "pt": "Um ou mais itens no campo '{field}' são inválidos.",
+      "en": "One or more items in field '{field}' are invalid."
+    }
+  },
+  "MISSING_VALID_ITEM": {
+    "status": 400,
+    "title": {
+      "pt": "Item Válido Ausente",
+      "en": "Missing Valid Item"
+    },
+    "template": {
+      "pt": "Nenhum item válido foi encontrado no campo '{field}'.",
+      "en": "No valid item was found in field '{field}'."
+    }
   }
 }
