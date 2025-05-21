@@ -1,3 +1,5 @@
+import { FailureCode } from "./failure.codes.enum";
+
 /**
  * Detalhes contextuais de uma falha.
  * Esta estrutura fornece informações adicionais sobre o motivo da falha,
@@ -107,7 +109,7 @@ export type SimpleFailure = {
    * Recomenda-se usar códigos descritivos em maiúsculas com underscores.
    * Exemplo: "INVALID_EMAIL_FORMAT", "MISSING_REQUIRED_DATA", "DUPLICATE_ENTRY"
    */
-  readonly code: string;
+  readonly code: FailureCode;
 
   /**
    * Objeto contendo informações contextuais adicionais sobre a falha.
