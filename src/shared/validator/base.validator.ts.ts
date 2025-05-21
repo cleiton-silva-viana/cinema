@@ -2,6 +2,7 @@ import { SimpleFailure } from "../failure/simple.failure.type";
 import { isEqual, isNull } from "./validator";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { Flow } from "../assert/assert";
+import { TechnicalError } from "../error/technical.error";
 
 /**
  * Classe base abstrata para validação de propriedades.
@@ -58,11 +59,11 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    */
   protected constructor(data: Record<string, any>, failures: SimpleFailure[]) {
     const keys = Object.keys(data);
-    if (keys.length !== 1) {
-      throw new Error(
-        "O objeto de dados para o validador deve conter exatamente uma propriedade (nomeDoCampo: valor).",
-      );
-    }
+    TechnicalError.if(
+      keys.length !== 1,
+      FailureCode.VALIDATOR_WITH_INVALID_DATA_STRUCTURE,
+    );
+
     this._field = keys[0];
     this._value = data[this._field];
     this._failures = failures;
