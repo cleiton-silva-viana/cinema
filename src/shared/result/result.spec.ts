@@ -1,4 +1,4 @@
-import { failure, success } from "./result";
+import { failure, ResultStatus, success } from "./result";
 import { SimpleFailure } from "../failure/simple.failure.type";
 
 describe("Result", () => {
@@ -11,7 +11,7 @@ describe("Result", () => {
       const result = success(data);
 
       // Assert
-      expect(result.type).toBe("success");
+      expect(result.type).toBe(ResultStatus.SUCCESS);
       expect(result.invalid).toBe(false);
       if (result.invalid === false) expect(result.value).toBe(data);
       else fail("Esperado que o resultado fosse um sucesso");
@@ -35,9 +35,10 @@ describe("Result", () => {
         const result = success(data);
 
         // Assert
-        expect(result.type).toBe("success");
+        expect(result.type).toBe(ResultStatus.SUCCESS);
         expect(result.invalid).toBe(false);
-        if (result.type === "success") expect(result.value).toBe(data);
+        if (result.type === ResultStatus.SUCCESS)
+          expect(result.value).toBe(data);
         else fail("Esperado que o resultado fosse um sucesso");
 
         // Acessar (result as any).failures em um objeto de sucesso resultará em undefined.
@@ -59,7 +60,7 @@ describe("Result", () => {
       const result = failure(failData); // A função failure retorna Result<never>
 
       // Assert
-      expect(result.type).toBe("failure");
+      expect(result.type).toBe(ResultStatus.FAILURE);
       expect(result.invalid).toBe(true);
       if (result.invalid) expect(result.failures).toEqual([failData]);
       else fail("Esperado que o resultado fosse uma falha");
@@ -86,9 +87,10 @@ describe("Result", () => {
       const result = failure(failsData);
 
       // Assert
-      expect(result.type).toBe("failure");
+      expect(result.type).toBe(ResultStatus.FAILURE);
       expect(result.invalid).toBe(true);
-      if (result.type === "failure") expect(result.failures).toEqual(failsData);
+      if (result.type === ResultStatus.FAILURE)
+        expect(result.failures).toEqual(failsData);
       else fail("Esperado que o resultado fosse uma falha");
 
       // Acessar (result as any).value em um objeto de falha resultará em undefined.

@@ -1,13 +1,18 @@
 import { SimpleFailure } from "../failure/simple.failure.type";
 
+export enum ResultStatus {
+  SUCCESS = "SUCCESS",
+  FAILURE = "FAILURE",
+}
+
 interface ISuccess<V> {
-  readonly type: "success";
+  readonly type: ResultStatus.SUCCESS;
   readonly invalid: false;
   readonly value: V;
 }
 
 interface IFailure {
-  readonly type: "failure";
+  readonly type: ResultStatus.FAILURE;
   readonly invalid: true;
   readonly failures: ReadonlyArray<SimpleFailure>;
 }
@@ -27,7 +32,7 @@ export type Result<V> = ISuccess<V> | IFailure;
  * @returns Uma instância de `ISuccess<V>`.
  */
 export const success = <V>(value: V): Result<V> => ({
-  type: "success",
+  type: ResultStatus.SUCCESS,
   invalid: false,
   value,
 });
@@ -43,7 +48,7 @@ export const failure = (
 ): Result<never> => {
   const errorArray = Array.isArray(errors) ? [...errors] : [errors];
   return {
-    type: "failure",
+    type: ResultStatus.FAILURE,
     invalid: true,
     failures: Object.freeze(errorArray),
   };
