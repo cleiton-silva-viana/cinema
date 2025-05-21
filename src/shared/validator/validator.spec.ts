@@ -30,7 +30,6 @@ describe("Validation", () => {
   });
 
   describe("isEqual", () => {
-
     describe("Values considered equal (should return true)", () => {
       const date = new Date(); // Use the same Date instance for identity check
 
@@ -38,7 +37,11 @@ describe("Validation", () => {
         // Primitives
         { value1: "", value2: "", scenario: "empty strings" },
         { value1: "abc", value2: "abc", scenario: "identical strings" },
-        { value1: " 14wd", value2: " 14wd", scenario: "identical strings with leading space" },
+        {
+          value1: " 14wd",
+          value2: " 14wd",
+          scenario: "identical strings with leading space",
+        },
         { value1: 0, value2: 0, scenario: "number zero" },
         { value1: 123, value2: 123, scenario: "identical positive numbers" },
         { value1: -5, value2: -5, scenario: "identical negative numbers" },
@@ -51,14 +54,38 @@ describe("Validation", () => {
         // Note: Per function logic, null and undefined are only equal to themselves
         // Dates
         { value1: date, value2: date, scenario: "same Date object instance" },
-        { value1: new Date(2024, 0, 1), value2: new Date(2024, 0, 1), scenario: "different Date object instances with same value" },
+        {
+          value1: new Date(2024, 0, 1),
+          value2: new Date(2024, 0, 1),
+          scenario: "different Date object instances with same value",
+        },
         // Arrays (shallow and deep)
         { value1: [], value2: [], scenario: "empty arrays" },
-        { value1: [1, 2, 3], value2: [1, 2, 3], scenario: "arrays with identical primitive numbers" },
-        { value1: ["a", "b"], value2: ["a", "b"], scenario: "arrays with identical strings" },
-        { value1: [null, undefined], value2: [null, undefined], scenario: "arrays with null and undefined" },
-        { value1: [new Date(1), new Date(2)], value2: [new Date(1), new Date(2)], scenario: "arrays with identical dates" },
-        { value1: [1, ["a", true]], value2: [1, ["a", true]], scenario: "nested arrays with identical values" },
+        {
+          value1: [1, 2, 3],
+          value2: [1, 2, 3],
+          scenario: "arrays with identical primitive numbers",
+        },
+        {
+          value1: ["a", "b"],
+          value2: ["a", "b"],
+          scenario: "arrays with identical strings",
+        },
+        {
+          value1: [null, undefined],
+          value2: [null, undefined],
+          scenario: "arrays with null and undefined",
+        },
+        {
+          value1: [new Date(1), new Date(2)],
+          value2: [new Date(1), new Date(2)],
+          scenario: "arrays with identical dates",
+        },
+        {
+          value1: [1, ["a", true]],
+          value2: [1, ["a", true]],
+          scenario: "nested arrays with identical values",
+        },
       ];
 
       equalTestCases.forEach(({ value1, value2, scenario }) => {
@@ -74,32 +101,96 @@ describe("Validation", () => {
 
       const unequalTestCases = [
         // Primitives
-        { value1: "", value2: " ", scenario: "empty string vs whitespace string" },
+        {
+          value1: "",
+          value2: " ",
+          scenario: "empty string vs whitespace string",
+        },
         { value1: "abc", value2: "ABC", scenario: "different case strings" },
-        { value1: " 14wd", value2: "14wd ", scenario: "strings with different whitespace" },
+        {
+          value1: " 14wd",
+          value2: "14wd ",
+          scenario: "strings with different whitespace",
+        },
         { value1: 1, value2: "1", scenario: "number vs string" },
-        { value1: NaN, value2: NaN, scenario: "NaN vs NaN (strict equality fails)" },
+        {
+          value1: NaN,
+          value2: NaN,
+          scenario: "NaN vs NaN (strict equality fails)",
+        },
         // Null / Undefined
         { value1: null, value2: 0, scenario: "null vs zero" },
-        { value1: undefined, value2: "", scenario: "undefined vs empty string" },
-        { value1: undefined as boolean, value2: false, scenario: "undefined vs false" },
+        {
+          value1: undefined,
+          value2: "",
+          scenario: "undefined vs empty string",
+        },
+        {
+          value1: undefined as boolean,
+          value2: false,
+          scenario: "undefined vs false",
+        },
         { value1: null as boolean, value2: false, scenario: "null vs false" },
         // Dates
         { value1: date1, value2: date2, scenario: "different Date values" },
-        { value1: new Date(), value2: Date.now(), scenario: "Date object vs number (timestamp)" },
-        { value1: new Date('invalid date'), value2: new Date('invalid date'), scenario: "invalid dates (NaN getTime)" },
-        { value1: new Date(), value2: new Date('invalid date'), scenario: "valid date vs invalid date" },
+        {
+          value1: new Date(),
+          value2: Date.now(),
+          scenario: "Date object vs number (timestamp)",
+        },
+        {
+          value1: new Date("invalid date"),
+          value2: new Date("invalid date"),
+          scenario: "invalid dates (NaN getTime)",
+        },
+        {
+          value1: new Date(),
+          value2: new Date("invalid date"),
+          scenario: "valid date vs invalid date",
+        },
         // Arrays
         { value1: [], value2: [1], scenario: "empty array vs non-empty array" },
-        { value1: [1, 2, 3], value2: [1, 2, 4], scenario: "arrays with different number element" },
-        { value1: [1, 2, 3], value2: [1, 3, 2], scenario: "arrays with same elements in different order" },
-        { value1: [1, 2], value2: [1, 2, 3], scenario: "arrays with different lengths" },
-        { value1: [1, ["a", true]] as Array<any>, value2: [1, ["a", false]], scenario: "nested arrays with different boolean value" },
-        { value1: [1, 2], value2: { 0: 1, 1: 2 }, scenario: "array vs array-like object" }, // Type mismatch handled
-        { value1: [" "], value2: [""], scenario: "arrays with whitespace string vs empty string" },
+        {
+          value1: [1, 2, 3],
+          value2: [1, 2, 4],
+          scenario: "arrays with different number element",
+        },
+        {
+          value1: [1, 2, 3],
+          value2: [1, 3, 2],
+          scenario: "arrays with same elements in different order",
+        },
+        {
+          value1: [1, 2],
+          value2: [1, 2, 3],
+          scenario: "arrays with different lengths",
+        },
+        {
+          value1: [1, ["a", true]] as Array<any>,
+          value2: [1, ["a", false]],
+          scenario: "nested arrays with different boolean value",
+        },
+        {
+          value1: [1, 2],
+          value2: { 0: 1, 1: 2 },
+          scenario: "array vs array-like object",
+        }, // Type mismatch handled
+        {
+          value1: [" "],
+          value2: [""],
+          scenario: "arrays with whitespace string vs empty string",
+        },
         // Objects (not handled deeply by the function)
-        { value1: {} as any, value2: {} as any, scenario: "empty objects (different instances)" },
-        { value1: {a: 1} as any, value2: {a: 1} as any, scenario: "identical objects (different instances)" },
+        {
+          value1: {} as any,
+          value2: {} as any,
+          scenario: "empty objects (different instances)",
+        },
+        {
+          value1: { a: 1 } as any,
+          value2: { a: 1 } as any,
+          scenario: "identical objects (different instances)",
+        },
       ];
 
       unequalTestCases.forEach(({ value1, value2, scenario }) => {
@@ -111,7 +202,6 @@ describe("Validation", () => {
   });
 
   describe("isEmpty", () => {
-
     describe("Values considered empty (should return true)", () => {
       const emptyTestCases = [
         { value: null, scenario: "null" },
@@ -130,7 +220,10 @@ describe("Validation", () => {
     describe("Values not considered empty (should return false)", () => {
       const nonEmptyTestCases = [
         { value: "a", scenario: "non-empty string" },
-        { value: " a ", scenario: "string with surrounding whitespace but content" },
+        {
+          value: " a ",
+          scenario: "string with surrounding whitespace but content",
+        },
         { value: [1], scenario: "non-empty array containing a number" },
         { value: ["a"], scenario: "non-empty array containing a string" },
         { value: [null], scenario: "non-empty array containing null" },
@@ -238,7 +331,6 @@ describe("Validation", () => {
     });
 
     describe("When value is a string", () => {
-
       describe("should return true when string length is less than or equal to max", () => {
         const validCases = [
           // Strings: length <= max
@@ -293,7 +385,6 @@ describe("Validation", () => {
     });
 
     describe("When value is an array", () => {
-
       describe(`should return true when array length is less than or equal to max`, () => {
         const validCases = [
           // Arrays: length <= max
@@ -345,7 +436,6 @@ describe("Validation", () => {
     });
 
     describe("When value is an object", () => {
-
       describe("should return true when object key count is less than or equal to max", () => {
         const validCases = [
           // Objects: key count <= max
@@ -424,7 +514,6 @@ describe("Validation", () => {
     });
 
     describe("when handling invalid/unsupported values or invalid max argument", () => {
-
       describe("for invalid value states (NaN, null, undefined)", () => {
         const invalidValues = [
           { value: NaN, max: defaultMax, scenario: "NaN value" },
@@ -481,7 +570,6 @@ describe("Validation", () => {
     const defaultMin = 5;
 
     describe("When value is a number", () => {
-
       describe("should return true when number value is greater than or equal to min", () => {
         const validCases = [
           // Números >= min
@@ -545,7 +633,6 @@ describe("Validation", () => {
     });
 
     describe("When value is a string", () => {
-
       describe("should return true when string length is greater than or equal to min", () => {
         const validCases = [
           // Strings: length >= min
@@ -602,7 +689,6 @@ describe("Validation", () => {
     });
 
     describe("When value is an array", () => {
-
       describe(`should return true when array length is greater than or equal to min`, () => {
         const validCases = [
           // Arrays: length >= min
@@ -654,7 +740,6 @@ describe("Validation", () => {
     });
 
     describe("When value is an object", () => {
-
       describe("should return true when object key count is greater than or equal to min", () => {
         const validCases = [
           // Objects: key count >= min
@@ -758,7 +843,6 @@ describe("Validation", () => {
     });
   });
 
-  // TODO: Testar REDOS
   describe("isMatch", () => {
     it("should return true when value matches the regex", () => {
       expect(isMatch(new RegExp("^abc"), "abc123")).toBe(true);
@@ -888,7 +972,6 @@ describe("Validation", () => {
     const defaultMax = 5;
 
     describe("when value is a number", () => {
-
       describe("should return true for numbers within range (inclusive)", () => {
         const validCases = [
           { value: defaultMin, scenario: "equal to min" },
@@ -905,10 +988,15 @@ describe("Validation", () => {
           },
         ];
         validCases.forEach(
-          ({ value, min: testMin = defaultMin, max: testMax = defaultMax, scenario }) => {
+          ({
+            value,
+            min: testMin = defaultMin,
+            max: testMax = defaultMax,
+            scenario,
+          }) => {
             it(scenario, () => {
               expect(isBetween(value, testMin, testMax)).toBe(true);
-            })
+            });
           },
         );
       });
@@ -935,17 +1023,21 @@ describe("Validation", () => {
           },
         ];
         invalidCases.forEach(
-          ({ value, min: testMin = defaultMin, max: testMax = defaultMax, scenario }) => {
-            it(scenario,() => {
+          ({
+            value,
+            min: testMin = defaultMin,
+            max: testMax = defaultMax,
+            scenario,
+          }) => {
+            it(scenario, () => {
               expect(isBetween(value, testMin, testMax)).toBe(false);
-            })
+            });
           },
         );
       });
     });
 
     describe("when value is a string", () => {
-
       describe("should return true when string length is within range", () => {
         const validCases = [
           {
@@ -964,7 +1056,7 @@ describe("Validation", () => {
         validCases.forEach(({ value, scenario }) => {
           it(scenario, () => {
             expect(isBetween(value, defaultMin, defaultMax)).toBe(true);
-          })
+          });
         });
       });
 
@@ -986,13 +1078,12 @@ describe("Validation", () => {
         invalidCases.forEach(({ value, scenario }) => {
           it(scenario, () => {
             expect(isBetween(value, defaultMin, defaultMax)).toBe(false);
-          })
+          });
         });
       });
     });
 
     describe("when value is an array", () => {
-
       describe("should return true when array length is within range", () => {
         const validCases = [
           {
@@ -1011,7 +1102,7 @@ describe("Validation", () => {
         validCases.forEach(({ value, scenario }) => {
           it(scenario, () => {
             expect(isBetween(value, defaultMin, defaultMax)).toBe(true);
-          })
+          });
         });
       });
 
@@ -1033,13 +1124,12 @@ describe("Validation", () => {
         invalidCases.forEach(({ value, scenario }) => {
           it(scenario, () => {
             expect(isBetween(value, defaultMin, defaultMax)).toBe(false);
-          })
+          });
         });
       });
     });
 
     describe("handling invalid limit arguments", () => {
-
       describe("should return false when min/max arguments are invalid", () => {
         const sampleValue = 3;
         const invalidLimitArgsCases = [
@@ -1082,13 +1172,12 @@ describe("Validation", () => {
         invalidLimitArgsCases.forEach(({ min, max, scenario }) => {
           it(scenario, () => {
             expect(isBetween(sampleValue, min, max)).toBe(false);
-          })
+          });
         });
       });
     });
 
     describe("handling unsupported value types", () => {
-
       describe("should return false for unsupported value types", () => {
         const unsupportedValueTypesCases = [
           // Casos onde o tipo do 'value' não é suportado
@@ -1105,7 +1194,7 @@ describe("Validation", () => {
         unsupportedValueTypesCases.forEach(({ val, scenario }) => {
           it(scenario, () => {
             expect(isBetween(val as any, defaultMin, defaultMax)).toBe(false);
-          })
+          });
         });
       });
     });
@@ -1168,7 +1257,7 @@ describe("Validation", () => {
       invalidCases.forEach(({ uuid, scenario }) => {
         it(scenario, () => {
           expect(isUIDv4(uuid as any)).toBe(false);
-        })
+        });
       });
     });
   });
@@ -1226,7 +1315,7 @@ describe("Validation", () => {
       invalidCases.forEach(({ uuid, scenario }) => {
         it(scenario, () => {
           expect(isUIDv7(uuid as any)).toBe(false);
-        })
+        });
       });
     });
   });

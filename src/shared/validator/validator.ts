@@ -22,15 +22,14 @@ export const isNull = (value: any): boolean => {
  * @param value A string ou array a ser verificado.
  * @returns boolean True se for vazio, null ou undefined, False caso contrário.
  */
-export const isEmpty = (value: string | Array<any> | null | undefined): boolean => {
-  if (isNull(value))
-    return true; // Considera null/undefined como vazio
+export const isEmpty = (
+  value: string | Array<any> | null | undefined,
+): boolean => {
+  if (isNull(value)) return true; // Considera null/undefined como vazio
 
-  if (typeof value === "string")
-    return value.trim().length === 0;
+  if (typeof value === "string") return value.trim().length === 0;
 
-  if (Array.isArray(value))
-    return value.length === 0;
+  if (Array.isArray(value)) return value.length === 0;
 
   return false;
 };
@@ -72,11 +71,12 @@ export const isBlank = (value: any): boolean => {
  * @param target O segundo valor.
  * @returns boolean True se os valores forem considerados iguais, False caso contrário.
  */
-export const isEqual = <T extends boolean | number | string | Date | Array<any>>(
+export const isEqual = <
+  T extends boolean | number | string | Date | Array<any>,
+>(
   value: T,
-  target: T
+  target: T,
 ): boolean => {
-
   if (value === target) return true;
   if (isNull(value) !== isNull(target)) return false;
   if (isNull(value) && isNull(target)) return true;
@@ -84,7 +84,11 @@ export const isEqual = <T extends boolean | number | string | Date | Array<any>>
   if (typeof value !== typeof target) return false;
 
   if (value instanceof Date && target instanceof Date)
-    return !isNaN(value.getTime()) && !isNaN(target.getTime()) && value.getTime() === target.getTime();
+    return (
+      !isNaN(value.getTime()) &&
+      !isNaN(target.getTime()) &&
+      value.getTime() === target.getTime()
+    );
 
   // todo: Risco de StackOverflow
   if (Array.isArray(value) && Array.isArray(target)) {
@@ -94,7 +98,9 @@ export const isEqual = <T extends boolean | number | string | Date | Array<any>>
       return value.every((element, index) => isEqual(element, target[index]));
     } catch (e) {
       if (e instanceof RangeError) {
-        console.error("isEqual: Maximum call stack size exceeded during array comparison. Consider limiting depth or using an iterative approach.");
+        console.error(
+          "isEqual: Maximum call stack size exceeded during array comparison. Consider limiting depth or using an iterative approach.",
+        );
         return false;
       }
       throw e;
@@ -115,13 +121,15 @@ export const isEqual = <T extends boolean | number | string | Date | Array<any>>
 export const isBetween = (
   value: number | string | Array<any>,
   min: number,
-  max: number
+  max: number,
 ): boolean => {
-  if (typeof min !== "number" || typeof max !== "number" || min > max) return false;
+  if (typeof min !== "number" || typeof max !== "number" || min > max)
+    return false;
 
   if (typeof value === "number") return value >= min && value <= max;
 
-  if (typeof value === "string") return value.length >= min && value.length <= max;
+  if (typeof value === "string")
+    return value.length >= min && value.length <= max;
 
   if (Array.isArray(value)) return value.length >= min && value.length <= max;
 
@@ -137,17 +145,14 @@ export const isBetween = (
  */
 export const minLengthEqualTo = (
   value: string | Array<any> | object | null | undefined,
-  min: number
+  min: number,
 ): boolean => {
   // TODO: (Validação Arg) Retorna false se min for inválido. OK.
-  if (isNull(value) || typeof min !== "number" || min < 0)
-    return false;
+  if (isNull(value) || typeof min !== "number" || min < 0) return false;
 
-  if (typeof value === "string")
-    return value.length >= min;
+  if (typeof value === "string") return value.length >= min;
 
-  if (Array.isArray(value))
-    return value.length >= min;
+  if (Array.isArray(value)) return value.length >= min;
 
   // TODO: (Documentação) Clarificar que para objetos, compara o número de chaves próprias.
   if (typeof value === "object" && value !== null && !Array.isArray(value))
@@ -165,7 +170,7 @@ export const minLengthEqualTo = (
  */
 export const maxLengthEqualTo = (
   value: string | Array<any> | object | null | undefined,
-  max: number
+  max: number,
 ): boolean => {
   if (isNull(value) || typeof max !== "number" || max < 0) return false;
 
@@ -192,23 +197,22 @@ export const maxLengthEqualTo = (
  */
 export const lessThanOrEqualTo = (
   value: number | string | Array<any> | object | null | undefined,
-  max: number ): boolean => {
-
-  if (typeof max !== 'number' || !isFinite(max)) return false;
+  max: number,
+): boolean => {
+  if (typeof max !== "number" || !isFinite(max)) return false;
 
   if (isNull(value)) return false;
 
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     if (isNaN(value)) return false;
     return value <= max;
   }
 
-  if (typeof value === 'string') return value.length <= max;
-
+  if (typeof value === "string") return value.length <= max;
 
   if (Array.isArray(value)) return value.length <= max;
 
-  if (typeof value === 'object') return Object.keys(value).length <= max;
+  if (typeof value === "object") return Object.keys(value).length <= max;
 
   return false;
 };
@@ -225,8 +229,9 @@ export const lessThanOrEqualTo = (
  * @returns boolean True se a condição (valor >= min ou comprimento >= min) for satisfeita, False caso contrário.
  */
 export const greaterThanOrEqualTo = (
-  value: number | string | Array<any> | object | null | undefined, min: number): boolean => {
-
+  value: number | string | Array<any> | object | null | undefined,
+  min: number,
+): boolean => {
   if (typeof min !== "number" || !isFinite(min)) return false;
 
   if (isNull(value)) return false;
@@ -247,7 +252,6 @@ export const greaterThanOrEqualTo = (
 
 // --- Verificações de String/Padrão ---
 
-// TODO: criar mecanismo contra REDOS
 /**
  * Verifica se a string corresponde à expressão regular fornecida.
  * Retorna false se a string for null/undefined ou se o RegExp for inválido.
@@ -255,8 +259,10 @@ export const greaterThanOrEqualTo = (
  * @param value A string a ser testada.
  * @returns boolean True se a string corresponder ao padrão, False caso contrário.
  */
-export const isMatch = (regExp: RegExp, value: string | null | undefined): boolean => {
-  // TODO: Validação dos argumentos. OK.
+export const isMatch = (
+  regExp: RegExp,
+  value: string | null | undefined,
+): boolean => {
   if (!(regExp instanceof RegExp) || isNull(value)) return false;
 
   try {
@@ -288,7 +294,8 @@ export const isEmail = (email: string | null | undefined): boolean => {
 export const isUIDv4 = (uid: string | null | undefined): boolean => {
   if (isNull(uid) || typeof uid !== "string") return false;
 
-  const uuidV4Regex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+  const uuidV4Regex =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
   return isMatch(uuidV4Regex, uid);
 };
 
@@ -300,7 +307,8 @@ export const isUIDv4 = (uid: string | null | undefined): boolean => {
 export const isUIDv7 = (uid: string | null | undefined): boolean => {
   if (isNull(uid) || typeof uid !== "string") return false;
 
-  const uuidV7Regex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+  const uuidV7Regex =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
   return isMatch(uuidV7Regex, uid);
 };
 
@@ -314,7 +322,12 @@ export const isUIDv7 = (uid: string | null | undefined): boolean => {
  * @returns boolean True se value > limitDate, False caso contrário.
  */
 export const isDateAfterLimit = (value: Date, limitDate: Date): boolean => {
-  if (!(value instanceof Date) || isNaN(value.getTime()) || !(limitDate instanceof Date) || isNaN(limitDate.getTime()))
+  if (
+    !(value instanceof Date) ||
+    isNaN(value.getTime()) ||
+    !(limitDate instanceof Date) ||
+    isNaN(limitDate.getTime())
+  )
     return false;
 
   return value.getTime() > limitDate.getTime();
@@ -328,7 +341,12 @@ export const isDateAfterLimit = (value: Date, limitDate: Date): boolean => {
  * @returns boolean True se value < limitDate, False caso contrário.
  */
 export const isDateBeforeLimit = (value: Date, limitDate: Date): boolean => {
-  if (!(value instanceof Date) || isNaN(value.getTime()) || !(limitDate instanceof Date) || isNaN(limitDate.getTime()))
+  if (
+    !(value instanceof Date) ||
+    isNaN(value.getTime()) ||
+    !(limitDate instanceof Date) ||
+    isNaN(limitDate.getTime())
+  )
     return false;
 
   return value.getTime() < limitDate.getTime();
