@@ -325,8 +325,19 @@
       "en": "Value Out of Range"
     },
     "template": {
-      "pt": "O valor '{value}' fornecido para '{field}' está fora do intervalo permitido ({minValue} - {maxValue}).",
-      "en": "The value '{value}' provided for '{field}' is out of the allowed range ({minValue} - {maxValue})."
+      "pt": "O valor '{value}' fornecido para '{field}' está fora do intervalo permitido ({min_value} - {max_value}).",
+      "en": "The value '{value}' provided for '{field}' is out of the allowed range ({min_value} - {max_value})."
+    }
+  },
+  "VALUE_GREATER_THAN_MAX": {
+    "status": 400,
+    "title": {
+      "pt": "Valor Excede o Máximo",
+      "en": "Value Exceeds Maximum"
+    },
+    "template": {
+      "pt": "O valor '{value}' fornecido excede o valor máximo permitido ({max_value}).",
+      "en": "The provided value '{value}' exceeds the maximum allowed value ({max_value})."
     }
   },
   "INVALID_ENUM_VALUE": {
