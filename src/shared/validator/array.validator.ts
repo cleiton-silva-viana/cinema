@@ -69,7 +69,6 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
     return this.validate(() => !this._value.includes(item), {
       code,
       details: {
-        item,
         ...details,
       },
     });

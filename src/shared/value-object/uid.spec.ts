@@ -2,6 +2,8 @@ import { UID } from "./uid";
 import { v4, v7 } from "uuid";
 import { TechnicalError } from "../error/technical.error";
 import { FailureCode } from "../failure/failure.codes.enum";
+import { validateAndCollect } from "../validator/common.validators";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 const PREFIX = "TEST";
 const SEPARATOR = ".";
@@ -13,6 +15,11 @@ class TestUID extends UID {
 
 describe("UID", () => {
   const UID_STRING = `${PREFIX}${SEPARATOR}${v7()}`;
+  let failures: SimpleFailure[];
+
+  beforeEach(() => {
+    failures = []
+  })
 
   describe("create", () => {
     it("deve criar um UID válido com UUID v7", () => {
@@ -31,12 +38,11 @@ describe("UID", () => {
     describe("deve criar um válido", () => {
       it("objeto UID a partir de uma string válida", () => {
         // Act
-        const result = TestUID.parse(UID_STRING);
+        const result = validateAndCollect(TestUID.parse(UID_STRING), failures) ;
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value).toBeInstanceOf(TestUID);
-        expect(result.value.value).toBe(UID_STRING);
+        expect(result.value).not.toBeNull()
+        expect(result.value).toBe(UID_STRING);
       });
     });
 
@@ -55,10 +61,10 @@ describe("UID", () => {
       failureCases.forEach(({ value, scenario }) => {
         it(scenario, () => {
           // Act
-          const result = TestUID.parse(value);
-          const failures = result.failures;
+          const result = validateAndCollect(TestUID.parse(value), failures);
 
           // Assert
+          expect(result).toBeNull()
           expect(failures.length).toBe(1);
           expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
         });
@@ -67,11 +73,11 @@ describe("UID", () => {
 
     it("deve falhar ao usar um valor vazio para criar um UID", () => {
       // Act
-      const result = TestUID.parse("     ");
+      const result = validateAndCollect(TestUID.parse("     "), failures) ;
 
       // Assert
-      expect(result.invalid).toBe(true);
-      expect(result.failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
+      expect(result).toBeNull()
+      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY);
     });
 
     describe("deve falhar ao criar um UID com formato inválido", () => {
@@ -97,12 +103,12 @@ describe("UID", () => {
       failureCases.forEach(({ value, scenario }) => {
         it(`objeto UID ${scenario}`, () => {
           // Act
-          const result = TestUID.parse(value);
-          const failures = result.failures;
+          const result = validateAndCollect(TestUID.parse(value), failures);
 
           // Assert
+          expect(result).toBeNull()
           expect(failures.length).toBe(1);
-          expect(failures[0].code).toBe(FailureCode.INVALID_UUID);
+          expect(failures[0].code).toBe(FailureCode.UID_WITH_INVALID_FORMAT);
         });
       });
     });

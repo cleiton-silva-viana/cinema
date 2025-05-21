@@ -77,28 +77,25 @@ export abstract class UID {
 
   /**
    * Tenta criar uma instância de UID a partir de uma string
-   * @param value String contendo o UID completo (ex: "USER.123e4567-e89b-12d3-a456-426614174000")
+   * @param uid String contendo o UID completo (ex: "USER.123e4567-e89b-12d3-a456-426614174000")
    * @returns Result contendo a instância ou falha nos seguintes casos:
    * - `FailureCode.NULL_ARGUMENT`: Se `value` for nulo ou undefined
    * - `FailureCode.INVALID_UUID`: Se o prefixo, formato ou UUID forem inválidos
    */
-  public static parse(value: string): Result<UID> {
+  public static parse(uid: string): Result<UID> {
     const failures: SimpleFailure[] = [];
     const concreteClass = this as typeof UID;
     const prefix = concreteClass.PREFIX + concreteClass.SEPARATOR;
     let uuidPart: string;
 
-    Validate.string(value)
-      .field("uid")
-      .failures(failures)
+    Validate.string({uid}, failures)
       .isRequired()
       .isNotEmpty()
-      .startsWith(prefix, FailureCode.INVALID_UUID)
+      .startsWith(prefix, FailureCode.UID_WITH_INVALID_FORMAT)
       .then(() => {
-        uuidPart = UID.extractUuidPart(value, concreteClass);
-        Validate.string(uuidPart)
-          .field("uid")
-          .failures(failures)
+        uuidPart = UID.extractUuidPart(uid, concreteClass);
+        Validate
+          .string({uid: uuidPart}, failures)
           .isValidUUIDv7();
       });
 
