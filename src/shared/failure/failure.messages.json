@@ -340,6 +340,17 @@
       "en": "The provided value '{value}' exceeds the maximum allowed value ({max_value})."
     }
   },
+  "VALUE_LESS_THAN_MIN": {
+    "status": 400,
+    "title": {
+      "pt": "Valor Abaixo do Mínimo",
+      "en": "Value Less Than Minimum"
+    },
+    "template": {
+      "pt": "O valor '{value}' fornecido para '{field}' é menor que o valor mínimo permitido ({min_value}).",
+      "en": "The value '{value}' provided for '{field}' is less than the minimum allowed value ({min_value})."
+    }
+  },
   "INVALID_ENUM_VALUE": {
     "status": 400,
     "title": {
