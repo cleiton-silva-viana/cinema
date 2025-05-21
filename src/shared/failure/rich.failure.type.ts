@@ -37,12 +37,11 @@ export type RichFailureType = {
   title: string;
 
   /**
-   * Um objeto contendo detalhes contextuais específicos sobre a ocorrência do erro,
-   * com valores restritos a `string` ou `number` para garantir fácil serialização
-   * e consumo pelo cliente (e.g., em JSON).
-   * Pode incluir informações como o campo específico que falhou na validação,
-   * identificadores relevantes, limites violados, etc.
-   * Exemplo: `{ "field": "email", "reason": "invalid_format" }`, `{ "productId": 123 }`.
+   * Uma mensagem detalhada e formatada que explica o erro de forma clara para o usuário final.
+   * Esta mensagem é construída a partir de um template que pode conter placeholders (como {field})
+   * que são substituídos pelos valores relevantes dos detalhes da falha.
+   * É ideal para exibição em interfaces de usuário ou logs detalhados.
+   * Exemplo: "O campo nome não está definido", "Um nome deve ter entre 3 e 50 caracteres."
    */
-  details: Record<string, string | number>;
+  message: string;
 };
