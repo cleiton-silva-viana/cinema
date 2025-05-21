@@ -32,6 +32,8 @@ export type FailureDetails = {
 
   target?: string,
 
+  resource?: string,
+
   date?: string
   max_date?: string
   min_date?: string
