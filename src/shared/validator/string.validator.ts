@@ -1,13 +1,14 @@
 import { BaseValidator } from "./base.validator.ts";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { isEmail, isMatch, isUIDv4, isUIDv7 } from "./validator";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 /**
  * Validador para strings
  */
 export class StringValidator extends BaseValidator<StringValidator> {
-  constructor(value: string) {
-    super(value);
+  constructor(value: Record<string, string>, failures: SimpleFailure[]) {
+    super(value, failures);
   }
 
   /**

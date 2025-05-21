@@ -16,7 +16,7 @@ describe("StringValidator", () => {
       const value = "teste";
 
       // Act
-      new StringValidator(value).failures(failures).field("test").isNotEmpty();
+      new StringValidator({ test: value }, failures).isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -28,7 +28,7 @@ describe("StringValidator", () => {
       const value = "";
 
       // Act
-      new StringValidator(value).failures(failures).field("test").isNotEmpty();
+      new StringValidator({ test: value }, failures).isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -41,7 +41,7 @@ describe("StringValidator", () => {
       const value = "   ";
 
       // Act
-      new StringValidator(value).failures(failures).field("test").isNotEmpty();
+      new StringValidator({ test: value }, failures).isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -54,7 +54,7 @@ describe("StringValidator", () => {
       const value = "\n\t\r";
 
       // Act
-      new StringValidator(value).failures(failures).field("test").isNotEmpty();
+      new StringValidator({ test: value }, failures).isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -69,7 +69,7 @@ describe("StringValidator", () => {
       const value = "teste";
 
       // Act
-      new StringValidator(value).failures(failures).field("test").hasContent();
+      new StringValidator({ test: value }, failures).hasContent();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -81,7 +81,7 @@ describe("StringValidator", () => {
       const value = "!@#$%^&*()_+{}|:<>?~`-=[]\\;',./";
 
       // Act
-      new StringValidator(value).failures(failures).field("test").hasContent();
+      new StringValidator({ test: value }, failures).hasContent();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -93,7 +93,7 @@ describe("StringValidator", () => {
       const value = "   ";
 
       // Act
-      new StringValidator(value).failures(failures).field("test").hasContent();
+      new StringValidator({ test: value }, failures).hasContent();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -107,10 +107,7 @@ describe("StringValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("test")
-        .hasContent(code);
+      new StringValidator({ test: value }, failures).hasContent(code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -124,10 +121,10 @@ describe("StringValidator", () => {
       const details = { message: "Campo não pode estar em branco" };
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("test")
-        .hasContent(FailureCode.STRING_CANNOT_BE_BLANK, details);
+      new StringValidator({ test: value }, failures).hasContent(
+        FailureCode.STRING_CANNOT_BE_BLANK,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -143,7 +140,7 @@ describe("StringValidator", () => {
       const pattern = /^[a-z0-9]+$/;
 
       // Act
-      new StringValidator(value).failures(failures).matchesPattern(pattern);
+      new StringValidator({ valor: value }, failures).matchesPattern(pattern);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -156,7 +153,7 @@ describe("StringValidator", () => {
       const pattern = /^[a-z0-9]+$/;
 
       // Act
-      new StringValidator(value).failures(failures).matchesPattern(pattern);
+      new StringValidator({ valor: value }, failures).matchesPattern(pattern);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -171,9 +168,10 @@ describe("StringValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .matchesPattern(pattern, code);
+      new StringValidator({ valor: value }, failures).matchesPattern(
+        pattern,
+        code,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -188,9 +186,11 @@ describe("StringValidator", () => {
       const details = { message: "Formato inválido" };
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .matchesPattern(pattern, FailureCode.INVALID_VALUE_FORMAT, details);
+      new StringValidator({ valor: value }, failures).matchesPattern(
+        pattern,
+        FailureCode.INVALID_VALUE_FORMAT,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -205,7 +205,7 @@ describe("StringValidator", () => {
       const value = faker.internet.email();
 
       // Act
-      new StringValidator(value).failures(failures).isValidEmail();
+      new StringValidator({ email: value }, failures).isValidEmail();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -217,10 +217,7 @@ describe("StringValidator", () => {
       const value = "teste@example";
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("email")
-        .isValidEmail();
+      new StringValidator({ email: value }, failures).isValidEmail();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -234,10 +231,7 @@ describe("StringValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("email")
-        .isValidEmail(code);
+      new StringValidator({ email: value }, failures).isValidEmail(code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -251,10 +245,10 @@ describe("StringValidator", () => {
       const details = { message: "Email inválido" };
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("email")
-        .isValidEmail(FailureCode.EMAIL_IS_INVALID, details);
+      new StringValidator({ email: value }, failures).isValidEmail(
+        FailureCode.EMAIL_IS_INVALID,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -269,7 +263,7 @@ describe("StringValidator", () => {
       const value = v4();
 
       // Act
-      new StringValidator(value).failures(failures).isValidUUIDv4();
+      new StringValidator({ uuid: value }, failures).isValidUUIDv4();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -281,11 +275,11 @@ describe("StringValidator", () => {
       const value = v7();
 
       // Act
-      new StringValidator(value).failures(failures).isValidUUIDv4();
+      new StringValidator({ uuid: value }, failures).isValidUUIDv4();
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.INVALID_UUID_V4);
+      expect(failures[0].code).toBe(FailureCode.INVALID_UUID);
     });
 
     it("deve usar o código de erro personalizado", () => {
@@ -295,7 +289,7 @@ describe("StringValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new StringValidator(value).failures(failures).isValidUUIDv4(code);
+      new StringValidator({ uuid: value }, failures).isValidUUIDv4(code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -309,9 +303,10 @@ describe("StringValidator", () => {
       const details = { message: "UUID v4 inválido" };
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .isValidUUIDv4(FailureCode.INVALID_UUID_V4, details);
+      new StringValidator({ uuid: value }, failures).isValidUUIDv4(
+        FailureCode.INVALID_UUID,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -326,7 +321,7 @@ describe("StringValidator", () => {
       const value = v7();
 
       // Act
-      new StringValidator(value).failures(failures).isValidUUIDv7();
+      new StringValidator({ uuid: value }, failures).isValidUUIDv7();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -338,11 +333,11 @@ describe("StringValidator", () => {
       const value = v4();
 
       // Act
-      new StringValidator(value).failures(failures).isValidUUIDv7();
+      new StringValidator({ uuid: value }, failures).isValidUUIDv7();
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.INVALID_UUID_V7);
+      expect(failures[0].code).toBe(FailureCode.INVALID_UUID);
     });
 
     it("deve usar o código de erro personalizado", () => {
@@ -352,10 +347,7 @@ describe("StringValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("id")
-        .isValidUUIDv7(code);
+      new StringValidator({ id: value }, failures).isValidUUIDv7(code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -369,10 +361,10 @@ describe("StringValidator", () => {
       const details = { message: "UUID v7 inválido" };
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("id")
-        .isValidUUIDv7(FailureCode.INVALID_UUID_V7, details);
+      new StringValidator({ id: value }, failures).isValidUUIDv7(
+        FailureCode.INVALID_UUID,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -389,7 +381,10 @@ describe("StringValidator", () => {
       const max = 10;
 
       // Act
-      new StringValidator(value).failures(failures).hasLengthBetween(min, max);
+      new StringValidator({ texto: value }, failures).hasLengthBetween(
+        min,
+        max,
+      );
 
       // Assert
       expect(failures.length).toBe(0);
@@ -403,10 +398,7 @@ describe("StringValidator", () => {
       const max = 10;
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("nome")
-        .hasLengthBetween(min, max);
+      new StringValidator({ nome: value }, failures).hasLengthBetween(min, max);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -424,7 +416,10 @@ describe("StringValidator", () => {
       const max = 10;
 
       // Act
-      new StringValidator(value).failures(failures).hasLengthBetween(min, max);
+      new StringValidator({ texto: value }, failures).hasLengthBetween(
+        min,
+        max,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -443,10 +438,11 @@ describe("StringValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("nome")
-        .hasLengthBetween(min, max, code);
+      new StringValidator({ nome: value }, failures).hasLengthBetween(
+        min,
+        max,
+        code,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -462,10 +458,12 @@ describe("StringValidator", () => {
       const details = { message: "Tamanho inválido" };
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("nome")
-        .hasLengthBetween(min, max, FailureCode.LENGTH_OUT_OF_RANGE, details);
+      new StringValidator({ nome: value }, failures).hasLengthBetween(
+        min,
+        max,
+        FailureCode.LENGTH_OUT_OF_RANGE,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -484,7 +482,7 @@ describe("StringValidator", () => {
       const value = "b";
 
       // Act
-      new StringValidator(value).failures(failures).isInEnum(enumType);
+      new StringValidator({ valor: value }, failures).isInEnum(enumType);
 
       // Assert
       expect(failures.length).toBe(0);
@@ -497,10 +495,7 @@ describe("StringValidator", () => {
       const value = "d";
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("tipo")
-        .isInEnum(enumType);
+      new StringValidator({ tipo: value }, failures).isInEnum(enumType);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -519,10 +514,7 @@ describe("StringValidator", () => {
       const code = FailureCode.CONTENT_INVALID_TYPE;
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("tipo")
-        .isInEnum(enumType, code);
+      new StringValidator({ tipo: value }, failures).isInEnum(enumType, code);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -537,10 +529,11 @@ describe("StringValidator", () => {
       const details = { message: "Valor não permitido" };
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("tipo")
-        .isInEnum(enumType, FailureCode.INVALID_ENUM_VALUE, details);
+      new StringValidator({ tipo: value }, failures).isInEnum(
+        enumType,
+        FailureCode.INVALID_ENUM_VALUE,
+        details,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -559,9 +552,7 @@ describe("StringValidator", () => {
       const value = "";
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("test")
+      new StringValidator({ test: value }, failures)
         .isNotEmpty()
         .continue()
         .hasContent()
@@ -581,9 +572,7 @@ describe("StringValidator", () => {
       const value = "";
 
       // Act
-      new StringValidator(value)
-        .failures(failures)
-        .field("test")
+      new StringValidator({ test: value }, failures)
         .isNotEmpty()
         .hasContent()
         .hasLengthBetween(5, 10);
@@ -599,9 +588,7 @@ describe("StringValidator", () => {
       const enumForTest = { A: "a", B: "b", C: "c" };
 
       // Act
-      new StringValidator(null)
-        .failures(failures)
-        .field("test")
+      new StringValidator({ test: null as any }, failures)
         .isNotEmpty()
         .hasContent()
         .isInEnum(enumForTest)
@@ -627,9 +614,9 @@ describe("StringValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new StringValidator(VALUE_WITH_PREFIX)
-        .failures(failures)
-        .startsWith(PREFIX);
+      new StringValidator({ valor: VALUE_WITH_PREFIX }, failures).startsWith(
+        PREFIX,
+      );
 
       // Assert
       expect(failures.length).toBe(0);
@@ -640,10 +627,10 @@ describe("StringValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new StringValidator(VALUE_WITHOUT_PREFIX)
-        .failures(failures)
-        .field(FIELD)
-        .startsWith(PREFIX);
+      new StringValidator(
+        { [FIELD]: VALUE_WITHOUT_PREFIX },
+        failures,
+      ).startsWith(PREFIX);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -657,10 +644,10 @@ describe("StringValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new StringValidator(VALUE_WITHOUT_PREFIX)
-        .failures(failures)
-        .field(FIELD)
-        .startsWith(PREFIX, PERSONAL_CODE);
+      new StringValidator(
+        { [FIELD]: VALUE_WITHOUT_PREFIX },
+        failures,
+      ).startsWith(PREFIX, PERSONAL_CODE);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -674,14 +661,10 @@ describe("StringValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new StringValidator(VALUE_WITHOUT_PREFIX)
-        .failures(failures)
-        .field(FIELD)
-        .startsWith(
-          PREFIX,
-          FailureCode.STRING_INVALID_FORMAT,
-          PERSONAL_DETAILS,
-        );
+      new StringValidator(
+        { [FIELD]: VALUE_WITHOUT_PREFIX },
+        failures,
+      ).startsWith(PREFIX, FailureCode.STRING_INVALID_FORMAT, PERSONAL_DETAILS);
 
       // Assert
       expect(failures.length).toBe(1);
