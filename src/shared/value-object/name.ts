@@ -36,13 +36,14 @@ export class Name {
   public static create(name: string): Result<Name> {
     const failures: SimpleFailure[] = [];
 
-    Validate.string(name)
-      .field("name")
-      .failures(failures)
+    Validate.string({ name }, failures)
       .isRequired()
       .isNotEmpty()
       .hasLengthBetween(Name.MIN_NAME_LENGTH, Name.MAX_NAME_LENGTH)
-      .matchesPattern(Name.NAME_FORMAT_REGEX, FailureCode.INVALID_NAME_FORMAT);
+      .matchesPattern(
+        Name.NAME_FORMAT_REGEX,
+        FailureCode.NAME_WITH_INVALID_FORMAT,
+      );
 
     return failures.length > 0 ? failure(failures) : success(new Name(name));
   }
