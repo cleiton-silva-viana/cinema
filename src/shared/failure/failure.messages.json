@@ -285,6 +285,17 @@
       "en": "The date '{date}' exceeds the maximum allowed limit ({max_date})."
     }
   },
+  "DATE_NOT_BEFORE_LIMIT": {
+    "status": 400,
+    "title": {
+      "pt": "Data Anterior ao Limite Mínimo",
+      "en": "Date Before Minimum Limit"
+    },
+    "template": {
+      "pt": "A data '{date}' é anterior ao limite mínimo permitido ({min_date}).",
+      "en": "The date '{date}' is before the minimum allowed limit ({min_date})."
+    }
+  },
   "DATE_WITH_INVALID_SEQUENCE": {
     "status": 400,
     "title": {
