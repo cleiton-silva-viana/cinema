@@ -1,6 +1,7 @@
 import { BaseValidator } from "./base.validator.ts";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { isNull } from "./validator";
+import { SimpleFailure } from "../failure/simple.failure.type";
 
 /**
  * Validador para objetos
@@ -8,8 +9,8 @@ import { isNull } from "./validator";
 export class ObjectValidator<T extends object> extends BaseValidator<
   ObjectValidator<T>
 > {
-  constructor(value: T) {
-    super(value);
+  constructor(value: Record<string, T>, failures: SimpleFailure[]) {
+    super(value, failures);
   }
 
   /**

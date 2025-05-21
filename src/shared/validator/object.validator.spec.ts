@@ -1,7 +1,6 @@
 import { FailureCode } from "../failure/failure.codes.enum";
 import { SimpleFailure } from "../failure/simple.failure.type";
 import { ObjectValidator } from "./object.valdiator";
-import { expand, observable } from "rxjs";
 
 describe("ObjectValidator", () => {
   const OBJECT = { name: "test", age: 25 };
@@ -16,7 +15,7 @@ describe("ObjectValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new ObjectValidator(OBJECT).failures(failures).hasProperty("age");
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).hasProperty("age");
 
       // Assert
       expect(failures.length).toBe(0);
@@ -27,10 +26,9 @@ describe("ObjectValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new ObjectValidator(OBJECT)
-        .failures(failures)
-        .field(FIELD)
-        .hasProperty(NON_EXISTENT_ATTRIBUTE as keyof typeof OBJECT);
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).hasProperty(
+        NON_EXISTENT_ATTRIBUTE as keyof typeof OBJECT,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -44,13 +42,10 @@ describe("ObjectValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new ObjectValidator(OBJECT)
-        .failures(failures)
-        .field(FIELD)
-        .hasProperty(
-          NON_EXISTENT_ATTRIBUTE as keyof typeof OBJECT,
-          PERSONAL_CODE,
-        );
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).hasProperty(
+        NON_EXISTENT_ATTRIBUTE as keyof typeof OBJECT,
+        PERSONAL_CODE,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -63,14 +58,11 @@ describe("ObjectValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new ObjectValidator(OBJECT)
-        .failures(failures)
-        .field(FIELD)
-        .hasProperty(
-          NON_EXISTENT_ATTRIBUTE as keyof typeof OBJECT,
-          FailureCode.OBJECT_MISSING_PROPERTY,
-          PERSONAL_DETAILS,
-        );
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).hasProperty(
+        NON_EXISTENT_ATTRIBUTE as keyof typeof OBJECT,
+        FailureCode.OBJECT_MISSING_PROPERTY,
+        PERSONAL_DETAILS,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -86,7 +78,7 @@ describe("ObjectValidator", () => {
       const failures: SimpleFailure[] = [];
 
       // Act
-      new ObjectValidator(OBJECT).failures(failures).isNotEmpty();
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(0);
@@ -98,7 +90,7 @@ describe("ObjectValidator", () => {
       const obj = {};
 
       // Act
-      new ObjectValidator(obj).failures(failures).field(FIELD).isNotEmpty();
+      new ObjectValidator({ [FIELD]: obj }, failures).isNotEmpty();
 
       // Assert
       expect(failures.length).toBe(1);
@@ -112,10 +104,7 @@ describe("ObjectValidator", () => {
       const obj = {};
 
       // Act
-      new ObjectValidator(obj)
-        .failures(failures)
-        .field(FIELD)
-        .isNotEmpty(PERSONAL_CODE);
+      new ObjectValidator({ [FIELD]: obj }, failures).isNotEmpty(PERSONAL_CODE);
 
       // Assert
       expect(failures.length).toBe(1);
@@ -129,10 +118,10 @@ describe("ObjectValidator", () => {
       const value = {};
 
       // Act
-      new ObjectValidator(value)
-        .failures(failures)
-        .field(FIELD)
-        .isNotEmpty(FailureCode.OBJECT_IS_EMPTY, PERSONAL_DETAILS);
+      new ObjectValidator({ [FIELD]: value }, failures).isNotEmpty(
+        FailureCode.OBJECT_IS_EMPTY,
+        PERSONAL_DETAILS,
+      );
 
       // Assert
       expect(failures.length).toBe(1);
@@ -148,11 +137,12 @@ describe("ObjectValidator", () => {
       let wasExecuted = false;
 
       // Act
-      new ObjectValidator(OBJECT)
-        .failures(failures)
-        .optionalProperty(NON_EXISTENT_ATTRIBUTE, () => {
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).optionalProperty(
+        NON_EXISTENT_ATTRIBUTE,
+        () => {
           wasExecuted = true;
-        });
+        },
+      );
 
       // Assert
       expect(wasExecuted).toBe(false);
@@ -162,11 +152,15 @@ describe("ObjectValidator", () => {
     it("deve executar o validador quando a propriedade existir", () => {
       // Arrange
       let wasExecuted = false;
+      const failures: SimpleFailure[] = [];
 
       // Act
-      new ObjectValidator(OBJECT).optionalProperty("age", () => {
-        wasExecuted = true;
-      });
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).optionalProperty(
+        "age",
+        () => {
+          wasExecuted = true;
+        },
+      );
 
       // Assert
       expect(wasExecuted).toBe(true);
@@ -175,9 +169,10 @@ describe("ObjectValidator", () => {
     it("deve permitir encadeamento de validações", () => {
       // Arrange
       let executionsCounter = 0;
+      const failures: SimpleFailure[] = [];
 
       // Act
-      new ObjectValidator(OBJECT)
+      new ObjectValidator({ [FIELD]: OBJECT }, failures)
         .optionalProperty("name", () => {
           executionsCounter++;
         })
@@ -197,11 +192,12 @@ describe("ObjectValidator", () => {
       let wasExecuted = false;
 
       // Act
-      new ObjectValidator(OBJECT)
-        .failures(failures)
-        .property(NON_EXISTENT_ATTRIBUTE, () => {
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).property(
+        NON_EXISTENT_ATTRIBUTE,
+        () => {
           wasExecuted = true;
-        });
+        },
+      );
 
       // Assert
       expect(wasExecuted).toBe(false);
@@ -216,7 +212,7 @@ describe("ObjectValidator", () => {
       let wasExecuted = false;
 
       // Act
-      new ObjectValidator(OBJECT).failures(failures).property("age", () => {
+      new ObjectValidator({ [FIELD]: OBJECT }, failures).property("age", () => {
         wasExecuted = true;
       });
 
@@ -231,8 +227,7 @@ describe("ObjectValidator", () => {
       let wasExecuted = 0;
 
       // Act
-      new ObjectValidator(OBJECT)
-        .failures(failures)
+      new ObjectValidator({ [FIELD]: OBJECT }, failures)
         .property("name", () => {
           wasExecuted++;
         })
@@ -252,7 +247,7 @@ describe("ObjectValidator", () => {
       let wasExecuted = false;
 
       // Act
-      new ObjectValidator(obj).failures(failures).property("age", () => {
+      new ObjectValidator({ [FIELD]: obj }, failures).property("age", () => {
         wasExecuted = true;
       });
 
