@@ -1,4 +1,5 @@
 import { IFailureMessageProvider } from "./failure.message.provider.interface";
+import { FailureCode } from "./failure.codes.enum";
 
 const fails = require("./failure.messages.json");
 
@@ -6,11 +7,21 @@ const fails = require("./failure.messages.json");
  * Interface que representa a estrutura de uma mensagem de erro no arquivo failure.messages.json
  */
 export interface FailureMessageConfig {
-  message: {
+  title: {
     pt: string;
     en: string;
   };
   statusCode: number;
+  /**
+   * Template opcional para formatação de mensagens de erro.
+   * Contém placeholders no formato {placeholder} que serão substituídos
+   * pelos valores correspondentes nos detalhes do erro.
+   * Exemplo: "O campo {field} não está definido"
+   */
+  template?: {
+    pt?: string;
+    en?: string;
+  };
 }
 
 /**
@@ -30,9 +41,8 @@ export class FailureMessageProvider implements IFailureMessageProvider {
    * Obtém a instância única do provedor de mensagens
    */
   public static getInstance(): FailureMessageProvider {
-    if (!FailureMessageProvider.instance) {
+    if (!FailureMessageProvider.instance)
       FailureMessageProvider.instance = new FailureMessageProvider();
-    }
     return FailureMessageProvider.instance;
   }
 
@@ -48,9 +58,12 @@ export class FailureMessageProvider implements IFailureMessageProvider {
   /**
    * Obtém a configuração de mensagem para um código de erro específico
    * @param code Código do erro
-   * @returns Configuração da mensagem ou undefined se não encontrada
+   * @returns Configuração da mensagem ou uma mensagem de erro genérica caso o código não seja categoriazado no arquivo json correspondente
    */
-  public getMessageConfig(code: string): FailureMessageConfig | undefined {
-    return this.messagesMap.get(code);
+  public getMessageConfig(code: FailureCode): FailureMessageConfig {
+    const failure = this.messagesMap.get(code);
+    return failure === undefined
+      ? this.messagesMap.get(FailureCode.UNCATALOGUED_ERROR)
+      : failure;
   }
 }
