@@ -5,6 +5,8 @@ import { Email } from "./value-object/email";
 import { BirthDate } from "../../../shared/value-object/birth.date";
 import { CustomerUID } from "./value-object/customer.uid";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { validateAndCollect } from "../../../shared/validator/common.validators";
+import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
 
 describe("Customer", () => {
   const NAME = faker.person.fullName();
@@ -13,16 +15,25 @@ describe("Customer", () => {
 
   describe("Métodos Estáticos", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       it("deve criar um cliente válido", () => {
         // Act
-        const result = Customer.create(NAME, BIRTH_DATE, EMAIL);
+        const result = validateAndCollect(
+          Customer.create(NAME, BIRTH_DATE, EMAIL),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value.uid).toBeDefined();
-        expect(result.value.name.value).toBe(NAME);
-        expect(result.value.email.value).toBe(EMAIL);
-        expect(result.value.birthDate.value).toEqual(BIRTH_DATE);
+        expect(result).toBeDefined();
+        expect(result.uid).toBeDefined();
+        expect(result.name.value).toBe(NAME);
+        expect(result.email.value).toBe(EMAIL);
+        expect(result.birthDate.value).toEqual(BIRTH_DATE);
       });
 
       describe("deve falhar ao criar um cliente com dados inválidos", () => {
@@ -75,11 +86,14 @@ describe("Customer", () => {
           ({ name, birthDate, email, description, expectedFailures }) => {
             it(description, () => {
               // Act
-              const result = Customer.create(name, birthDate, email);
+              const result = validateAndCollect(
+                Customer.create(name, birthDate, email),
+                failures,
+              );
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures).toHaveLength(expectedFailures);
+              expect(result).toBeNull();
+              expect(failures).toHaveLength(expectedFailures);
             });
           },
         );
@@ -105,7 +119,7 @@ describe("Customer", () => {
       it("deve lançar TechnicalError quando algum valor é nulo", () => {
         // Act & Assert
         expect(() => Customer.hydrate(null, NAME, BIRTH_DATE, EMAIL)).toThrow(
-          FailureCode.NULL_ARGUMENT,
+          FailureCode.MISSING_REQUIRED_DATA,
         );
       });
     });
@@ -113,63 +127,65 @@ describe("Customer", () => {
 
   describe("Métodos de Instância", () => {
     describe("update", () => {
-      let validNameVO = Name.hydrate(faker.person.firstName())
-      let validEmailVO = Email.hydrate(faker.internet.email())
-      let validBirthDateVO = BirthDate.hydrate(new Date(BIRTH_DATE))
+      let failures: SimpleFailure[];
+      let validNameVO = Name.hydrate(faker.person.firstName());
+      let validEmailVO = Email.hydrate(faker.internet.email());
+      let validBirthDateVO = BirthDate.hydrate(new Date(BIRTH_DATE));
       let customer = Customer.hydrate(
         CustomerUID.create().value,
         NAME,
         BIRTH_DATE,
-        EMAIL
+        EMAIL,
       );
+
+      beforeEach(() => {
+        failures = [];
+      });
 
       describe("deve atualizar um cliente com sucesso", () => {
         it("com valores primitivos - nome", () => {
           // Arrange
           const newName = faker.person.firstName();
           const updates = { name: newName };
-          
+
           // Act
-          const result = customer.update(updates);
-          
+          const result = validateAndCollect(customer.update(updates), failures);
+
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Customer);
-          expect(result.value.name.value).toBe(newName);
-          expect(result.value.email).toBe(customer.email);
-          expect(result.value.birthDate).toBe(customer.birthDate);
+          expect(result).toBeDefined();
+          expect(result.name.value).toBe(newName);
+          expect(result.email).toBe(customer.email);
+          expect(result.birthDate).toBe(customer.birthDate);
         });
-        
+
         it("com valores primitivos - email", () => {
           // Arrange
           const newEmail = faker.internet.email();
           const updates = { email: newEmail };
-          
+
           // Act
-          const result = customer.update(updates);
-          
+          const result = validateAndCollect(customer.update(updates), failures);
+
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Customer);
-          expect(result.value.name).toBe(customer.name);
-          expect(result.value.email.value).toBe(newEmail);
-          expect(result.value.birthDate).toBe(customer.birthDate);
+          expect(result).toBeDefined();
+          expect(result.name).toBe(customer.name);
+          expect(result.email.value).toBe(newEmail);
+          expect(result.birthDate).toBe(customer.birthDate);
         });
-        
+
         it("com valores primitivos - data de nascimento", () => {
           // Arrange
           const newBirthDate = new Date("1995-01-01");
           const updates = { birthDate: newBirthDate };
-          
+
           // Act
-          const result = customer.update(updates);
-          
+          const result = validateAndCollect(customer.update(updates), failures);
+
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Customer);
-          expect(result.value.name).toBe(customer.name);
-          expect(result.value.email).toBe(customer.email);
-          expect(result.value.birthDate.value).toEqual(newBirthDate);
+          expect(result).toBeDefined();
+          expect(result.name).toBe(customer.name);
+          expect(result.email).toBe(customer.email);
+          expect(result.birthDate.value).toEqual(newBirthDate);
         });
 
         it("com valores primitivos - todos os campos", () => {
@@ -177,85 +193,81 @@ describe("Customer", () => {
           const newName = faker.person.firstName();
           const newEmail = faker.internet.email();
           const newBirthDate = new Date("1995-01-01");
-          const updates = { 
+          const updates = {
             name: newName,
             email: newEmail,
-            birthDate: newBirthDate
+            birthDate: newBirthDate,
           };
-          
+
           // Act
-          const result = customer.update(updates);
-          
+          const result = validateAndCollect(customer.update(updates), failures);
+
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Customer);
-          expect(result.value.name.value).toBe(newName);
-          expect(result.value.email.value).toBe(newEmail);
-          expect(result.value.birthDate.value).toEqual(newBirthDate);
+          expect(result).toBeDefined();
+          expect(result.name.value).toBe(newName);
+          expect(result.email.value).toBe(newEmail);
+          expect(result.birthDate.value).toEqual(newBirthDate);
         });
-        
+
         it("com objetos de valor - nome", () => {
           // Arrange
           const updates = { name: validNameVO };
-          
+
           // Act
-          const result = customer.update(updates);
-          
+          const result = validateAndCollect(customer.update(updates), failures);
+
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Customer);
-          expect(result.value.name).toBe(validNameVO);
-          expect(result.value.email).toBe(customer.email);
-          expect(result.value.birthDate).toBe(customer.birthDate);
+          expect(result).toBeDefined();
+          expect(result).toBeInstanceOf(Customer);
+          expect(result.name).toBe(validNameVO);
+          expect(result.email).toBe(customer.email);
+          expect(result.birthDate).toBe(customer.birthDate);
         });
-        
+
         it("com objetos de valor - email", () => {
           // Arrange
           const updates = { email: validEmailVO };
-          
+
           // Act
-          const result = customer.update(updates);
-          
+          const result = validateAndCollect(customer.update(updates), failures);
+
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Customer);
-          expect(result.value.name).toBe(customer.name);
-          expect(result.value.email).toBe(validEmailVO);
-          expect(result.value.birthDate).toBe(customer.birthDate);
+          expect(result).toBeDefined();
+          expect(result.name).toBe(customer.name);
+          expect(result.email).toBe(validEmailVO);
+          expect(result.birthDate).toBe(customer.birthDate);
         });
-        
+
         it("com objetos de valor - data de nascimento", () => {
           // Arrange
           const updates = { birthDate: validBirthDateVO };
-          
+
           // Act
-          const result = customer.update(updates);
-          
+          const result = validateAndCollect(customer.update(updates), failures);
+
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Customer);
-          expect(result.value.name).toBe(customer.name);
-          expect(result.value.email).toBe(customer.email);
-          expect(result.value.birthDate).toBe(validBirthDateVO);
+          expect(result).toBeDefined();
+          expect(result.name).toBe(customer.name);
+          expect(result.email).toBe(customer.email);
+          expect(result.birthDate).toBe(validBirthDateVO);
         });
-        
+
         it("com objetos de valor - todos os campos", () => {
           // Arrange
-          const updates = { 
+          const updates = {
             name: validNameVO,
             email: validEmailVO,
-            birthDate: validBirthDateVO
+            birthDate: validBirthDateVO,
           };
-          
+
           // Act
-          const result = customer.update(updates);
-          
+          const result = validateAndCollect(customer.update(updates), failures);
+
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(Customer);
-          expect(result.value.name).toBe(validNameVO);
-          expect(result.value.email).toBe(validEmailVO);
-          expect(result.value.birthDate).toBe(validBirthDateVO);
+          expect(result).toBeDefined();
+          expect(result.name).toBe(validNameVO);
+          expect(result.email).toBe(validEmailVO);
+          expect(result.birthDate).toBe(validBirthDateVO);
         });
       });
 
@@ -265,47 +277,49 @@ describe("Customer", () => {
             scenario: "quando email é inválido",
             updates: {
               email: "invalid-email",
-            }
+            },
           },
           {
             scenario: "quando nome é inválido e email é válido (tudo ou nada)",
             updates: {
               name: "a", // nome inválido
               email: faker.internet.email(),
-            }
+            },
           },
         ];
-        failureCases.forEach(
-          ({ scenario, updates }) => {
-            it(scenario, () => {
-              // Arrange
-              const originalName = customer.name;
-              const originalEmail = customer.email;
-              const originalBirthDate = customer.birthDate;
+        failureCases.forEach(({ scenario, updates }) => {
+          it(scenario, () => {
+            // Arrange
+            const originalName = customer.name;
+            const originalEmail = customer.email;
+            const originalBirthDate = customer.birthDate;
 
-              // Act
-              const result = customer.update(updates);
+            // Act
+            const result = validateAndCollect(
+              customer.update(updates),
+              failures,
+            );
 
-              // Assert
-              expect(result.invalid).toBe(true);
-              expect(customer.name).toBe(originalName);
-              expect(customer.email).toBe(originalEmail);
-              expect(customer.birthDate).toBe(originalBirthDate);
-            });
-          },
-        );
+            // Assert
+            expect(result).toBeNull();
+            expect(customer.name).toBe(originalName);
+            expect(customer.email).toBe(originalEmail);
+            expect(customer.birthDate).toBe(originalBirthDate);
+            expect(failures.length).toBeGreaterThan(0);
+          });
+        });
       });
 
-      it('deve falhar quando receber um objeto nulo', () => {
+      it("deve falhar quando receber um objeto nulo", () => {
         // Act
-        const result = customer.update(null)
+        const result = validateAndCollect(customer.update(null), failures);
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures).toBeDefined();
-        expect(result.failures.length).toBe(1)
-        expect(result.failures[0].code).toBe(FailureCode.NULL_ARGUMENT)
-      })
+        expect(result).toBeNull();
+        expect(failures).toBeDefined();
+        expect(failures.length).toBe(1);
+        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
+      });
     });
   });
 });

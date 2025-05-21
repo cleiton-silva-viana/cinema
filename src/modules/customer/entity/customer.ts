@@ -8,10 +8,15 @@ import { CPF } from "./value-object/cpf";
 import { Name } from "../../../shared/value-object/name";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { isNull } from "../../../shared/validator/validator";
+import {
+  collectNullFields,
+  validateAndCollect,
+} from "../../../shared/validator/common.validators";
+import { UpdateCustomerDTO } from "../controller/dto/update.customer.dto";
 
 /**
  * Representa um cliente no sistema de cinema.
- * 
+ *
  * Esta classe é imutável. Todas as propriedades são somente leitura.
  * Qualquer atualização resulta em uma nova instância.
  */
@@ -19,13 +24,13 @@ export class Customer {
   /**
    * Construtor privado para garantir que instâncias sejam criadas apenas
    * através dos métodos estáticos `create` e `hydrate`.
-   * 
+   *
    * @param uid - Identificador único do cliente
    * @param name - Nome do cliente
    * @param birthDate - Data de nascimento do cliente
    * @param email - Email do cliente
    * @param cpf - CPF do cliente (opcional)
-   * @param carteiraEstudantil - Dados da carteira estudantil (opcional)
+   * @param studentCard - Dados da carteira estudantil (opcional)
    */
   private constructor(
     public readonly uid: CustomerUID,
@@ -33,15 +38,15 @@ export class Customer {
     public readonly birthDate: BirthDate,
     public readonly email: Email,
     public readonly cpf?: CPF,
-    public readonly carteiraEstudantil?: {
+    public readonly studentCard?: {
       readonly id: string;
-      readonly validade: Date;
+      readonly validity: Date;
     },
   ) {}
 
   /**
    * Cria uma nova instância de Customer com validação.
-   * 
+   *
    * @param name - Nome do cliente
    * @param birthDate - Data de nascimento do cliente
    * @param email - Email do cliente
@@ -52,30 +57,21 @@ export class Customer {
     birthDate: Date,
     email: string,
   ): Result<Customer> {
-    const failures = [];
+    const failures: SimpleFailure[] = [];
 
-    const nameResult = Name.create(name);
-    if (nameResult.invalid) failures.push(...nameResult.failures);
-
-    const birthDateResult = BirthDate.create(birthDate);
-    if (birthDateResult.invalid) failures.push(...birthDateResult.failures);
-
-    const emailResult = Email.create(email);
-    if (emailResult.invalid) failures.push(...emailResult.failures);
+    const name1 = validateAndCollect(Name.create(name), failures);
+    const birt = validateAndCollect(BirthDate.create(birthDate), failures);
+    const email1 = validateAndCollect(Email.create(email), failures);
 
     return failures.length
       ? failure(failures)
-      : success(new Customer(
-            CustomerUID.create(),
-            nameResult.value,
-            birthDateResult.value,
-            emailResult.value,));
+      : success(new Customer(CustomerUID.create(), name1, birt, email1));
   }
 
   /**
    * Cria uma instância de Customer a partir de dados existentes sem validação.
    * Usado principalmente para reconstruir objetos a partir do banco de dados.
-   * 
+   *
    * @param uid - Identificador único do cliente
    * @param name - Nome do cliente
    * @param birthDate - Data de nascimento do cliente
@@ -89,10 +85,12 @@ export class Customer {
     birthDate: Date,
     email: string,
   ): Customer {
-    TechnicalError.if(
-      !uid || !name || !birthDate || !email,
-      FailureCode.NULL_ARGUMENT,
-    );
+    const fields = collectNullFields({ uid, name, birthDate, email });
+
+    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
+      fields,
+    });
+
     return new Customer(
       CustomerUID.hydrate(uid),
       Name.hydrate(name),
@@ -104,7 +102,7 @@ export class Customer {
   /**
    * Atualiza os dados do cliente criando uma nova instância.
    * Mantém a imutabilidade da classe.
-   * 
+   *
    * @param updates - Objeto contendo os campos a serem atualizados
    * @returns Um Result contendo o novo Customer atualizado ou falhas de validação
    */
@@ -113,62 +111,50 @@ export class Customer {
     email?: string | Email;
     birthDate?: Date | BirthDate;
   }): Result<Customer> {
-    if (isNull(updates)) return failure({
-      code: FailureCode.NULL_ARGUMENT
-    })
-
-    const failures: SimpleFailure[] = [];
+    if (isNull(updates))
+      return failure({
+        code: FailureCode.MISSING_REQUIRED_DATA,
+      });
 
     if (!updates.name && !updates.email && !updates.birthDate)
       return failure({
         code: FailureCode.MISSING_REQUIRED_DATA,
       });
 
-    let updatedName = this.name;
-    let updatedEmail = this.email;
-    let updatedBirthDate = this.birthDate;
+    const failures: SimpleFailure[] = [];
 
-    if (updates.name) {
-      const nameResult =
+    let updatedName: Name | null = this.name;
+    if (updates.name !== undefined)
+      updatedName =
         updates.name instanceof Name
-          ? success(updates.name)
-          : Name.create(updates.name);
+          ? updates.name
+          : validateAndCollect(Name.create(updates.name), failures);
 
-      if (nameResult.invalid) failures.push(...nameResult.failures);
-      else updatedName = nameResult.value;
-    }
-
-    if (updates.email) {
-      const emailResult =
+    let updatedEmail: Email | null = this.email;
+    if (updates.email !== undefined)
+      updatedEmail =
         updates.email instanceof Email
-          ? success(updates.email)
-          : Email.create(updates.email);
+          ? updates.email
+          : validateAndCollect(Email.create(updates.email), failures);
 
-      if (emailResult.invalid) failures.push(...emailResult.failures);
-      else updatedEmail = emailResult.value;
-    }
-
-    if (updates.birthDate) {
-      const birthDateResult =
+    let updatedBirthDate: BirthDate | null = this.birthDate;
+    if (updates.birthDate !== undefined)
+      updatedBirthDate =
         updates.birthDate instanceof BirthDate
-          ? success(updates.birthDate)
-          : BirthDate.create(updates.birthDate);
+          ? updates.birthDate
+          : validateAndCollect(BirthDate.create(updates.birthDate), failures);
 
-      if (birthDateResult.invalid) failures.push(...birthDateResult.failures);
-      else updatedBirthDate = birthDateResult.value;
-    }
-
-    if (failures.length > 0) return failure(failures);
-
-    return success(
-      new Customer(
-        this.uid,
-        updatedName,
-        updatedBirthDate,
-        updatedEmail,
-        this.cpf,
-        this.carteiraEstudantil
-      )
-    );
+    return failures.length > 0
+      ? failure(failures)
+      : success(
+          new Customer(
+            this.uid,
+            updatedName,
+            updatedBirthDate,
+            updatedEmail,
+            this.cpf,
+            this.studentCard,
+          ),
+        );
   }
 }
