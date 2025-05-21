@@ -19,30 +19,6 @@ export type FailureDetails = {
   value?: any;
 
   /**
-   * O tipo de dado esperado para o campo.
-   * Exemplo: 'string', 'number', 'Date', 'UUID'
-   */
-  expectedType?: string;
-
-  /**
-   * O tipo de dado que foi realmente fornecido.
-   * Exemplo: 'undefined', 'object', 'string'
-   */
-  providedType?: string;
-
-  /**
-   * Uma descrição ou exemplo do formato esperado.
-   * Exemplo: 'email@dominio.com', 'YYYY-MM-DD', '123.456.789-00'
-   */
-  expectedFormat?: string;
-
-  /**
-   * Uma lista de valores que seriam considerados válidos.
-   * Exemplo: ['ATIVO', 'INATIVO', 'PENDENTE'] para um campo de status
-   */
-  validValues?: any[];
-
-  /**
    * O valor mínimo permitido (para números ou comprimentos).
    * Exemplo: 0 para números positivos, 8 para comprimento mínimo de senha
    */
@@ -55,33 +31,57 @@ export type FailureDetails = {
   max?: number;
 
   /**
+   * Valor que indica a quantidade de algo
+   * */
+  count?: number;
+
+
+/*  /!**
+   * O tipo de dado esperado para o campo.
+   * Exemplo: 'string', 'number', 'Date', 'UUID'
+   *!/
+  expectedType?: string;
+
+  /!**
+   * O tipo de dado que foi realmente fornecido.
+   * Exemplo: 'undefined', 'object', 'string'
+   *!/
+  providedType?: string;
+
+  /!**
+   * Uma descrição ou exemplo do formato esperado.
+   * Exemplo: 'email@dominio.com', 'YYYY-MM-DD', '123.456.789-00'
+   *!/
+  expectedFormat?: string;
+
+  /!**
+   * Uma lista de valores que seriam considerados válidos.
+   * Exemplo: ['ATIVO', 'INATIVO', 'PENDENTE'] para um campo de status
+   *!/
+  validValues?: any[];
+
+  /!**
    * Contexto específico para falhas em itens de lista/array.
    * Fornece o índice e o item que causou a falha.
-   */
+   *!/
   listContext?: {
-    /** Posição do item na lista (começando em 0) */
+    /!** Posição do item na lista (começando em 0) *!/
     index?: number;
-    /** O item que causou a falha */
+    /!** O item que causou a falha *!/
     item?: any;
   };
 
-  /**
-   * Mensagem descritiva sobre a falha.
-   * Exemplo: 'O email fornecido não possui um formato válido'
-   */
-  message?: string;
-
-  /**
+  /!**
    * Nome da propriedade que causou a falha (alternativa a field).
    * Usado principalmente em validações de objetos.
-   */
+   *!/
   property?: string;
 
-  /**
+  /!**
    * Comprimento atual do valor fornecido.
    * Útil para erros de validação de comprimento.
-   */
-  actualLength?: number;
+   *!/
+  actualLength?: number;*/
 
   /**
    * Permite outros detalhes específicos não mapeados acima.
