@@ -16,7 +16,7 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
    * @param details Detalhes adicionais para a mensagem de erro
    */
   public isNotEmpty(
-    code: string = FailureCode.OBJECT_IS_EMPTY,
+    code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
     return this.validate(() => !(this._value.length > 0), {
@@ -35,7 +35,7 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
   public hasLengthBetween(
     min: number,
     max: number,
-    code: string = FailureCode.LENGTH_OUT_OF_RANGE,
+    code: FailureCode = FailureCode.LENGTH_OUT_OF_RANGE,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
     return this.validate(
@@ -46,9 +46,9 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
       {
         code,
         details: {
-          minLength: min,
-          maxLength: max,
-          actualLength: this._value.length,
+          min: min,
+          max: max,
+          count: this._value.length,
           ...details,
         },
       },
@@ -63,7 +63,7 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
    */
   public contains(
     item: T,
-    code: string = FailureCode.MISSING_REQUIRED_DATA,
+    code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
     return this.validate(() => !this._value.includes(item), {
@@ -83,7 +83,7 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
    */
   public every(
     predicate: (item: T) => boolean,
-    code: string = FailureCode.CONTENT_INVALID_ITEMS,
+    code: FailureCode = FailureCode.CONTENT_WITH_INVALID_ITEMS,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
     return this.validate(() => !this._value.every(predicate), {
@@ -100,7 +100,7 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
    */
   public some(
     predicate: (item: T) => boolean,
-    code: string = FailureCode.MISSING_VALID_ITEM,
+    code: FailureCode = FailureCode.MISSING_VALID_ITEM,
     details: Record<string, any> = {},
   ): ArrayValidator<T> {
     return this.validate(() => !this._value.some(predicate), { code, details });

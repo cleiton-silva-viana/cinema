@@ -26,14 +26,14 @@ describe("ArrayValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.OBJECT_IS_EMPTY);
+      expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
     });
 
     it("deve usar o código de erro personalizado", () => {
       // Arrange
       const failures: SimpleFailure[] = [];
       const value: number[] = [];
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.CONTENT_WITH_INVALID_TYPE;
 
       // Act
       new ArrayValidator({ itens: value }, failures).isNotEmpty(code);
@@ -51,7 +51,7 @@ describe("ArrayValidator", () => {
 
       // Act
       new ArrayValidator({ itens: value }, failures).isNotEmpty(
-        FailureCode.OBJECT_IS_EMPTY,
+        FailureCode.MISSING_REQUIRED_DATA,
         details,
       );
 
@@ -89,9 +89,9 @@ describe("ArrayValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.LENGTH_OUT_OF_RANGE);
-      expect(failures[0].details.minLength).toBe(min);
-      expect(failures[0].details.maxLength).toBe(max);
-      expect(failures[0].details.actualLength).toBe(value.length);
+      expect(failures[0].details.min).toBe(min);
+      expect(failures[0].details.max).toBe(max);
+      expect(failures[0].details.count).toBe(value.length);
     });
 
     it("deve adicionar falha quando o tamanho for maior que o máximo", () => {
@@ -107,9 +107,9 @@ describe("ArrayValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].code).toBe(FailureCode.LENGTH_OUT_OF_RANGE);
-      expect(failures[0].details.minLength).toBe(min);
-      expect(failures[0].details.maxLength).toBe(max);
-      expect(failures[0].details.actualLength).toBe(value.length);
+      expect(failures[0].details.min).toBe(min);
+      expect(failures[0].details.max).toBe(max);
+      expect(failures[0].details.count).toBe(value.length);
     });
 
     it("deve usar o código de erro personalizado", () => {
@@ -118,7 +118,7 @@ describe("ArrayValidator", () => {
       const value = [1];
       const min = 2;
       const max = 5;
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.CONTENT_WITH_INVALID_TYPE;
 
       // Act
       new ArrayValidator({ itens: value }, failures).hasLengthBetween(
@@ -151,9 +151,9 @@ describe("ArrayValidator", () => {
       // Assert
       expect(failures.length).toBe(1);
       expect(failures[0].details.message).toBe(details.message);
-      expect(failures[0].details.minLength).toBe(min);
-      expect(failures[0].details.maxLength).toBe(max);
-      expect(failures[0].details.actualLength).toBe(value.length);
+      expect(failures[0].details.min).toBe(min);
+      expect(failures[0].details.max).toBe(max);
+      expect(failures[0].details.count).toBe(value.length);
     });
   });
 
@@ -191,7 +191,7 @@ describe("ArrayValidator", () => {
       const failures: SimpleFailure[] = [];
       const item = 5;
       const value = [1, 2, 3];
-      const code = FailureCode.CONTENT_INVALID_TYPE;
+      const code = FailureCode.CONTENT_WITH_INVALID_TYPE;
 
       // Act
       new ArrayValidator({ itens: value }, failures).contains(item, code);
@@ -247,7 +247,7 @@ describe("ArrayValidator", () => {
 
       // Assert
       expect(failures.length).toBe(1);
-      expect(failures[0].code).toBe(FailureCode.CONTENT_INVALID_ITEMS);
+      expect(failures[0].code).toBe(FailureCode.CONTENT_WITH_INVALID_ITEMS);
     });
 
     it("deve usar o código de erro personalizado", () => {
@@ -255,7 +255,7 @@ describe("ArrayValidator", () => {
       const failures: SimpleFailure[] = [];
       const value = [2, 4, 5, 8];
       const predicate = (item: number) => item % 2 === 0;
-      const code = FailureCode.INVALID_VALUE_FORMAT;
+      const code = FailureCode.CONTENT_WITH_INVALID_FORMAT;
 
       // Act
       new ArrayValidator({ itens: value }, failures).every(predicate, code);
@@ -275,7 +275,7 @@ describe("ArrayValidator", () => {
       // Act
       new ArrayValidator({ itens: value }, failures).every(
         predicate,
-        FailureCode.CONTENT_INVALID_ITEMS,
+        FailureCode.CONTENT_WITH_INVALID_ITEMS,
         details,
       );
 
@@ -318,7 +318,7 @@ describe("ArrayValidator", () => {
       const failures: SimpleFailure[] = [];
       const value = [1, 3, 5, 7];
       const predicate = (item: number) => item % 2 === 0;
-      const code = FailureCode.INVALID_VALUE_FORMAT;
+      const code = FailureCode.CONTENT_WITH_INVALID_FORMAT;
 
       // Act
       new ArrayValidator({ itens: value }, failures).some(predicate, code);
