@@ -2,6 +2,11 @@ import { failure, Result, success } from "../../../../shared/result/result";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { TechnicalError } from "../../../../shared/error/technical.error";
+import {
+  collectNullFields,
+  ensureNotNull,
+  validateAndCollect,
+} from "../../../../shared/validator/common.validators";
 
 /**
  * Mapeamento de letras para números (posição no alfabeto)
@@ -78,32 +83,31 @@ export class SeatRow {
     lastColumnLetter: string,
     preferentialSeatLetters: string[] = [],
   ): Result<SeatRow> {
+    const failures = ensureNotNull({
+      rowId,
+      lastColumnLetter,
+      preferentialSeatLetters,
+    });
+    if (failures.length > 0) return failure(failures);
+
     const normalizedLastColumnLetter = lastColumnLetter.toUpperCase();
 
-    const columnValidationResult = this.validateLastColumnLetter(
-      rowId,
-      normalizedLastColumnLetter,
+    const totalSeatsInRow = validateAndCollect(
+      this.validateLastColumnLetter(rowId, normalizedLastColumnLetter),
+      failures,
     );
-    if (columnValidationResult.invalid)
-      return failure(columnValidationResult.failures);
-
-    const totalSeatsInRow = columnValidationResult.value;
-
-    const preferentialSeatsValidationResult =
+    const preferentialSeats = validateAndCollect(
       this.validatePreferentialSeatLetters(
         rowId,
         preferentialSeatLetters || [],
         totalSeatsInRow,
-      );
-    if (preferentialSeatsValidationResult.invalid)
-      return failure(preferentialSeatsValidationResult.failures);
-
-    return success(
-      new SeatRow(
-        normalizedLastColumnLetter,
-        preferentialSeatsValidationResult.value,
       ),
+      failures,
     );
+
+    return failures.length > 0
+      ? failure(failures)
+      : success(new SeatRow(normalizedLastColumnLetter, preferentialSeats));
   }
 
   /**
@@ -119,7 +123,13 @@ export class SeatRow {
     lastColumnLetter: string,
     preferentialSeatLetters?: string[],
   ): SeatRow {
-    TechnicalError.if(!lastColumnLetter, FailureCode.INVALID_HYDRATE_DATA);
+    const fields = collectNullFields({
+      lastColumnLetter,
+      preferentialSeatLetters,
+    });
+    TechnicalError.if(fields.length > 0, FailureCode.INVALID_HYDRATE_DATA, {
+      fields,
+    });
 
     const normalizedPreferentialSeatLetters = preferentialSeatLetters
       ? preferentialSeatLetters.map((seatLetter) => seatLetter.toUpperCase())
@@ -143,11 +153,10 @@ export class SeatRow {
   ): Result<number> {
     if (!seatColumnLetters.has(lastColumnLetter)) {
       return failure({
-        code: FailureCode.INVALID_SEAT_COLUMN,
+        code: FailureCode.SEAT_WITH_INVALID_COLUMN_IDENTIFIER,
         details: {
-          value: lastColumnLetter,
-          rowId: rowId,
-          validValues: Array.from(seatColumnLetters.keys()),
+          column: lastColumnLetter,
+          row: rowId,
         },
       });
     }
@@ -160,10 +169,10 @@ export class SeatRow {
       return failure({
         code: FailureCode.SEAT_COLUMN_OUT_OF_RANGE,
         details: {
-          value: lastColumnLetter,
-          rowId: rowId,
-          minSeatsPerRow: this.MINIMUM_SEATS_PER_ROW,
-          maxSeatsPerRow: this.MAXIMUM_SEATS_PER_ROW,
+          row: rowId,
+          count: totalSeatsInRow,
+          min: this.MINIMUM_SEATS_PER_ROW,
+          max: this.MAXIMUM_SEATS_PER_ROW,
         },
       });
     }
@@ -189,18 +198,16 @@ export class SeatRow {
 
     if (seatLetters.length > this.MAXIMUM_PREFERENTIAL_SEATS_PER_ROW) {
       return failure({
-        code: FailureCode.PREFERENTIAL_SEATS_LIMIT_EXCEEDED,
+        code: FailureCode.SEAT_WITH_PREFERENTIAL_LIMIT_EXCEEDED,
         details: {
-          rowId: rowId,
-          maxPreferentialSeatsPerRow: this.MAXIMUM_PREFERENTIAL_SEATS_PER_ROW,
+          row: rowId,
+          count: seatLetters.length,
+          max: this.MAXIMUM_PREFERENTIAL_SEATS_PER_ROW,
         },
       });
     }
 
     const validatedSeatLetters: string[] = [];
-    const validColumnLetters = Array.from(seatColumnLetters.entries())
-      .filter(([_, position]) => position <= totalSeatsInRow)
-      .map(([letter]) => letter);
 
     for (const seatLetter of seatLetters) {
       const normalizedSeatLetter = seatLetter.toUpperCase();
@@ -208,11 +215,10 @@ export class SeatRow {
       const seatPosition = seatColumnLetters.get(normalizedSeatLetter);
       if (seatPosition === undefined || seatPosition > totalSeatsInRow) {
         validationFailures.push({
-          code: FailureCode.PREFERENTIAL_SEAT_NOT_IN_ROW,
+          code: FailureCode.SEAT_PREFERENTIAL_IN_ROW_IS_NOT_FOUND,
           details: {
-            rowId: rowId,
-            value: seatLetter,
-            validValues: validColumnLetters,
+            row: rowId,
+            seat: rowId + normalizedSeatLetter,
           },
         });
         continue;
@@ -220,10 +226,10 @@ export class SeatRow {
 
       if (validatedSeatLetters.includes(normalizedSeatLetter)) {
         validationFailures.push({
-          code: FailureCode.DUPLICATE_PREFERENTIAL_SEAT,
+          code: FailureCode.SEAT_PREFERENTIAL_IS_DUPLICATED,
           details: {
-            rowId: rowId,
-            value: normalizedSeatLetter,
+            row: rowId,
+            seat: rowId + normalizedSeatLetter,
           },
         });
         continue;

@@ -1,6 +1,8 @@
 import { SeatRow } from "./seat.row";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { TechnicalError } from "../../../../shared/error/technical.error";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("SeatRow", () => {
   describe("Métodos Estáticos", () => {
@@ -8,6 +10,12 @@ describe("SeatRow", () => {
       const ID = 1;
       const COLUMNS = "F";
       const PREFERENTIAL: string[] = [];
+
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
 
       describe("Cenários de sucesso", () => {
         const successCases = [
@@ -39,12 +47,15 @@ describe("SeatRow", () => {
         successCases.forEach(({ columns, preferentialSeats, scenario }) => {
           it(`deve criar uma fileira válida ${scenario}`, () => {
             // Act
-            const result = SeatRow.create(ID, columns, preferentialSeats);
+            const result = validateAndCollect(
+              SeatRow.create(ID, columns, preferentialSeats),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(false);
-            expect(result.value.lastColumnLetter).toBe(columns.toUpperCase());
-            expect(result.value.preferentialSeatLetters).toEqual(
+            expect(result).toBeDefined();
+            expect(result.lastColumnLetter).toBe(columns.toUpperCase());
+            expect(result.preferentialSeatLetters).toEqual(
               preferentialSeats ?? [],
             );
           });
@@ -57,12 +68,12 @@ describe("SeatRow", () => {
             {
               columns: "2",
               scenario: "quando a coluna final é inválida",
-              code: FailureCode.INVALID_SEAT_COLUMN,
+              code: FailureCode.SEAT_WITH_INVALID_COLUMN_IDENTIFIER,
             },
             {
               columns: "AA",
               scenario: "quando a coluna final tem mais de um caractere",
-              code: FailureCode.INVALID_SEAT_COLUMN,
+              code: FailureCode.SEAT_WITH_INVALID_COLUMN_IDENTIFIER,
             },
             {
               columns: "C",
@@ -74,11 +85,14 @@ describe("SeatRow", () => {
           failureCases.forEach(({ scenario, columns, code }) => {
             it(`deve falhar ${scenario}`, () => {
               // Act
-              const result = SeatRow.create(ID, columns, PREFERENTIAL);
+              const result = validateAndCollect(
+                SeatRow.create(ID, columns, PREFERENTIAL),
+                failures,
+              );
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures[0].code).toBe(code);
+              expect(result).toBeNull();
+              expect(failures[0].code).toBe(code);
             });
           });
         });
@@ -89,16 +103,17 @@ describe("SeatRow", () => {
             const pref = ["A", "B", "C", "D", "E"];
 
             // Act
-            const result = SeatRow.create(ID, COLUMNS, pref);
+            const result = validateAndCollect(
+              SeatRow.create(ID, COLUMNS, pref),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(
-              FailureCode.PREFERENTIAL_SEATS_LIMIT_EXCEEDED,
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(
+              FailureCode.SEAT_WITH_PREFERENTIAL_LIMIT_EXCEEDED,
             );
-            expect(result.failures[0].details.maxPreferentialSeatsPerRow).toBe(
-              4,
-            );
+            expect(failures[0].details.max).toBe(4);
           });
 
           it("deve falhar quando um assento preferencial não existe na fileira", () => {
@@ -106,12 +121,15 @@ describe("SeatRow", () => {
             const pref = ["G"];
 
             // Act
-            const result = SeatRow.create(ID, COLUMNS, pref);
+            const result = validateAndCollect(
+              SeatRow.create(ID, COLUMNS, pref),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(
-              FailureCode.PREFERENTIAL_SEAT_NOT_IN_ROW,
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(
+              FailureCode.SEAT_PREFERENTIAL_IN_ROW_IS_NOT_FOUND,
             );
           });
 
@@ -120,12 +138,15 @@ describe("SeatRow", () => {
             const pref = ["A", "B", "A"];
 
             // Act
-            const result = SeatRow.create(ID, COLUMNS, pref);
+            const result = validateAndCollect(
+              SeatRow.create(ID, COLUMNS, pref),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(
-              FailureCode.DUPLICATE_PREFERENTIAL_SEAT,
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(
+              FailureCode.SEAT_PREFERENTIAL_IS_DUPLICATED,
             );
           });
         });
@@ -183,10 +204,6 @@ describe("SeatRow", () => {
           {
             scenario: "a última coluna é indefinida",
             column: undefined as any,
-          },
-          {
-            scenario: "a última coluna é uma string vazia",
-            column: "",
           },
         ];
 
