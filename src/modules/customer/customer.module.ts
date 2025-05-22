@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { CustomerController } from "./controller/customer.controller";
-import { CustomerService } from "./service/customer.service";
+import { CustomerDomainService } from "./service/customer.domain.service";
 import { CUSTOMER_SERVICE } from "./constant/customer.constants";
 import { CustomerRepository } from "./repository/customer.repository";
 import { CUSTOMER_REPOSITORY } from "./constant/customer.constants";
@@ -12,7 +12,7 @@ import { CustomerMapper } from "./repository/mapper/customer.mapper";
   providers: [
     {
       provide: CUSTOMER_SERVICE,
-      useClass: CustomerService
+      useClass: CustomerDomainService
     },
     {
       provide: CUSTOMER_REPOSITORY,
