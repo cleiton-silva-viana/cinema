@@ -1,6 +1,8 @@
-import { ImageTitle } from "./image-title";
+import { ImageTitle } from "./image.title";
 import { faker } from "@faker-js/faker/.";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("ImageTitle", () => {
   const validPtTitle = "Título da Imagem com tamanho válido";
@@ -12,6 +14,12 @@ describe("ImageTitle", () => {
 
   describe("ImageTitle", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       describe("deve retornar uma instância de ImageTitle com sucesso", () => {
         const successCases = [
           {
@@ -40,11 +48,14 @@ describe("ImageTitle", () => {
         successCases.forEach(({ contents, scenario }) => {
           it(`deve aceitar um título ${scenario}`, () => {
             // Act
-            const result = ImageTitle.create(contents);
+            const result = validateAndCollect(
+              ImageTitle.create(contents),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(false);
-            expect(result.value).toBeInstanceOf(ImageTitle);
+            expect(result).toBeDefined();
+            expect(result).toBeInstanceOf(ImageTitle);
           });
         });
       });
@@ -80,11 +91,14 @@ describe("ImageTitle", () => {
         failureCases.forEach(({ contents, scenario, errorCode }) => {
           it(`deve rejeitar um título ${scenario}`, () => {
             // Act
-            const result = ImageTitle.create(contents);
+            const result = validateAndCollect(
+              ImageTitle.create(contents),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(errorCode);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(errorCode);
           });
         });
       });
