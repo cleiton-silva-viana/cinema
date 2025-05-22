@@ -4,6 +4,10 @@ import { BirthDate } from "../../../shared/value-object/birth.date";
 import { Name } from "../../../shared/value-object/name";
 import { PersonUID } from "./value-object/person.uid";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import {
+  ensureNotNull,
+  validateAndCollect,
+} from "../../../shared/validator/common.validators";
 
 /**
  * Representa a estrutura base de umz pessoa que contribuiu na produção de um filme no sistema.
@@ -24,17 +28,15 @@ export class Person {
   public static create(name: string, birthDate: Date): Result<Person> {
     const failures: SimpleFailure[] = [];
 
-    const nameResult = Name.create(name);
-    if (nameResult.invalid) failures.push(...nameResult.failures);
-
-    const birthDateResult = BirthDate.create(birthDate);
-    if (birthDateResult.invalid) failures.push(...birthDateResult.failures);
+    const nameVO = validateAndCollect(Name.create(name), failures);
+    const birthDateVO = validateAndCollect(
+      BirthDate.create(birthDate),
+      failures,
+    );
 
     if (failures.length > 0) return failure(failures);
 
-    return success(
-      new Person(PersonUID.create(), nameResult.value, birthDateResult.value),
-    );
+    return success(new Person(PersonUID.create(), nameVO, birthDateVO));
   }
 
   /**
@@ -53,31 +55,28 @@ export class Person {
   }
 
   /**
-   * Atualiza o nome da pessoa.
-   * @param name Novo nome para a pessoa.
-   * @returns Array de erros se a operação falhar, ou array vazio se for bem-sucedida.
+   * Atualiza propriedades da pessoa.
+   * @param props Objeto contendo as propriedades a serem atualizadas.
+   * @returns Result contendo a pessoa atualizada ou falhas de validação.
    */
-  public updateName(name: string): Result<Person> {
-    const nameResult = Name.create(name);
-    if (nameResult.invalid) return failure(nameResult.failures);
+  public update(props: { name?: string; birthDate?: Date }): Result<Person> {
+    const failures = ensureNotNull({ props });
+    if (failures.length > 0) return failure(failures);
 
-    return success(new Person(this.uid, nameResult.value, this.birthDate));
-  }
+    let nameVO = this.name;
+    let birthDateVO = this.birthDate;
 
-  /**
-   * Atualiza a data de nascimento da pessoa.
-   * @param birthDate Nova data de nascimento.
-   * @returns Array de erros se a operação falhar, ou array vazio se for bem-sucedida.
-   */
-  public updateBirthDate(birthDate: Date): Result<Person> {
-    if (!birthDate)
-      return failure({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-      });
+    if (props.name !== undefined)
+      nameVO = validateAndCollect(Name.create(props.name), failures);
 
-    const birthDateResult = BirthDate.create(birthDate);
-    if (birthDateResult.invalid) return failure(birthDateResult.failures);
+    if (props.birthDate !== undefined)
+      birthDateVO = validateAndCollect(
+        BirthDate.create(props.birthDate),
+        failures,
+      );
 
-    return success(new Person(this.uid, this.name, birthDateResult.value));
+    return failures.length > 0
+      ? failure(failures)
+      : success(new Person(this.uid, nameVO, birthDateVO));
   }
 }
