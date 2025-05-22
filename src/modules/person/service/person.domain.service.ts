@@ -8,10 +8,20 @@ import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { PERSON_REPOSITORY } from "../constant/person.constant";
 import { ResourceTypes } from "../../../shared/constant/resource.types";
 import { IPersonDomainService } from "./person.domain.service.interface";
+import {
+  ensureNotNull,
+  validateAndCollect,
+} from "../../../shared/validator/common.validators";
 
 /**
- * Serviço responsável por operações relacionadas a pessoas no sistema.
- * Gerencia pessoas que podem contribuir para filmes em diferentes papéis.
+ * Serviço de Domínio responsável por operações relacionadas a pessoas no sistema.
+ *
+ * Este serviço implementa a lógica de negócio e validações relacionadas a pessoas,
+ * mas NÃO realiza operações de escrita no repositório. Ele é utilizado pelo
+ * serviço de aplicação, que orquestra as operações e realiza a persistência dos dados.
+ *
+ * O serviço de domínio foca em validar operações e retornar instâncias válidas
+ * de entidades para que o serviço de aplicação possa persistir essas mudanças.
  */
 @Injectable()
 export class PersonDomainService implements IPersonDomainService {
@@ -21,14 +31,17 @@ export class PersonDomainService implements IPersonDomainService {
 
   /**
    * Busca uma pessoa pelo seu identificador único.
+   *
+   * Esta operação realiza apenas leitura no repositório.
+   *
    * @param uid Identificador único da pessoa
    * @returns Result contendo a pessoa encontrada ou erro
    */
   public async findById(uid: string): Promise<Result<Person>> {
     const personUidResult = PersonUID.parse(uid);
-    if (personUidResult.invalid) return failure(personUidResult.failures);
+    if (personUidResult.isInvalid()) return personUidResult;
 
-    const person = await this.repository.findById(uid);
+    const person = await this.repository.findById(personUidResult.value);
     return !person
       ? failure({
           code: FailureCode.RESOURCE_NOT_FOUND,
@@ -38,83 +51,47 @@ export class PersonDomainService implements IPersonDomainService {
   }
 
   /**
-   * Cria uma nova pessoa no sistema.
+   * Valida e cria uma nova instância de pessoa.
+   *
+   * Este método apenas valida os dados e retorna uma instância de Person.
+   * Ele NÃO persiste a pessoa no repositório - esta responsabilidade
+   * pertence ao serviço de aplicação.
+   *
    * @param name Nome completo da pessoa
    * @param birthDate Data de nascimento da pessoa
-   * @returns Result contendo a pessoa criada ou erros de validação
+   * @returns Result contendo a instância de pessoa criada ou erros de validação
    */
   public async create(name: string, birthDate: Date): Promise<Result<Person>> {
-    const personResult = Person.create(name, birthDate);
-    if (personResult.invalid) return failure(personResult.failures);
-    const person = personResult.value;
-
-    const savedPerson = await this.repository.save(person);
-    return success(savedPerson);
+    return Person.create(name, birthDate);
   }
 
   /**
-   * Atualiza os dados de uma pessoa existente.
+   * Valida a atualização dos dados de uma pessoa existente.
+   *
+   * Este método valida os dados de atualização e retorna uma nova instância
+   * de Person com os dados atualizados. Ele NÃO persiste as alterações no
+   * repositório - esta responsabilidade pertence ao serviço de aplicação.
+   *
    * @param uid Identificador único da pessoa
    * @param name Novo nome (opcional)
    * @param birthDate Nova data de nascimento (opcional)
-   * @returns Result indicando sucesso ou falha na operação
+   * @returns Result contendo a instância de pessoa atualizada ou falhas de validação
    */
   public async update(
     uid: string,
     name?: string,
     birthDate?: Date,
   ): Promise<Result<Person>> {
-    if (!name && !birthDate)
-      return failure({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-      });
-
-    const personUidResult = PersonUID.parse(uid);
-    if (personUidResult.invalid) return failure(personUidResult.failures);
-
-    const findResult = await this.findById(personUidResult.value.value);
-    if (findResult.invalid) return failure(findResult.failures);
-
-    let person = findResult.value;
-    const failures: SimpleFailure[] = [];
-
-    if (name) {
-      const nameResult = person.updateName(name);
-      if (nameResult.invalid) {
-        failures.push(...nameResult.failures);
-      } else {
-        person = nameResult.value;
-      }
-    }
-
-    if (birthDate) {
-      const birthDateResult = person.updateBirthDate(birthDate);
-      if (birthDateResult.invalid) {
-        failures.push(...birthDateResult.failures);
-      } else {
-        person = birthDateResult.value;
-      }
-    }
-
+    const failures = ensureNotNull({ uid });
     if (failures.length > 0) return failure(failures);
 
-    const updatedPerson = await this.repository.update(uid, person);
-    return success(updatedPerson);
-  }
+    const person = validateAndCollect(await this.findById(uid), failures);
+    if (failures.length > 0) return failure(failures);
 
-  /**
-   * Remove uma pessoa do sistema.
-   * @param uid Identificador único da pessoa
-   * @returns Result indicando sucesso ou falha na operação
-   */
-  public async delete(uid: string): Promise<Result<null>> {
-    const personUidResult = PersonUID.parse(uid);
-    if (personUidResult.invalid) return failure(personUidResult.failures);
+    const props: Parameters<typeof person.update>[0] = {};
+    if (name !== undefined) props["name"] = name;
+    if (birthDate !== undefined) props["birthDate"] = birthDate;
 
-    const findResult = await this.findById(uid);
-    if (findResult.invalid) return failure(findResult.failures);
-
-    await this.repository.delete(uid);
-    return success(null);
+    return person.update(props);
   }
 }
