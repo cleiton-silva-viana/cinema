@@ -35,9 +35,10 @@ export type FailureDetails = {
   row?: number,
   column?: string
   seat?: string,
+  capacity?: number,
+  percentage?: number,
 
   resource?: string,
-
   date?: string
   max_date?: string
   min_date?: string
