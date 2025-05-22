@@ -29,8 +29,12 @@ export type FailureDetails = {
 
   email?: string;
   uuid?: string;
+  id?: number | string;
 
   target?: string,
+
+  type?: string,
+  allowed_types?: string[]
 
   row?: number,
   column?: string
