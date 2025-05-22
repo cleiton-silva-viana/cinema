@@ -1,8 +1,8 @@
 import { SimpleFailure } from "../failure/simple.failure.type";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { isNull } from "./validator";
-import { fa } from "@faker-js/faker";
-import { Result } from "../result/result";
+import { Result, success, failure } from "../result/result";
+import { TechnicalError } from "../error/technical.error";
 
 /**
  * Verifica se valores são nulos ou indefinidos e cria falhas para cada campo inválido.
@@ -80,6 +80,12 @@ export function collectNullFields(
  * @param failures Array onde as falhas serão coletadas, caso existam
  * @returns O valor contido no Result se for um sucesso, ou null se for uma falha
  */
+/**
+ * Coleta o resultado de um Result e adiciona falhas a um array.
+ * @param result O Result a ser processado.
+ * @param failures O array de falhas onde os erros serão adicionados.
+ * @returns O valor de sucesso do Result, ou null se for uma falha.
+ */
 export function validateAndCollect<T>(
   result: Result<T>,
   failures: SimpleFailure[],
@@ -90,4 +96,51 @@ export function validateAndCollect<T>(
   } else {
     return result.value;
   }
+}
+
+export const enum Mode {
+  IGNORE_CASE = "IGNORE_CASE",
+  SENSITIVE_CASE = "SENSITIVE_CASE",
+}
+
+/**
+ * Tenta converter uma string para um valor de enum.
+ *
+ * @param value A string a ser convertida.
+ * @param enumType O tipo do enum.
+ * @param mode O modo de comparação (IgnoreCase ou CaseSensitive).
+ * @returns Um Result contendo o valor do enum em caso de sucesso, ou falhas caso a string não corresponda a nenhum valor do enum.
+ */
+export function parseToEnum<T extends Record<string, string | number>>(
+  value: string | null | undefined,
+  enumType: T,
+  mode: Mode = Mode.IGNORE_CASE,
+): Result<T[keyof T]> {
+  TechnicalError.if(isNull(enumType), FailureCode.MISSING_REQUIRED_DATA, {
+    field: "enumType",
+  });
+
+  if (isNull(value))
+    return failure({
+      code: FailureCode.INVALID_ENUM_VALUE,
+      details: { value, allowed_values: Object.values(enumType).map(String) },
+    });
+
+  const stringValue =
+    mode === Mode.IGNORE_CASE ? String(value).toUpperCase() : String(value);
+  const enumValues = Object.values(enumType);
+
+  const foundValue = enumValues.find((enumValue) => {
+    const enumString = String(enumValue);
+    return enumString === stringValue;
+  });
+
+  if (isNull(foundValue)) {
+    return failure({
+      code: FailureCode.INVALID_ENUM_VALUE,
+      details: { value: stringValue, allowed_values: enumValues.map(String) },
+    });
+  }
+
+  return success(foundValue as T[keyof T]);
 }
