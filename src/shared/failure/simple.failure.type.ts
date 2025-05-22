@@ -32,6 +32,8 @@ export type FailureDetails = {
 
   target?: string,
 
+  row?: string,
+
   resource?: string,
 
   date?: string
