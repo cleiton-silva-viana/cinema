@@ -1,9 +1,18 @@
 import { Seat } from "./seat";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
+import { failure } from "../../../../shared/result/result";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 
 describe("Seat", () => {
   describe("Métodos Estáticos", () => {
     describe("create", () => {
+      let failures: SimpleFailure[]
+
+      beforeEach(() => {
+        failures = []
+      })
+
       describe("Cenários de sucesso", () => {
         const successCases = [
           {
@@ -41,14 +50,14 @@ describe("Seat", () => {
         successCases.forEach(({ column, row, preferential, scenario }) => {
           it(`deve criar um assento válido: ${scenario}`, () => {
             // Act
-            const result = Seat.create(column, row, preferential);
+            const result = validateAndCollect(Seat.create(column, row, preferential), failures);
 
             // Assert
-            expect(result.invalid).toBe(false);
-            expect(result.value).toBeInstanceOf(Seat);
-            expect(result.value.column).toBe(column.trim().toUpperCase());
-            expect(result.value.row).toBe(row);
-            expect(result.value.preferential).toBe(preferential);
+            expect(result).toBeDefined();
+            expect(result).toBeInstanceOf(Seat);
+            expect(result.column).toBe(column.trim().toUpperCase());
+            expect(result.row).toBe(row);
+            expect(result.preferential).toBe(preferential);
           });
         });
       });
@@ -73,15 +82,13 @@ describe("Seat", () => {
           failureCases.forEach(({ scenario, column, row, field }) => {
             it(`deve falhar quando ${scenario}`, () => {
               // Act
-              const result = Seat.create(column, row, true);
+              const result = validateAndCollect(Seat.create(column, row, true), failures);
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures.length).toBe(1);
-              expect(result.failures[0].code).toBe(
-                FailureCode.MISSING_REQUIRED_DATA,
-              );
-              expect(result.failures[0].details.field).toBe(field);
+              expect(result).toBeNull();
+              expect(failures.length).toBe(1);
+              expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
+              expect(failures[0].details.field).toBe(field);
             });
           });
         });
@@ -105,14 +112,14 @@ describe("Seat", () => {
           failureCases.forEach(({ scenario, column }) => {
             it(`deve falhar quando a ${scenario}`, () => {
               // Act
-              const result = Seat.create(column, 2, false);
+              const result = validateAndCollect(Seat.create(column, 2, false), failures);
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures[0].code).toBe(
-                FailureCode.INVALID_SEAT_COLUMN,
+              expect(result).toBeNull();
+              expect(failures[0].code).toBe(
+                FailureCode.SEAT_WITH_INVALID_COLUMN_IDENTIFIER,
               );
-              expect(result.failures[0].details.field).toBe("column");
+              expect(failures[0].details.field).toBe("column");
             });
           });
         });
@@ -122,49 +129,44 @@ describe("Seat", () => {
             {
               row: -10,
               scenario: "fileira com número negativo",
-              errorCode: FailureCode.VALUE_NOT_POSITIVE,
-              field: "row",
+              errorCode: FailureCode.SEAT_WITH_INVALID_ROW_NUMBER,
             },
             {
               row: 0,
               scenario: "fileira com valor zero",
-              errorCode: FailureCode.VALUE_NOT_POSITIVE,
-              field: "row",
+              errorCode: FailureCode.SEAT_WITH_INVALID_ROW_NUMBER,
             },
             {
               row: 251,
               scenario: "fileira acima do valor máximo permitido",
               errorCode: FailureCode.VALUE_OUT_OF_RANGE,
-              field: "row",
             },
             {
               row: 1.5,
               scenario: "fileira com número decimal",
-              errorCode: FailureCode.VALUE_NOT_INTEGER,
-              field: "row",
+              errorCode: FailureCode.SEAT_WITH_INVALID_ROW_NUMBER,
             },
           ];
 
-          failureCases.forEach(({ row, scenario, errorCode, field }) => {
+          failureCases.forEach(({ row, scenario, errorCode }) => {
             it(`deve falhar quando a ${scenario}`, () => {
               // Act
-              const result = Seat.create("L", row, false);
+              const result = validateAndCollect(Seat.create("L", row, false), failures);
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures[0].code).toBe(errorCode);
-              expect(result.failures[0].details.field).toBe(field);
+              expect(result).toBeNull();
+              expect(failures[0].code).toBe(errorCode);
             });
           });
         });
 
         it("deve falhar quando a fileira não é um valor numérico", () => {
           // Act
-          const result = Seat.create("H", "abc" as any, false);
+          const result = validateAndCollect(Seat.create("H", "abc" as any, false), failures);
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures.length).toBe(1);
+          expect(result).toBeNull();
+          expect(failures.length).toBe(1);
         });
       });
     });
@@ -249,7 +251,7 @@ describe("Seat", () => {
     describe("identifier", () => {
       it("deve retornar o identificador no formato 'coluna+fileira'", () => {
         // Arrange
-        const seat = Seat.create("B", 12, false).value;
+        const seat = Seat.hydrate("B", 12, false);
 
         // Act
         const result = seat.identifier;
@@ -260,7 +262,7 @@ describe("Seat", () => {
 
       it("deve normalizar a coluna antes de gerar o identificador", () => {
         // Arrange
-        const seat = Seat.create(" c ", 7, false).value;
+        const seat = Seat.hydrate(" c ", 7, false);
 
         // Act
         const result = seat.identifier;
@@ -273,8 +275,8 @@ describe("Seat", () => {
     describe("equals", () => {
       it("deve retornar true para assentos idênticos", () => {
         // Arrange
-        const s1 = Seat.create("A", 1, false).value;
-        const s2 = Seat.create("A", 1, false).value;
+        const s1 = Seat.hydrate("A", 1, false);
+        const s2 = Seat.hydrate("A", 1, false);
 
         // Act
         const result = s1.equals(s2);
@@ -285,8 +287,8 @@ describe("Seat", () => {
 
       it("deve retornar false para assentos com colunas diferentes", () => {
         // Arrange
-        const s1 = Seat.create("A", 1, false).value;
-        const s2 = Seat.create("B", 1, false).value;
+        const s1 = Seat.hydrate("A", 1, false);
+        const s2 = Seat.hydrate("B", 1, false);
 
         // Act
         const result = s1.equals(s2);
@@ -297,8 +299,8 @@ describe("Seat", () => {
 
       it("deve retornar false para assentos com fileiras diferentes", () => {
         // Arrange
-        const s1 = Seat.create("A", 1, false).value;
-        const s2 = Seat.create("A", 2, false).value;
+        const s1 = Seat.hydrate("A", 1, false);
+        const s2 = Seat.hydrate("A", 2, false);
 
         // Act
         const result = s1.equals(s2);
@@ -309,8 +311,8 @@ describe("Seat", () => {
 
       it("deve retornar false para assentos com status preferencial diferente", () => {
         // Arrange
-        const s1 = Seat.create("A", 1, false).value;
-        const s2 = Seat.create("A", 1, true).value;
+        const s1 = Seat.hydrate("A", 1, false);
+        const s2 = Seat.hydrate("A", 1, true);
 
         // Act
         const result = s1.equals(s2);
@@ -321,7 +323,7 @@ describe("Seat", () => {
 
       it("deve retornar false quando comparado com null", () => {
         // Arrange
-        const seat = Seat.create("A", 1, false).value;
+        const seat = Seat.hydrate("A", 1, false);
 
         // Act
         const result = seat.equals(null as any);
@@ -332,7 +334,7 @@ describe("Seat", () => {
 
       it("deve retornar false quando comparado com undefined", () => {
         // Arrange
-        const seat = Seat.create("A", 1, false).value;
+        const seat = Seat.hydrate("A", 1, false);
 
         // Act
         const result = seat.equals(undefined as any);
@@ -345,7 +347,7 @@ describe("Seat", () => {
     describe("withPreferentialStatus", () => {
       it("deve retornar a mesma instância quando o status não muda", () => {
         // Arrange
-        const seat = Seat.create("A", 1, false).value;
+        const seat = Seat.hydrate("A", 1, false);
 
         // Act
         const result = seat.withPreferentialStatus(false);
@@ -356,7 +358,7 @@ describe("Seat", () => {
 
       it("deve retornar uma nova instância quando o status muda", () => {
         // Arrange
-        const seat = Seat.create("A", 1, false).value;
+        const seat = Seat.hydrate("A", 1, false);
 
         // Act
         const result = seat.withPreferentialStatus(true);

@@ -1,9 +1,8 @@
 import { failure, Result, success } from "../../../../shared/result/result";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { Validate } from "../../../../shared/validator/validate";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { TechnicalError } from "../../../../shared/error/technical.error";
-import { isNull } from "../../../../shared/validator/validator";
+import { collectNullFields, ensureNotNull } from "../../../../shared/validator/common.validators";
 
 /**
  * Representa um assento em uma sala de cinema.
@@ -38,26 +37,22 @@ export class Seat {
    * @param preferential True se o assento for preferencial, False caso contrário.
    * @returns Result<Seat> contendo o Assento ou uma lista de falhas.
    */
-  public static create(
-    column: string,
-    row: number,
-    preferential: boolean,
-  ): Result<Seat> {
-    const failures: SimpleFailure[] = [];
-    const columnUpper = column ? column?.trim().toUpperCase() : column;
+  public static create(column: string, row: number, preferential: boolean): Result<Seat> {
+    const failures = ensureNotNull({ column, row, preferentialSeats: preferential });
+    if (failures.length > 0) return failure(failures)
 
-    Validate.string(columnUpper)
-      .failures(failures)
-      .field("column")
-      .isRequired()
-      .matchesPattern(/^[A-Za-z]$/, FailureCode.INVALID_SEAT_COLUMN);
+    const columnUpper = column.trim().toUpperCase();
 
-    Validate.number(row)
-      .failures(failures)
-      .field("row")
+    Validate
+      .string({ column: columnUpper }, failures)
       .isRequired()
-      .isInteger()
-      .isPositive()
+      .matchesPattern(/^[A-Za-z]$/, FailureCode.SEAT_WITH_INVALID_COLUMN_IDENTIFIER);
+
+    Validate
+      .number({row}, failures)
+      .isRequired()
+      .isInteger(FailureCode.SEAT_WITH_INVALID_ROW_NUMBER, { row })
+      .isPositive(FailureCode.SEAT_WITH_INVALID_ROW_NUMBER, { row })
       .isInRange(Seat.MIN_VALUE_ALLOWED, Seat.MAX_VALUE_ALLOWED);
 
     return failures.length > 0
@@ -69,15 +64,15 @@ export class Seat {
    * Recria uma instância de Seat a partir de dados existentes sem validação.
    * Usado principalmente para reconstruir objetos a partir do banco de dados.
    */
-  public static hydrate(
-    column: string,
-    row: number,
-    preferential: boolean,
-  ): Seat {
+  public static hydrate(column: string, row: number, preferential: boolean): Seat {
+    const fields = collectNullFields({ column, row, preferential });
+
     TechnicalError.if(
-      !column || !row || isNull(preferential),
+      fields.length > 0,
       FailureCode.MISSING_REQUIRED_DATA,
+      { fields }
     );
+
     return new Seat(column.trim().toUpperCase(), row, preferential);
   }
 
@@ -109,7 +104,7 @@ export class Seat {
     if (!(other instanceof Seat)) return false;
     if (this.column !== other.column) return false;
     if (this.row !== other.row) return false;
-    if (this.preferential !== other.preferential) return false;
-    return true;
+    if (this.preferential !== other.preferential) return false
+    return true
   }
 }
