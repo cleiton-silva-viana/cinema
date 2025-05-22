@@ -637,7 +637,7 @@
       "en": "Preferential seat '{seat}' not found in the room layout."
     }
   },
-  "INVALID_SEAT_COLUMN": {
+  "SEAT_WITH_INVALID_COLUMN_IDENTIFIER": {
     "status": 400,
     "title": {
       "pt": "Coluna de Assento Inválida",
@@ -646,6 +646,17 @@
     "template": {
       "pt": "A coluna '{column}' do assento especificada é inválida para a fileira '{row}'.",
       "en": "The specified seat column '{column}' is invalid for row '{row}'."
+    }
+  },
+  "SEAT_WITH_INVALID_ROW_NUMBER": {
+    "status": 400,
+    "title": {
+      "pt": "Fileira de Assento Inválida",
+      "en": "Invalid Seat Row"
+    },
+    "template": {
+      "pt": "A fileira '{row}' do assento especificada é inválida para a fileira.",
+      "en": "The specified seat row '{row}' is invalid."
     }
   },
   "SEAT_COLUMN_OUT_OF_RANGE": {
@@ -1139,8 +1150,8 @@
       "en": "Missing Required Language"
     },
     "template": {
-      "pt": "O idioma obrigatório '{requiredLanguage}' não foi fornecido.",
-      "en": "The required language '{requiredLanguage}' was not provided."
+      "pt": "O idioma obrigatório '{language}' não foi fornecido.",
+      "en": "The required language '{language}' was not provided."
     }
   }
 }
