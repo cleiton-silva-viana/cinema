@@ -670,7 +670,7 @@
       "en": "The number of seats in row '{row}' ({count}) is out of the allowed range ({min}-{max})."
     }
   },
-  "PREFERENTIAL_SEATS_LIMIT_EXCEEDED": {
+  "SEAT_WITH_PREFERENTIAL_LIMIT_EXCEEDED": {
     "status": 400,
     "title": {
       "pt": "Limite de Assentos Preferenciais Excedido",
@@ -681,7 +681,7 @@
       "en": "The number of preferential seats ({count}) exceeds the allowed limit ({max}) for row '{row}'."
     }
   },
-  "PREFERENTIAL_SEAT_NOT_IN_ROW": {
+  "SEAT_PREFERENTIAL_IN_ROW_IS_NOT_FOUND": {
     "status": 400,
     "title": {
       "pt": "Assento Preferencial Inexistente",
@@ -692,7 +692,7 @@
       "en": "The specified preferential seat '{seat}' does not exist in row '{row}'."
     }
   },
-  "DUPLICATE_PREFERENTIAL_SEAT": {
+  "SEAT_PREFERENTIAL_IS_DUPLICATED": {
     "status": 400,
     "title": {
       "pt": "Assento Preferencial Duplicado",
@@ -701,17 +701,6 @@
     "template": {
       "pt": "O assento preferencial '{seat}' especificado já foi definido anteriormente para a fileira '{row}'.",
       "en": "The specified preferential seat '{seat}' has already been defined for row '{row}'."
-    }
-  },
-  "INVALID_NUMBER_OF_PREFERENTIAL_SEATS": {
-    "status": 400,
-    "title": {
-      "pt": "Número Inválido de Assentos Preferenciais",
-      "en": "Invalid Number of Preferential Seats"
-    },
-    "template": {
-      "pt": "O número total de assentos preferenciais ({count}) está fora da porcentagem permitida ({percentage}%).",
-      "en": "The total number of preferential seats ({count}) is outside the allowed percentage ({percentage}%)."
     }
   },
   "BOOKING_WITH_INVALID_TYPE": {
@@ -725,6 +714,17 @@
       "en": "The provided booking type '{type}' is invalid. Allowed types: {allowed_types}."
     }
   },
+  "BOOKING_NOT_FOUND_IN_ROOM": {
+    "status": 400,
+    "title": {
+      "pt": "Reserva de Exibição Não Encontrada na sala",
+      "en": "Screening Booking Not Found in the room"
+    },
+    "template": {
+      "pt": "Não foi encontrada reserva na sala.",
+      "en": ""
+    }
+  },
   "BOOKING_NOT_FOUND_FOR_SCREENING": {
     "status": 404,
     "title": {
@@ -732,8 +732,8 @@
       "en": "Screening Booking Not Found"
     },
     "template": {
-      "pt": "Não foi encontrada reserva para a exibição com ID '{screening_id}'.",
-      "en": "No booking found for the screening with ID '{screening_id}'."
+      "pt": "Não foi encontrada reserva para a exibição com ID '{screening_uid}'.",
+      "en": "No booking found for the screening with ID '{screening_uid}'."
     }
   },
   "BOOKING_WITH_INVAlID_TIME_INTERVAL": {
@@ -780,6 +780,17 @@
       "en": "Bookings of type '{type}' cannot be removed directly. Only cleaning and maintenance are allowed."
     }
   },
+  "ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS": {
+    "status": 400,
+    "title": {
+      "pt": "Número Inválido de Assentos Preferenciais",
+      "en": "Invalid Number of Preferential Seats"
+    },
+    "template": {
+      "pt": "O número total de assentos preferenciais ({count}) está fora da porcentagem permitida ({percentage}%).",
+      "en": "The total number of preferential seats ({count}) is outside the allowed percentage ({percentage}%)."
+    }
+  },
   "ROOM_WITH_INVALID_CAPACITY": {
     "status": 400,
     "title": {
@@ -798,8 +809,8 @@
       "en": "Room Not Available"
     },
     "template": {
-      "pt": "A sala '{room_name}' não está disponível para o período solicitado ('{start_date}' a '{end_date}').",
-      "en": "Room '{room_name}' is not available for the requested period ('{start_date}' to '{end_date}')."
+      "pt": "A sala não está disponível para o período solicitado ('{start_date}' a '{end_date}').",
+      "en": "Room is not available for the requested period ('{start_date}' to '{end_date}')."
     }
   },
   "ROOM_OPERATING_HOURS_VIOLATION": {
@@ -809,8 +820,8 @@
       "en": "Room Operating Hours Violation"
     },
     "template": {
-      "pt": "O horário solicitado ('{time}') está fora do período de funcionamento da sala '{room_name}'.",
-      "en": "The requested time ('{time}') is outside the operating hours of room '{room_name}'."
+      "pt": "O horário solicitado ('{time}') está fora do período de funcionamento permitido ({start_time} a {end_time}).",
+      "en": "The requested time ('{time}') is outside the allowed operating hours of room ({start_time} to {end_time})."
     }
   },
   "ROOM_HAS_FUTURE_BOOKINGS": {
