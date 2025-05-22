@@ -2,6 +2,7 @@ import { FailureDetails, SimpleFailure } from "../failure/simple.failure.type";
 import { FailureCode } from "../failure/failure.codes.enum";
 import { FailureMapper } from "../failure/failure.mapper";
 import { RichFailure } from "../failure/rich.failure.type";
+import { collectNullFields } from "../validator/common.validators";
 
 /**
  * Representa um erro técnico inesperado na aplicação.
@@ -18,10 +19,9 @@ export class TechnicalError extends Error {
    * @param failure O objeto SimpleFailure que descreve o erro técnico.
    */
   constructor(failure: SimpleFailure) {
-    const richFailure = FailureMapper.getInstance().toRichFailure(
-      failure,
-      "pt",
-    );
+    const failureMapper = FailureMapper.getInstance();
+
+    const richFailure = failureMapper.toRichFailure(failure, "pt");
 
     const detailsString = failure.details
       ? "\n" + JSON.stringify(failure.details, null, 2)
@@ -55,5 +55,36 @@ export class TechnicalError extends Error {
     details?: FailureDetails,
   ): void {
     if (condition) throw new TechnicalError({ code, details });
+  }
+
+  /**
+   * Valida se todos os campos obrigatórios estão presentes em um objeto.
+   * Se algum campo for nulo ou indefinido, lança um erro técnico.
+   *
+   * @param fields Objeto com os campos a serem validados
+   * @param failureCode Código de falha a ser usado (padrão: MISSING_REQUIRED_DATA)
+   * @param additionalDetails Detalhes adicionais para incluir na mensagem de erro
+   * @throws TechnicalError se algum campo for nulo ou indefinido
+   *
+   * @example
+   * // Valida se todos os campos obrigatórios estão presentes
+   * TechnicalError.validateRequiredFields({
+   *   sizes,
+   *   small: sizes?.small,
+   *   normal: sizes?.normal,
+   *   large: sizes?.large
+   * });
+   */
+  public static validateRequiredFields(
+    fields: Record<string, any>,
+    failureCode: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
+    additionalDetails: Record<string, any> = {},
+  ): void {
+    const nullFields = collectNullFields(fields);
+
+    this.if(nullFields.length > 0, failureCode, {
+      fields: nullFields,
+      ...additionalDetails,
+    });
   }
 }

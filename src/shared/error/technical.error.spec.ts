@@ -15,12 +15,24 @@ describe("TechnicalError", () => {
     mockToRichFailure.mockClear();
     (FailureMapper.getInstance as jest.Mock).mockClear();
 
-    mockToRichFailure.mockReturnValue({
+    const UNCATALOGUED_ERROR = {
       code: FailureCode.UNCATALOGUED_ERROR,
       status: 500,
       title: "Erro Não Catalogado",
       message: "Ocorreu um erro não catalogado.",
-    } as RichFailure);
+    } as RichFailure;
+
+    const MISSING_REQUIRED_DATA = {
+      code: FailureCode.MISSING_REQUIRED_DATA,
+      status: 500,
+      title: "Erro Não Catalogado",
+      message: "Ocorreu um erro não catalogado.",
+    } as RichFailure;
+
+    mockToRichFailure.mockReturnValue(
+      // UNCATALOGUED_ERROR,
+      MISSING_REQUIRED_DATA,
+    );
   });
 
   describe("if", () => {
@@ -40,7 +52,7 @@ describe("TechnicalError", () => {
 
     it("deve lançar TechnicalError com código de falha e detalhes corretos", () => {
       // Arrange
-      const testCode = FailureCode.UNCATALOGUED_ERROR;
+      const testCode = FailureCode.MISSING_REQUIRED_DATA;
       const testDetails = { id: "123", type: "User" };
 
       // Act & Assert
@@ -127,6 +139,166 @@ describe("TechnicalError", () => {
           `[${mockRichFailure.message}]\n` +
           `[DETAILS]`;
         expect(techError.message).toBe(expectedMessage);
+      }
+    });
+  });
+
+  describe("validateRequiredFields", () => {
+    it("deve lançar TechnicalError quando um campo for nulo", () => {
+      // Arrange
+      const fields = {
+        name: "Test",
+        age: null as any,
+        email: "test@example.com",
+      };
+
+      // Act & Assert
+      expect(() => TechnicalError.validateRequiredFields(fields)).toThrow(
+        TechnicalError,
+      );
+    });
+
+    it("deve lançar TechnicalError quando um campo for undefined", () => {
+      // Arrange
+      const fields = {
+        name: "Test",
+        age: undefined as any,
+        email: "test@example.com",
+      };
+
+      // Act & Assert
+      expect(() => TechnicalError.validateRequiredFields(fields)).toThrow(
+        TechnicalError,
+      );
+    });
+
+    it("não deve lançar erro quando todos os campos estiverem preenchidos", () => {
+      // Arrange
+      const fields = {
+        name: "Test",
+        age: 30,
+        email: "test@example.com",
+      };
+
+      // Act & Assert
+      expect(() => TechnicalError.validateRequiredFields(fields)).not.toThrow();
+    });
+
+    it("deve incluir os nomes dos campos nulos na mensagem de erro", () => {
+      // Arrange
+      const fields = {
+        name: "Test",
+        age: null as any,
+        email: undefined as any,
+      };
+
+      // Act & Assert
+      try {
+        TechnicalError.validateRequiredFields(fields);
+        fail("Deveria ter lançado um erro");
+      } catch (error) {
+        const techError = error as TechnicalError;
+        expect(techError.details.fields).toContain("age");
+        expect(techError.details.fields).toContain("email");
+        expect(techError.details.fields).not.toContain("name");
+      }
+    });
+
+    it("deve usar o código de falha padrão quando não especificado", () => {
+      // Arrange
+      const fields = {
+        name: "Test",
+        age: null as any,
+      };
+
+      // Act & Assert
+      try {
+        TechnicalError.validateRequiredFields(fields);
+        fail("Deveria ter lançado um erro");
+      } catch (error) {
+        const techError = error as TechnicalError;
+        expect(techError.richFailure.code).toBe(
+          FailureCode.MISSING_REQUIRED_DATA,
+        );
+      }
+    });
+
+    it("deve usar o código de falha personalizado quando especificado", () => {
+      // Arrange
+      const fields = {
+        name: "Test",
+        age: null as any,
+      };
+      const customCode = FailureCode.INVALID_ENUM_VALUE;
+      const mockRichFailure: RichFailure = {
+        code: customCode,
+        status: 400,
+        title: "Valor de Enumeração Inválido",
+        message: "O valor fornecido não é válido para esta enumeração.",
+      };
+      mockToRichFailure.mockReturnValue(mockRichFailure);
+
+      // Act & Assert
+      try {
+        TechnicalError.validateRequiredFields(fields, customCode);
+        fail("Deveria ter lançado um erro");
+      } catch (error) {
+        const techError = error as TechnicalError;
+        expect(techError.richFailure.code).toBe(customCode);
+      }
+    });
+
+    it("deve incluir detalhes adicionais na mensagem de erro quando fornecidos", () => {
+      // Arrange
+      const fields = {
+        name: "Test",
+        age: null as any,
+      };
+      const additionalDetails = {
+        context: "UserRegistration",
+        severity: "high",
+      };
+
+      // Act & Assert
+      try {
+        TechnicalError.validateRequiredFields(
+          fields,
+          FailureCode.MISSING_REQUIRED_DATA,
+          additionalDetails,
+        );
+        fail("Deveria ter lançado um erro");
+      } catch (error) {
+        const techError = error as TechnicalError;
+        expect(techError.details.fields).toContain("age");
+        expect(techError.details.context).toBe("UserRegistration");
+        expect(techError.details.severity).toBe("high");
+      }
+    });
+
+    it("deve lidar corretamente com objetos aninhados", () => {
+      // Arrange
+      const sizes = {
+        small: "small.jpg",
+        normal: null as any,
+        large: "large.jpg",
+      };
+
+      const fields = {
+        sizes,
+        small: sizes.small,
+        normal: sizes.normal,
+        large: sizes.large,
+      };
+
+      // Act & Assert
+      try {
+        TechnicalError.validateRequiredFields(fields);
+        fail("Deveria ter lançado um erro");
+      } catch (error) {
+        const techError = error as TechnicalError;
+        expect(techError.details.fields).toContain("normal");
+        expect(techError.details.fields).not.toContain("small");
+        expect(techError.details.fields).not.toContain("large");
       }
     });
   });
