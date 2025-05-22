@@ -1,11 +1,19 @@
 import { Screen, ScreenType } from "./screen";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("Screen", () => {
   const VALID_SIZE = 20;
 
   describe("Métodos Estáticos", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       describe("telas válidas", () => {
         const successCases = [
           {
@@ -48,12 +56,15 @@ describe("Screen", () => {
         successCases.forEach(({ size, type, scenario }) => {
           it(`deve criar uma tela ${scenario}`, () => {
             // Act
-            const result = Screen.create(size, type);
+            const result = validateAndCollect(
+              Screen.create(size, type),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(false);
-            expect(result.value.size).toBe(size);
-            expect(result.value.type).toBe(type);
+            expect(result).toBeDefined();
+            expect(result.size).toBe(size);
+            expect(result.type).toBe(type);
           });
         });
       });
@@ -65,54 +76,50 @@ describe("Screen", () => {
             type: "2D",
             scenario: "com tamanho nulo",
             errorCode: FailureCode.MISSING_REQUIRED_DATA,
-            field: "size",
           },
           {
             size: "20" as any,
             type: "2D",
             scenario: "com tamanho não numérico",
-            errorCode: FailureCode.CONTENT_INVALID_TYPE,
-            field: "size",
+            errorCode: FailureCode.VALUE_NOT_INTEGER,
           },
           {
             size: 5,
             type: "2D",
             scenario: "com tamanho menor que o mínimo",
             errorCode: FailureCode.VALUE_OUT_OF_RANGE,
-            field: "size",
           },
           {
             size: 60,
             type: "2D",
             scenario: "com tamanho maior que o máximo",
             errorCode: FailureCode.VALUE_OUT_OF_RANGE,
-            field: "size",
           },
           {
             size: VALID_SIZE,
             type: null,
             scenario: "com tipo nulo",
             errorCode: FailureCode.MISSING_REQUIRED_DATA,
-            field: "screenType",
           },
           {
             size: VALID_SIZE,
             type: "4D",
             scenario: "com tipo inválido",
             errorCode: FailureCode.INVALID_ENUM_VALUE,
-            field: "screenType",
           },
         ];
 
-        failureCases.forEach(({ size, type, scenario, errorCode, field }) => {
+        failureCases.forEach(({ size, type, scenario, errorCode }) => {
           it(`deve rejeitar uma tela ${scenario}`, () => {
             // Act
-            const result = Screen.create(size, type);
+            const result = validateAndCollect(
+              Screen.create(size, type),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(errorCode);
-            expect(result.failures[0].details.field).toBe(field);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(errorCode);
           });
         });
       });

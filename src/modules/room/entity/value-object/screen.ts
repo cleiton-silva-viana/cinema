@@ -3,6 +3,10 @@ import { TechnicalError } from "../../../../shared/error/technical.error";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { Result, failure, success } from "../../../../shared/result/result";
 import { Validate } from "../../../../shared/validator/validate";
+import {
+  collectNullFields,
+  ensureNotNull,
+} from "../../../../shared/validator/common.validators";
 
 /**
  * Tipos de tela suportados pelo cinema
@@ -67,26 +71,23 @@ export class Screen {
    * @returns Result<Screen> contendo a Tela ou uma lista de falhas de validação
    */
   public static create(size: number, type: string): Result<Screen> {
-    const failures: SimpleFailure[] = [];
+    const failures = ensureNotNull({ size, type });
+    if (failures.length > 0) return failure(failures);
 
-    Validate.number(size)
-      .field("size")
-      .failures(failures)
+    Validate.number({ size }, failures)
       .isRequired()
       .isInteger()
       .isInRange(Screen.MIN_SIZE_IN_METERS, Screen.MAX_SIZE_IN_METERS);
 
     const upperType = type?.trim().toUpperCase();
 
-    Validate.string(upperType)
-      .field("type")
-      .failures(failures)
+    Validate.string({ type: upperType }, failures)
       .isRequired()
       .isInEnum(ScreenType);
 
-    if (failures.length > 0) return failure(failures);
-
-    return success(new Screen(size, type as ScreenType));
+    return failures.length > 0
+      ? failure(failures)
+      : success(new Screen(size, type as ScreenType));
   }
 
   /**
@@ -101,12 +102,12 @@ export class Screen {
    * @returns Nova instância de Screen com os dados fornecidos
    */
   public static hydrate(size: number, type: string): Screen {
-    TechnicalError.if(!size, FailureCode.MISSING_REQUIRED_DATA, {
-      field: "size",
+    const fields = collectNullFields({ size, type });
+
+    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
+      fields,
     });
-    TechnicalError.if(!type, FailureCode.MISSING_REQUIRED_DATA, {
-      field: "type",
-    });
+
     return new Screen(size, type.trim().toUpperCase() as ScreenType);
   }
 
@@ -120,10 +121,7 @@ export class Screen {
    * @returns true se as telas forem iguais em valor, false caso contrário
    */
   public equals(other: Screen): boolean {
-    if (!other || !(other instanceof Screen)) {
-      return false;
-    }
-
+    if (!other || !(other instanceof Screen)) return false;
     return this.size === other.size && this.type === other.type;
   }
 }
