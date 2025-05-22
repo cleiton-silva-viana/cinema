@@ -14,9 +14,7 @@ export class RoomIdentifier {
   public static create(roomIdentifier: number): Result<RoomIdentifier> {
     const failures: SimpleFailure[] = [];
 
-    Validate.number(roomIdentifier)
-      .field("roomIdentifier")
-      .failures(failures)
+    Validate.number({ roomIdentifier }, failures)
       .isRequired()
       .isInteger()
       .isInRange(this.MIN_VALUE, this.MAX_VALUE);
@@ -29,10 +27,8 @@ export class RoomIdentifier {
   public static hydrate(roomIdentifier: number): RoomIdentifier {
     TechnicalError.if(
       isNull(roomIdentifier),
-      FailureCode.INVALID_HYDRATE_DATA,
-      {
-        vo: "RoomIdentifier",
-      },
+      FailureCode.MISSING_REQUIRED_DATA,
+      { field: "roomIdentifier" },
     );
     return new RoomIdentifier(roomIdentifier);
   }
