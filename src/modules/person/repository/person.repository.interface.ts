@@ -1,4 +1,5 @@
 import { Person } from "../entity/person";
+import { PersonUID } from "../entity/value-object/person.uid";
 
 /**
  * Interface para o repositório de pessoas.
@@ -17,7 +18,7 @@ export interface IPersonRepository {
    * @param uid Identificador único da pessoa
    * @returns Result contendo a pessoa encontrada ou erro
    */
-  findById(uid: string): Promise<Person>;
+  findById(uid: PersonUID): Promise<Person>;
 
   /**
    * Atualiza os dados de uma pessoa existente.
@@ -25,12 +26,12 @@ export interface IPersonRepository {
    * @param person Novos dados da pessoa
    * @returns Result indicando sucesso ou falha na operação
    */
-  update(uid: string, person: Person): Promise<Person>;
+  update(uid: PersonUID, person: Person): Promise<Person>;
 
   /**
    * Remove uma pessoa do repositório.
    * @param uid Identificador único da pessoa
    * @returns Result indicando sucesso ou falha na operação
    */
-  delete(uid: string): Promise<null>;
+  delete(uid: PersonUID): Promise<null>;
 }
