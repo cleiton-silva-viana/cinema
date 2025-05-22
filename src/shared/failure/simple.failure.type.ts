@@ -38,6 +38,14 @@ export type FailureDetails = {
   capacity?: number,
   percentage?: number,
 
+  // representa horários
+  time?: string,
+  start_time?: string
+  end_time?: string
+  interval?: string
+  screening_uid?: string,
+  duration?: number,
+
   resource?: string,
   date?: string
   max_date?: string
