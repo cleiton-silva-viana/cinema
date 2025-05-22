@@ -11,6 +11,9 @@ import { TechnicalError } from "../../../shared/error/technical.error";
 import { ScreeningUID } from "../../screening/aggregate/value-object/screening.uid";
 import { BookingType } from "./value-object/booking.slot";
 import { v4 } from "uuid";
+import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
+import { busboyExceptions } from "@nestjs/platform-express/multer/multer/multer.constants";
+import { validateAndCollect } from "../../../shared/validator/common.validators";
 
 function createDate(day: number, hour: number, minutes: number = 0): Date {
   const date = new Date();
@@ -49,6 +52,12 @@ describe("Room", () => {
 
   describe("Métodos Estáticos", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       const PARAMS: ICreateRoomInput = {
         identifier: 1,
         seatConfig: createValidSeatConfig(),
@@ -58,15 +67,13 @@ describe("Room", () => {
 
       it("deve criar uma sala válida com valores mínimos", () => {
         // Act
-        const result = Room.create(PARAMS);
+        const result = validateAndCollect(Room.create(PARAMS), failures);
 
         // Assert
-        expect(result.invalid).toBe(false);
-
-        const room = result.value;
-        expect(room.identifier.value).toBe(PARAMS.identifier);
-        expect(room.status).toBe(RoomAdministrativeStatus.AVAILABLE);
-        expect(room.seatLayoutInfo.totalSeats).toBe(26); // 5+6+7+8 = 26
+        expect(result).toBeDefined();
+        expect(result.identifier.value).toBe(PARAMS.identifier);
+        expect(result.status).toBe(RoomAdministrativeStatus.AVAILABLE);
+        expect(result.seatLayoutInfo.totalSeats).toBe(26); // 5+6+7+8 = 26
       });
 
       describe("deve falhar quando os dados de entrada são inválidos", () => {
@@ -74,7 +81,7 @@ describe("Room", () => {
           {
             scenario: "configuração de assentos for vazia",
             input: { seatConfig: [] as ISeatRowConfiguration[] },
-            errorCode: FailureCode.OBJECT_IS_EMPTY,
+            errorCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
             scenario: "identificador for inválido",
@@ -111,11 +118,11 @@ describe("Room", () => {
             const params: ICreateRoomInput = { ...PARAMS, ...input };
 
             // Act
-            const result = Room.create(params);
+            const result = validateAndCollect(Room.create(params), failures);
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(errorCode);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(errorCode);
             //  expect(result.failures.some(failure => failure.code === errorCode)).toBe(true); // <<<
           });
         });
@@ -172,7 +179,7 @@ describe("Room", () => {
         expect(room.preferentialSeatsCount).toBe(4);
       });
 
-      it("deve lançar erro técnico quando o parâmeto `params` é um objeto nulo", () => {
+      it("deve lançar erro técnico quando o parâmetro `params` é um objeto nulo", () => {
         expect(() => Room.hydrate(null as any)).toThrow(TechnicalError);
       });
 
@@ -216,6 +223,7 @@ describe("Room", () => {
   describe("Métodos de Instância", () => {
     let room: Room;
     let screeningUID: ScreeningUID;
+    let failures: SimpleFailure[];
     const SCREENING_UID_1 = ScreeningUID.create();
     const BOOKING_UID_FOR_SCREENING_1 = v4();
     const BOOKING_UID_FOR_CLEANING = v4();
@@ -295,6 +303,7 @@ describe("Room", () => {
     };
 
     beforeEach(() => {
+      failures = [];
       room = Room.hydrate(PARAMS_WITH_SCHEDULE);
       screeningUID = ScreeningUID.create();
     });
@@ -322,11 +331,14 @@ describe("Room", () => {
             const instance = Room.hydrate(p);
 
             // Act
-            const result = instance.changeStatus(newStatus);
+            const result = validateAndCollect(
+              instance.changeStatus(newStatus),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(false);
-            expect(result.value.status).toBe(newStatus);
+            expect(result).toBeDefined();
+            expect(result.status).toBe(newStatus);
           });
         });
       });
@@ -336,12 +348,12 @@ describe("Room", () => {
           {
             scenario: "deve falhar quando novo status for um valor nulo",
             status: null as any,
-            expectedErrorCode: FailureCode.MISSING_REQUIRED_DATA,
+            expectedErrorCode: FailureCode.INVALID_ENUM_VALUE,
           },
           {
             scenario: "deve falhar quando novo status for um valor indefinido",
             status: undefined as any,
-            expectedErrorCode: FailureCode.MISSING_REQUIRED_DATA,
+            expectedErrorCode: FailureCode.INVALID_ENUM_VALUE,
           },
           {
             scenario: "deve falhar ao tentar alterar para um status inválido",
@@ -352,12 +364,15 @@ describe("Room", () => {
         nullCases.forEach(({ scenario, status, expectedErrorCode }) => {
           it(scenario, () => {
             // Act
-            const result = room.changeStatus(status);
+            const result = validateAndCollect(
+              room.changeStatus(status),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures.length).toBe(1);
-            expect(result.failures[0].code).toBe(expectedErrorCode);
+            expect(result).toBeNull();
+            expect(failures.length).toBeGreaterThan(0);
+            expect(failures[0].code).toBe(expectedErrorCode);
           });
         });
 
@@ -366,14 +381,15 @@ describe("Room", () => {
           const instance = Room.hydrate(PARAMS_WITH_SCHEDULE);
 
           // Act
-          const result = instance.changeStatus(RoomAdministrativeStatus.CLOSED);
+          const result = validateAndCollect(
+            instance.changeStatus(RoomAdministrativeStatus.CLOSED),
+            failures,
+          );
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures.length).toBe(1);
-          expect(result.failures[0].code).toBe(
-            FailureCode.ROOM_HAS_FUTURE_BOOKINGS,
-          );
+          expect(result).toBeNull();
+          expect(failures.length).toBeGreaterThan(0);
+          expect(failures[0].code).toBe(FailureCode.ROOM_HAS_FUTURE_BOOKINGS);
         });
       });
     });
@@ -416,11 +432,14 @@ describe("Room", () => {
         const duration = 140; // dia 11, 15:20
 
         // Act
-        const result = instance.addScreening(screeningUID, startTime, duration);
+        const result = validateAndCollect(
+          instance.addScreening(screeningUID, startTime, duration),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(false);
-        const bookings = result.value.getAllBookings();
+        expect(result).toBeDefined();
+        const bookings = result.getAllBookings();
         expect(bookings.length).toBe(4); // (entrada + exibição + saída + higienização)
         expect(
           bookings.some(
@@ -458,15 +477,14 @@ describe("Room", () => {
         const duration = 120; //  13:00
 
         // Act
-        const result = room.addScreening(
-          ScreeningUID.create(),
-          startTime1,
-          duration,
+        const result = validateAndCollect(
+          room.addScreening(ScreeningUID.create(), startTime1, duration),
+          failures,
         );
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe(
+        expect(result).toBeNull();
+        expect(failures[0].code).toBe(
           FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
         );
       });
@@ -521,15 +539,18 @@ describe("Room", () => {
             };
 
             // Act
-            const result = room.addScreening(
-              input.screeningUID,
-              input.startIn,
-              input.duration,
+            const result = validateAndCollect(
+              room.addScreening(
+                input.screeningUID,
+                input.startIn,
+                input.duration,
+              ),
+              failures,
             );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(code);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(code);
           });
         });
       });
@@ -542,19 +563,19 @@ describe("Room", () => {
         const duration = 30;
 
         // Act
-        const result = room.scheduleMaintenance(startTime, duration);
+        const result = validateAndCollect(
+          room.scheduleMaintenance(startTime, duration),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(false);
-
-        // Verificar se o novo agendamento foi adicionado
-        const bookings = result.value.getAllBookings();
+        expect(result).toBeDefined();
+        const bookings = result.getAllBookings();
         const maintenance = bookings.find(
           (b) =>
             b.type === BookingType.MAINTENANCE &&
             b.startTime.getTime() === startTime.getTime(),
         );
-
         expect(maintenance).toBeDefined();
         expect(maintenance.type).toBe(BookingType.MAINTENANCE);
       });
@@ -565,11 +586,14 @@ describe("Room", () => {
         const duration = 60;
 
         // Act
-        const result = room.scheduleMaintenance(startTime, duration);
+        const result = validateAndCollect(
+          room.scheduleMaintenance(startTime, duration),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe(
+        expect(result).toBeNull();
+        expect(failures[0].code).toBe(
           FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
         );
       });
@@ -600,11 +624,14 @@ describe("Room", () => {
           ({ scenario, startTime, endTime, expectedCode }) => {
             it(scenario, () => {
               // Act
-              const result = room.scheduleMaintenance(startTime, endTime);
+              const result = validateAndCollect(
+                room.scheduleMaintenance(startTime, endTime),
+                failures,
+              );
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures[0].code).toBe(expectedCode);
+              expect(result).toBeNull();
+              expect(failures[0].code).toBe(expectedCode);
             });
           },
         );
@@ -618,11 +645,14 @@ describe("Room", () => {
         const durationInMinutes = 30; // 30 minutos de limpeza
 
         // Act
-        const result = room.scheduleCleaning(startTime, durationInMinutes);
+        const result = validateAndCollect(
+          room.scheduleCleaning(startTime, durationInMinutes),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(false);
-        const bookings = result.value.getAllBookings();
+        expect(result).toBeDefined();
+        const bookings = result.getAllBookings();
         const cleaning = bookings.find(
           (b) =>
             b.type === BookingType.CLEANING &&
@@ -638,11 +668,14 @@ describe("Room", () => {
         const durationInMinutes = 30; // 30 minutos de limpeza
 
         // Act
-        const result = room.scheduleCleaning(startTime, durationInMinutes);
+        const result = validateAndCollect(
+          room.scheduleCleaning(startTime, durationInMinutes),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe(
+        expect(result).toBeNull();
+        expect(failures[0].code).toBe(
           FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
         );
       });
@@ -673,14 +706,14 @@ describe("Room", () => {
           ({ scenario, startTime, durationInMinutes, expectedCode }) => {
             it(scenario, () => {
               // Act
-              const result = room.scheduleCleaning(
-                startTime,
-                durationInMinutes,
+              const result = validateAndCollect(
+                room.scheduleCleaning(startTime, durationInMinutes),
+                failures,
               );
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures[0].code).toBe(expectedCode);
+              expect(result).toBeNull();
+              expect(failures[0].code).toBe(expectedCode);
             });
           },
         );
@@ -690,15 +723,17 @@ describe("Room", () => {
     describe("removeScreening", () => {
       it("deve remover exibição e sua higienização", () => {
         // Act
-        const result = room.removeScreening(SCREENING_UID_1);
+        const result = validateAndCollect(
+          room.removeScreening(SCREENING_UID_1),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(false);
-        const newRoom = result.value;
-        expect(newRoom.findBookingDataByUID(BOOKING_UID_FOR_SCREENING_1)).toBe(
+        expect(result).toBeDefined();
+        expect(result.findBookingDataByUID(BOOKING_UID_FOR_SCREENING_1)).toBe(
           undefined,
         );
-        expect(newRoom.getAllBookings().length).toBe(0);
+        expect(result.getAllBookings().length).toBe(0);
       });
 
       describe("cenários de falha", () => {
@@ -722,11 +757,14 @@ describe("Room", () => {
         failureCases.forEach(({ scenario, value, expectedCode }) => {
           it(scenario, () => {
             // Act
-            const result = room.removeScreening(value);
+            const result = validateAndCollect(
+              room.removeScreening(value),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(expectedCode);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(expectedCode);
           });
         });
       });
@@ -735,18 +773,18 @@ describe("Room", () => {
     describe("removeBookingByUID", () => {
       it("deve remover um booking pelo UID", () => {
         // Act
-        const result = room.removeBookingByUID(BOOKING_UID_FOR_SCREENING_1);
+        const result = validateAndCollect(
+          room.removeBookingByUID(BOOKING_UID_FOR_SCREENING_1),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(false);
-        const newRoom = result.value;
+        expect(result).toBeDefined();
         expect(
-          newRoom.findBookingDataByUID(BOOKING_UID_FOR_SCREENING_1),
+          result.findBookingDataByUID(BOOKING_UID_FOR_SCREENING_1),
         ).toBeUndefined();
-
-        // Verificar se apenas o booking específico foi removido
-        const bookings = newRoom.getAllBookings();
-        expect(bookings.length).toBe(1); // Deve restar apenas o booking de limpeza
+        const bookings = result.getAllBookings();
+        expect(bookings.length).toBe(1);
         expect(bookings[0].bookingUID).toBe(BOOKING_UID_FOR_CLEANING);
       });
 
@@ -766,7 +804,7 @@ describe("Room", () => {
           {
             scenario: "bookingUID inexistente",
             bookingUID: "booking-inexistente",
-            expectedCode: FailureCode.BOOKING_NOT_FOUND,
+            expectedCode: FailureCode.BOOKING_NOT_FOUND_IN_ROOM,
           },
         ];
 
@@ -774,11 +812,14 @@ describe("Room", () => {
         invalidCases.forEach(({ scenario, bookingUID, expectedCode }) => {
           it(scenario, () => {
             // Act
-            const result = room.removeBookingByUID(bookingUID);
+            const result = validateAndCollect(
+              room.removeBookingByUID(bookingUID),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(expectedCode);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(expectedCode);
           });
         });
       });

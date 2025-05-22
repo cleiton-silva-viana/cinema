@@ -12,7 +12,12 @@ import { SeatRow } from "./value-object/seat.row";
 import { IRoomBookingData, RoomSchedule } from "./value-object/room.schedule";
 import { ScreeningUID } from "../../screening/aggregate/value-object/screening.uid";
 import { BookingSlot, BookingType } from "./value-object/booking.slot";
-import { ensureNotNull } from "../../../shared/validator/common.validators";
+import {
+  collectNullFields,
+  ensureNotNull,
+  parseToEnum,
+  validateAndCollect,
+} from "../../../shared/validator/common.validators";
 
 /**
  * Interface que define os parâmetros necessários para criar uma sala de cinema.
@@ -144,45 +149,46 @@ export class Room {
    * @returns Result<Room> contendo a instância de Room ou falhas de validação
    */
   public static create(params: ICreateRoomInput): Result<Room> {
-    const validationFailures: SimpleFailure[] = [];
+    const failures = ensureNotNull({ params });
+    if (failures.length > 0) return failure(failures);
 
-    Validate.object(params)
-      .field("params")
-      .failures(validationFailures)
-      .isRequired()
-      .hasProperty("identifier")
-      .hasProperty("status")
-      .hasProperty("screen")
-      .hasProperty("seatConfig");
+    failures.push(
+      ...ensureNotNull({
+        identifier: params.identifier,
+        seatConfig: params.seatConfig,
+        screen: params.screen,
+        status: params.status,
+      }),
+    );
+    if (failures.length > 0) return failure(failures);
 
-    if (validationFailures.length > 0) return failure(validationFailures);
+    const status = validateAndCollect(
+      parseToEnum(params.status, RoomAdministrativeStatus),
+      failures,
+    );
+    const identifier = validateAndCollect(
+      RoomIdentifier.create(params.identifier),
+      failures,
+    );
+    const screen = validateAndCollect(
+      Screen.create(params.screen.size, params.screen.type),
+      failures,
+    );
+    const layout = validateAndCollect(
+      SeatLayout.create(params.seatConfig),
+      failures,
+    );
 
-    Validate.string(params.status)
-      .field("status")
-      .failures(validationFailures)
-      .isRequired()
-      .isInEnum(RoomAdministrativeStatus);
-
-    const identifierResult = RoomIdentifier.create(params.identifier);
-    if (identifierResult.invalid)
-      validationFailures.push(...identifierResult.failures);
-
-    const screenResult = Screen.create(params.screen.size, params.screen.type);
-    if (screenResult.invalid) validationFailures.push(...screenResult.failures);
-
-    const layoutResult = SeatLayout.create(params.seatConfig);
-    if (layoutResult.invalid) validationFailures.push(...layoutResult.failures);
-
-    return validationFailures.length > 0
-      ? failure(validationFailures)
+    return failures.length > 0
+      ? failure(failures)
       : success(
           new Room(
             RoomUID.create(),
-            identifierResult.value,
-            layoutResult.value,
-            screenResult.value,
+            identifier,
+            layout,
+            screen,
             RoomSchedule.create(),
-            params.status as RoomAdministrativeStatus,
+            status,
           ),
         );
   }
@@ -199,13 +205,18 @@ export class Room {
    * @returns Instância de Room
    */
   public static hydrate(params: IHydrateRoomInput): Room {
-    TechnicalError.if(isNull(params), FailureCode.INVALID_HYDRATE_DATA, {
-      field: "params",
+    let fields = collectNullFields({ params });
+    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
+      fields,
     });
 
-    TechnicalError.if(isNull(params.status), FailureCode.INVALID_HYDRATE_DATA, {
-      field: "status",
-    });
+    TechnicalError.if(
+      isNull(params.status),
+      FailureCode.MISSING_REQUIRED_DATA,
+      {
+        fields,
+      },
+    );
 
     const seatRowsMap = new Map<number, SeatRow>();
     params.layout.seatRows.forEach((rowData) => {
@@ -241,26 +252,20 @@ export class Room {
    * @returns Result<Room> contendo a sala atualizada ou uma lista de falhas de validação
    */
   public changeStatus(status: string): Result<Room> {
-    const validationFailures: SimpleFailure[] = [];
-    const statusUpper = status?.toUpperCase().trim();
-
-    Validate.string(statusUpper)
-      .field("status")
-      .failures(validationFailures)
-      .isRequired()
-      .isInEnum(RoomAdministrativeStatus);
-
-    if (validationFailures.length > 0) return failure(validationFailures);
+    const failures: SimpleFailure[] = [];
+    const newStatus = validateAndCollect(
+      parseToEnum(status, RoomAdministrativeStatus),
+      failures,
+    );
+    if (failures.length > 0) return failure(failures);
 
     if (
-      statusUpper === RoomAdministrativeStatus.CLOSED &&
+      newStatus === RoomAdministrativeStatus.CLOSED &&
       this._schedule.getAllBookingsData().length > 0
     )
-      return failure({
-        code: FailureCode.ROOM_HAS_FUTURE_BOOKINGS,
-      });
+      return failure({ code: FailureCode.ROOM_HAS_FUTURE_BOOKINGS });
 
-    return this.status === statusUpper
+    return this.status === newStatus
       ? success(this)
       : success(
           new Room(
@@ -269,7 +274,7 @@ export class Room {
             this._layout,
             this._screen,
             this._schedule,
-            statusUpper as RoomAdministrativeStatus,
+            newStatus,
           ),
         );
   }
@@ -289,12 +294,19 @@ export class Room {
     startTime: Date,
     durationInMinutes: number,
   ): Result<Room> {
-    const failures = ensureNotNull({ screeningUID, startTime, durationInMinutes })
+    const failures = ensureNotNull({
+      screeningUID,
+      startTime,
+      durationInMinutes,
+    });
     if (failures.length > 0) return failure(failures);
 
-    const isAvailable = this.isPeriodAvailable(startTime, durationInMinutes);
-    if (isAvailable.invalid) return failure(isAvailable.failures);
-    if (isAvailable.value === false)
+    const isAvailable = validateAndCollect(
+      this.isPeriodAvailable(startTime, durationInMinutes),
+      failures,
+    );
+    if (failures.length > 0) return failure(failures);
+    if (!isAvailable)
       return failure({ code: FailureCode.ROOM_PERIOD_UNAVAILABLE });
 
     const entryTime = Room.calculateEndTime(
@@ -311,37 +323,49 @@ export class Room {
       Room.DEFAULT_CLEANING_TIME_IN_MINUTES,
     );
 
-    const entryTimeResult = this._schedule.addBooking(
-      screeningUID,
-      startTime,
-      entryTime,
-      BookingType.ENTRY_TIME,
+    const roomWithStartTimeScheduled = validateAndCollect(
+      this._schedule.addBooking(
+        screeningUID,
+        startTime,
+        entryTime,
+        BookingType.ENTRY_TIME,
+      ),
+      failures,
     );
-    if (entryTimeResult.invalid) return failure(entryTimeResult.failures);
+    if (failures.length > 0) return failure(failures);
 
-    const showTimeResult = entryTimeResult.value.addBooking(
-      screeningUID,
-      entryTime,
-      showTime,
-      BookingType.SCREENING,
+    const roomWithEntryTimeScheduled = validateAndCollect(
+      roomWithStartTimeScheduled.addBooking(
+        screeningUID,
+        entryTime,
+        showTime,
+        BookingType.SCREENING,
+      ),
+      failures,
     );
-    if (showTimeResult.invalid) return failure(showTimeResult.failures);
+    if (failures.length > 0) return failure(failures);
 
-    const exitTimeResult = showTimeResult.value.addBooking(
-      screeningUID,
-      showTime,
-      exitTime,
-      BookingType.EXIT_TIME,
+    const roomWithExitTimeScheduled = validateAndCollect(
+      roomWithEntryTimeScheduled.addBooking(
+        screeningUID,
+        showTime,
+        exitTime,
+        BookingType.EXIT_TIME,
+      ),
+      failures,
     );
-    if (exitTimeResult.invalid) return failure(exitTimeResult.failures);
+    if (failures.length > 0) return failure(failures);
 
-    const cleaningTimeResult = exitTimeResult.value.addBooking(
-      screeningUID,
-      exitTime,
-      cleaningTime,
-      BookingType.CLEANING,
+    const roomWithCleaningTimeScheduled = validateAndCollect(
+      roomWithExitTimeScheduled.addBooking(
+        screeningUID,
+        exitTime,
+        cleaningTime,
+        BookingType.CLEANING,
+      ),
+      failures,
     );
-    if (cleaningTimeResult.invalid) return failure(cleaningTimeResult.failures);
+    if (failures.length > 0) return failure(failures);
 
     return success(
       new Room(
@@ -349,7 +373,7 @@ export class Room {
         this.identifier,
         this._layout,
         this._screen,
-        cleaningTimeResult.value,
+        roomWithCleaningTimeScheduled,
         this.status,
       ),
     );
@@ -370,22 +394,25 @@ export class Room {
     if (failures.length > 0) return failure(failures);
 
     const endTime = Room.calculateEndTime(startTime, durationInMinutes);
-    const maintenanceResult = this._schedule.addBooking(
-      null, // Não há screeningUID para manutenção
-      startTime,
-      endTime,
-      BookingType.MAINTENANCE,
+    const roomWithMaintenanceScheduled = validateAndCollect(
+      this._schedule.addBooking(
+        null,
+        startTime,
+        endTime,
+        BookingType.MAINTENANCE,
+      ),
+      failures,
     );
 
-    return maintenanceResult.invalid
-      ? failure(maintenanceResult.failures)
+    return failures.length > 0
+      ? failure(failures)
       : success(
           new Room(
             this.uid,
             this.identifier,
             this._layout,
             this._screen,
-            maintenanceResult.value,
+            roomWithMaintenanceScheduled,
             this.status,
           ),
         );
@@ -407,22 +434,20 @@ export class Room {
     if (failures.length > 0) return failure(failures);
 
     const endTime = Room.calculateEndTime(startTime, durationInMinutes);
-    const cleaningResult = this._schedule.addBooking(
-      null,
-      startTime,
-      endTime,
-      BookingType.CLEANING,
+    const roomWithCleaningTimeScheduled = validateAndCollect(
+      this._schedule.addBooking(null, startTime, endTime, BookingType.CLEANING),
+      failures,
     );
 
-    return cleaningResult.invalid
-      ? failure(cleaningResult.failures)
+    return failures.length > 0
+      ? failure(failures)
       : success(
           new Room(
             this.uid,
             this.identifier,
             this._layout,
             this._screen,
-            cleaningResult.value,
+            roomWithCleaningTimeScheduled,
             this.status,
           ),
         );
@@ -435,7 +460,7 @@ export class Room {
   public removeBookingByUID(bookingUID: string): Result<Room> {
     const newScheduleResult = this._schedule.removeBookingByUID(bookingUID);
 
-    return newScheduleResult.invalid
+    return newScheduleResult.isInvalid()
       ? failure(newScheduleResult.failures)
       : success(
           new Room(
@@ -456,18 +481,19 @@ export class Room {
    */
   public removeScreening(screeningUID: ScreeningUID): Result<Room> {
     let newScheduleResult = this._schedule.removeScreening(screeningUID);
-    if (newScheduleResult.invalid) return failure(newScheduleResult.failures);
 
-    return success(
-      new Room(
-        this.uid,
-        this.identifier,
-        this._layout,
-        this._screen,
-        newScheduleResult.value,
-        this.status,
-      ),
-    );
+    return newScheduleResult.isInvalid()
+      ? newScheduleResult
+      : success(
+          new Room(
+            this.uid,
+            this.identifier,
+            this._layout,
+            this._screen,
+            newScheduleResult.value,
+            this.status,
+          ),
+        );
   }
 
   /**
@@ -486,7 +512,7 @@ export class Room {
     startTime: Date,
     durationInMinutes: number,
   ): Result<boolean> {
-    const failures = ensureNotNull({ startTime, durationInMinutes })
+    const failures = ensureNotNull({ startTime, durationInMinutes });
     if (failures.length > 0) return failure(failures);
 
     const totalDuration =
@@ -631,7 +657,7 @@ export class Room {
   }
 
   get layout(): SeatLayout {
-    return this._layout
+    return this._layout;
   }
 
   /**
