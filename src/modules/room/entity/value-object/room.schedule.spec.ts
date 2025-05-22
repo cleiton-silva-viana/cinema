@@ -5,6 +5,7 @@ import { TechnicalError } from "../../../../shared/error/technical.error";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { BookingType } from "./booking.slot";
 import { v4 } from "uuid";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("RoomSchedule", () => {
   const createFutureDate = (
@@ -103,6 +104,7 @@ describe("RoomSchedule", () => {
 
   describe("Instance Methods", () => {
     let instance: RoomSchedule;
+    let failures: SimpleFailure[];
     const SCREENING_UID_1 = ScreeningUID.create();
     const START_TIME_1 = createFutureDate(0, 10); // 10:00
     const END_TIME_1 = createFutureDate(0, 12); // 12:00
@@ -112,6 +114,8 @@ describe("RoomSchedule", () => {
     const END_TIME_2 = createFutureDate(0, 15); // 15:00
 
     beforeEach(() => {
+      failures = [];
+
       instance = RoomSchedule.hydrate([
         {
           bookingUID: v4(),
@@ -197,7 +201,7 @@ describe("RoomSchedule", () => {
             scenario: "o minuto do horário inicial não for múltiplo de 5",
             startTime: createFutureDate(9, 11),
             endTime: createFutureDate(0, 14),
-            expectedFailure: FailureCode.INVALID_BOOKING_TIME_INTERVAL,
+            expectedFailure: FailureCode.BOOKING_WITH_INVAlID_TIME_INTERVAL,
           },
           {
             scenario:
@@ -259,18 +263,20 @@ describe("RoomSchedule", () => {
           const emptyBookings = RoomSchedule.create();
 
           // Act
-          const result = emptyBookings.addBooking(
-            SCREENING_UID_1,
-            START_TIME_1,
-            END_TIME_1,
-            BookingType.SCREENING,
+          const result = validateAndCollect(
+            emptyBookings.addBooking(
+              SCREENING_UID_1,
+              START_TIME_1,
+              END_TIME_1,
+              BookingType.SCREENING,
+            ),
+            failures,
           );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          const newSchedule = result.value;
-          expect(newSchedule.getAllBookingsData()).toHaveLength(1);
-          expect(newSchedule.findScreeningData(SCREENING_UID_1)).toBeDefined();
+          expect(result).toBeDefined();
+          expect(result.getAllBookingsData()).toHaveLength(1);
+          expect(result.findScreeningData(SCREENING_UID_1)).toBeDefined();
         });
 
         it("deve adicionar múltiplos bookings e mantê-los ordenados", () => {
@@ -285,21 +291,28 @@ describe("RoomSchedule", () => {
           const endTime2 = createFutureDate(0, 12); // 12:00
 
           // Act
-          let schedule = emptySchedule.addBooking(
-            screeningUID1,
-            startTime1,
-            endTime1,
-            BookingType.SCREENING,
-          ).value;
-          schedule = schedule.addBooking(
-            screeningUID2,
-            startTime2,
-            endTime2,
-            BookingType.CLEANING,
-          ).value;
+          let schedule = validateAndCollect(
+            emptySchedule.addBooking(
+              screeningUID1,
+              startTime1,
+              endTime1,
+              BookingType.SCREENING,
+            ),
+            failures,
+          );
+          schedule = validateAndCollect(
+            schedule.addBooking(
+              screeningUID2,
+              startTime2,
+              endTime2,
+              BookingType.CLEANING,
+            ),
+            failures,
+          );
           const bookings = schedule.getAllBookingsData();
 
           // Assert
+          expect(failures.length).toBe(0);
           expect(bookings).toHaveLength(2);
           expect(bookings[0].screeningUID.value).toBe(screeningUID2.value);
           expect(bookings[0].startTime).toEqual(startTime2);
@@ -317,18 +330,20 @@ describe("RoomSchedule", () => {
           const validEndTime = createFutureDate(0, 18);
 
           // Act
-          const result = emptySchedule.addBooking(
-            null,
-            validStartTime,
-            validEndTime,
-            BookingType.CLEANING,
+          const result = validateAndCollect(
+            emptySchedule.addBooking(
+              null,
+              validStartTime,
+              validEndTime,
+              BookingType.CLEANING,
+            ),
+            failures,
           );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          const newSchedule = result.value;
-          expect(newSchedule.getAllBookingsData()).toHaveLength(1);
-          const booking = newSchedule.getAllBookingsData()[0];
+          expect(result).toBeDefined();
+          expect(result.getAllBookingsData()).toHaveLength(1);
+          const booking = result.getAllBookingsData()[0];
           expect(booking.screeningUID).toBeNull();
           expect(booking.type).toBe(BookingType.CLEANING);
         });
@@ -395,16 +410,19 @@ describe("RoomSchedule", () => {
             };
 
             // Act
-            const result = instance.addBooking(
-              params.screeningUID,
-              params.startTime,
-              params.endTime,
-              params.type,
+            const result = validateAndCollect(
+              instance.addBooking(
+                params.screeningUID,
+                params.startTime,
+                params.endTime,
+                params.type,
+              ),
+              failures,
             );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(code);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(code);
           });
         });
       });
@@ -413,18 +431,16 @@ describe("RoomSchedule", () => {
     describe("removeScreening", () => {
       it("deve remover um booking existente", () => {
         // Act
-        const result = instance.removeScreening(SCREENING_UID_1);
+        const result = validateAndCollect(
+          instance.removeScreening(SCREENING_UID_1),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(false);
-        const updatedSchedule = result.value;
-        expect(updatedSchedule.getAllBookingsData()).toHaveLength(1);
-        expect(
-          updatedSchedule.findScreeningData(SCREENING_UID_1),
-        ).toBeUndefined();
-        expect(
-          updatedSchedule.findScreeningData(SCREENING_UID_2),
-        ).toBeDefined();
+        expect(result).toBeDefined();
+        expect(result.getAllBookingsData()).toHaveLength(1);
+        expect(result.findScreeningData(SCREENING_UID_1)).toBeUndefined();
+        expect(result.findScreeningData(SCREENING_UID_2)).toBeDefined();
       });
 
       it("deve retornar falha ao tentar remover um booking inexistente", () => {
@@ -432,11 +448,14 @@ describe("RoomSchedule", () => {
         const nonExistentUID = ScreeningUID.create();
 
         // Act
-        const result = instance.removeScreening(nonExistentUID);
+        const result = validateAndCollect(
+          instance.removeScreening(nonExistentUID),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe(
+        expect(result).toBeNull();
+        expect(failures[0].code).toBe(
           FailureCode.BOOKING_NOT_FOUND_FOR_SCREENING,
         );
         expect(instance.getAllBookingsData()).toHaveLength(2); // Schedule remains unchanged
@@ -474,12 +493,14 @@ describe("RoomSchedule", () => {
               const initialLength = instance.getAllBookingsData().length;
 
               // Act
-              const result = instance.removeBookingByUID(bookingUIDToRemove());
+              const result = validateAndCollect(
+                instance.removeBookingByUID(bookingUIDToRemove()),
+                failures,
+              );
 
               // Assert
-              expect(result.invalid).toBe(false);
-              const newSchedule = result.value;
-              const newBookings = newSchedule.getAllBookingsData();
+              expect(result).toBeDefined();
+              const newBookings = result.getAllBookingsData();
               expect(newBookings).toHaveLength(initialLength - 1);
               expect(newBookings[0].bookingUID).toBe(remainingBookingUID());
               expect(newBookings[0].bookingUID).not.toBe(bookingUIDToRemove());
@@ -494,12 +515,15 @@ describe("RoomSchedule", () => {
         const initialLength = instance.getAllBookingsData().length;
 
         // Act
-        const result = instance.removeBookingByUID(nonExistentUID);
+        const result = validateAndCollect(
+          instance.removeBookingByUID(nonExistentUID),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(FailureCode.BOOKING_NOT_FOUND);
+        expect(result).toBeNull();
+        expect(failures).toHaveLength(1);
+        expect(failures[0].code).toBe(FailureCode.BOOKING_NOT_FOUND_IN_ROOM);
         expect(instance.getAllBookingsData()).toHaveLength(initialLength);
       });
     });

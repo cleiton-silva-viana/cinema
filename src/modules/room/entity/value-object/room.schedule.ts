@@ -6,6 +6,12 @@ import { isNull } from "../../../../shared/validator/validator";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { Validate } from "../../../../shared/validator/validate";
+import {
+  collectNullFields,
+  ensureNotNull,
+  validateAndCollect,
+} from "../../../../shared/validator/common.validators";
+import { Room } from "../room";
 
 /**
  * Interface para os dados brutos de um agendamento, usada para hidratação e serialização.
@@ -96,25 +102,22 @@ export class RoomSchedule {
    *         - Algum elemento do array não possuir type ou bookingUID
    */
   public static hydrate(bookingDataArray: IRoomBookingData[]): RoomSchedule {
-    TechnicalError.if(
-      isNull(bookingDataArray),
-      FailureCode.INVALID_HYDRATE_DATA,
-      {
-        field: "bookingDataArray",
-      },
-    );
+    let fields = collectNullFields({ bookingDataArray });
+
+    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
+      fields,
+    });
 
     const bookings: BookingSlot[] = bookingDataArray.map((data) => {
-      TechnicalError.if(isNull(data.type), FailureCode.INVALID_HYDRATE_DATA, {
-        field: "bookingData.type",
+      fields = collectNullFields({
+        type: data.type,
+        bookingUID: data.bookingUID,
       });
-      TechnicalError.if(
-        isNull(data.bookingUID),
-        FailureCode.INVALID_HYDRATE_DATA,
-        {
-          field: "bookingData.bookingUID",
-        },
-      );
+
+      TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
+        fields,
+      });
+
       return BookingSlot.hydrate(
         data.bookingUID,
         data.screeningUID,
@@ -146,20 +149,67 @@ export class RoomSchedule {
     requestedEndTime: Date,
     failures: SimpleFailure[] = [],
   ): boolean {
-    if (requestedEndTime <= requestedStartTime) {
+    const init = failures.length;
+    failures.push(...ensureNotNull({ requestedStartTime, requestedEndTime }));
+    if (failures.length > init) return false;
+
+    // Extraindo verificações para métodos privados
+    if (
+      !this._validateTimeSequence(
+        requestedStartTime,
+        requestedEndTime,
+        failures,
+      )
+    )
+      return false;
+    if (!this._validateOperatingHours(requestedStartTime, failures))
+      return false;
+    if (!this._validateMinuteInterval(requestedStartTime, failures))
+      return false;
+    if (
+      !this._checkBookingOverlap(requestedStartTime, requestedEndTime, failures)
+    )
+      return false;
+
+    return true;
+  }
+
+  /**
+   * Verifica se a data de término é posterior à data de início.
+   * @param startTime Data e hora de início
+   * @param endTime Data e hora de término
+   * @param failures Array para armazenar as falhas
+   * @returns true se a sequência for válida, false caso contrário
+   */
+  private _validateTimeSequence(
+    startTime: Date,
+    endTime: Date,
+    failures: SimpleFailure[],
+  ): boolean {
+    if (endTime <= startTime) {
       failures.push({
         code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
         details: {
-          field: "endTime",
-          startTime: requestedStartTime.toISOString(),
-          endTime: requestedEndTime.toISOString(),
+          start_date: startTime.toISOString(),
+          end_date: endTime.toISOString(),
         },
       });
       return false;
     }
+    return true;
+  }
 
-    // Verifica se o horário está dentro do período de funcionamento
-    const startHour = requestedStartTime.getHours();
+  /**
+   * Verifica se o horário de início está dentro do período de funcionamento do cinema.
+   * @param startTime Data e hora de início
+   * @param failures Array para armazenar as falhas
+   * @returns true se estiver dentro do horário de funcionamento, false caso contrário
+   */
+  private _validateOperatingHours(
+    startTime: Date,
+    failures: SimpleFailure[],
+  ): boolean {
+    const startHour = startTime.getHours();
     if (
       startHour < RoomSchedule.DEFAULT_OPERATING_START_HOUR ||
       startHour >= RoomSchedule.DEFAULT_OPERATING_END_HOUR
@@ -167,30 +217,52 @@ export class RoomSchedule {
       failures.push({
         code: FailureCode.ROOM_OPERATING_HOURS_VIOLATION,
         details: {
-          field: "startTime",
-          requestedHour: startHour,
-          allowedStartHour: RoomSchedule.DEFAULT_OPERATING_START_HOUR,
-          allowedEndHour: RoomSchedule.DEFAULT_OPERATING_END_HOUR,
+          time: startTime.getHours().toString(), // Corrigido para usar startTime
+          start_time: RoomSchedule.DEFAULT_OPERATING_START_HOUR.toString(),
+          end_time: RoomSchedule.DEFAULT_OPERATING_END_HOUR.toString(),
         },
       });
       return false;
     }
+    return true;
+  }
 
-    // Verifica se o minuto está em um intervalo permitido (múltiplos de 5)
-    const startMinute = requestedStartTime.getMinutes();
+  /**
+   * Verifica se o minuto de início está em um intervalo permitido (múltiplos de 5).
+   * @param startTime Data e hora de início
+   * @param failures Array para armazenar as falhas
+   * @returns true se o minuto estiver em um intervalo permitido, false caso contrário
+   */
+  private _validateMinuteInterval(
+    startTime: Date,
+    failures: SimpleFailure[],
+  ): boolean {
+    const startMinute = startTime.getMinutes();
     if (!RoomSchedule.ALLOWED_MINUTE_INTERVALS.includes(startMinute)) {
       failures.push({
-        code: FailureCode.INVALID_BOOKING_TIME_INTERVAL,
+        code: FailureCode.BOOKING_WITH_INVAlID_TIME_INTERVAL,
         details: {
-          field: "startTime",
-          requestedMinute: startMinute,
-          allowedMinutes: RoomSchedule.ALLOWED_MINUTE_INTERVALS,
+          start_time: startTime.getTime().toString(),
+          interval: RoomSchedule.ALLOWED_MINUTE_INTERVALS.toString(),
         },
       });
       return false;
     }
+    return true;
+  }
 
-    // Verifica sobreposição com outras reservas
+  /**
+   * Verifica se há sobreposição com outras reservas existentes.
+   * @param requestedStartTime Data e hora de início solicitada
+   * @param requestedEndTime Data e hora de término solicitada
+   * @param failures Array para armazenar as falhas
+   * @returns true se não houver sobreposição, false caso contrário
+   */
+  private _checkBookingOverlap(
+    requestedStartTime: Date,
+    requestedEndTime: Date,
+    failures: SimpleFailure[],
+  ): boolean {
     for (const booking of this.bookings) {
       const hasOverlap =
         requestedStartTime < booking.endTime &&
@@ -199,21 +271,13 @@ export class RoomSchedule {
         failures.push({
           code: FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
           details: {
-            field: "period",
-            requestedStartTime: requestedStartTime.toISOString(),
-            requestedEndTime: requestedEndTime.toISOString(),
-            conflictingBooking: {
-              bookingUID: booking.bookingUID,
-              screeningUID: booking.screeningUID?.value || null,
-              startTime: booking.startTime.toISOString(),
-              endTime: booking.endTime.toISOString(),
-            },
+            start_date: requestedStartTime.toISOString(),
+            end_date: requestedEndTime.toISOString(),
           },
         });
         return false;
       }
     }
-
     return true;
   }
 
@@ -239,42 +303,29 @@ export class RoomSchedule {
     endTime: Date,
     type: BookingType,
   ): Result<RoomSchedule> {
-    const failures: SimpleFailure[] = [];
+    const failures = ensureNotNull({ startTime, endTime, type });
+    if (failures.length > 0) return failure(failures);
 
-    Validate.object(startTime)
-      .field("startTime")
-      .failures(failures)
-      .isRequired();
-    Validate.object(endTime).field("endTime").failures(failures).isRequired();
-    Validate.string(type)
-      .field("type")
-      .failures(failures)
+    Validate.string({ type }, failures)
       .isRequired()
       .when(
         type === BookingType.SCREENING || type === BookingType.EXIT_TIME,
         () => {
-          Validate.object(screeningUID)
-            .field("screeningUID")
-            .failures(failures)
-            .isRequired();
+          Validate.object({ screeningUID }, failures).isRequired();
         },
       );
-
     if (failures.length > 0) return failure(failures);
 
-    if (!this.isAvailable(startTime, endTime, failures))
-      return failure(failures);
+    const isAvailable = this.isAvailable(startTime, endTime, failures);
+    if (!isAvailable) return failure(failures);
 
-    const bookingSlotResult = BookingSlot.create(
-      screeningUID,
-      startTime,
-      endTime,
-      type,
+    const bookingSlot = validateAndCollect(
+      BookingSlot.create(screeningUID, startTime, endTime, type),
+      failures,
     );
+    if (failures.length > 0) return failure(failures);
 
-    if (bookingSlotResult.invalid) return failure(bookingSlotResult.failures);
-
-    const newBookings = [...this.bookings, bookingSlotResult.value].sort(
+    const newBookings = [...this.bookings, bookingSlot].sort(
       (a, b) => a.startTime.getTime() - b.startTime.getTime(),
     );
 
@@ -291,24 +342,16 @@ export class RoomSchedule {
    * @returns Result com a nova instância de RoomSchedule ou falha (BOOKING_NOT_FOUND)
    */
   public removeBookingByUID(bookingUID: string): Result<RoomSchedule> {
-    if (isNull(bookingUID))
-      return failure({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-        details: {
-          field: "bookingUID",
-        },
-      });
+    const failures = ensureNotNull({ bookingUID });
+    if (failures.length > 0) return failure(failures);
 
-    const initialLength = this.bookings.length;
+    const initLength = this.bookings.length;
     const updatedBookings = this.bookings.filter(
       (booking) => !(booking.bookingUID === bookingUID),
     );
 
-    return updatedBookings.length === initialLength
-      ? failure({
-          code: FailureCode.BOOKING_NOT_FOUND,
-          details: { bookingUID: bookingUID },
-        })
+    return updatedBookings.length === initLength
+      ? failure({ code: FailureCode.BOOKING_NOT_FOUND_IN_ROOM })
       : success(new RoomSchedule(updatedBookings));
   }
 
@@ -324,13 +367,8 @@ export class RoomSchedule {
    * @returns Result com a nova instância de RoomSchedule ou falha (BOOKING_NOT_FOUND_FOR_SCREENING)
    */
   public removeScreening(screeningUID: ScreeningUID): Result<RoomSchedule> {
-    if (isNull(screeningUID))
-      return failure({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-        details: {
-          field: "screeningUID",
-        },
-      });
+    const failures = ensureNotNull({ screeningUID });
+    if (failures.length > 0) return failure(failures);
 
     const initialLength = this.bookings.length;
 
@@ -343,7 +381,7 @@ export class RoomSchedule {
     return updatedBookings.length === initialLength
       ? failure({
           code: FailureCode.BOOKING_NOT_FOUND_FOR_SCREENING,
-          details: { screeningUID: screeningUID },
+          details: { screening_uid: screeningUID.value },
         })
       : success(new RoomSchedule(updatedBookings));
   }
@@ -406,23 +444,28 @@ export class RoomSchedule {
   ): Array<{ startTime: Date; endTime: Date }> {
     if (isNull(date) || isNull(minMinutes) || minMinutes <= 0) return [];
 
-    // Definir horários de início e fim do dia
     const dayStart = new Date(date);
     dayStart.setHours(RoomSchedule.DEFAULT_OPERATING_START_HOUR, 0, 0, 0);
     const dayEnd = new Date(date);
     dayEnd.setHours(RoomSchedule.DEFAULT_OPERATING_END_HOUR, 0, 0, 0);
 
-    // Obter agendamentos do dia e criar intervalos ocupados
-    const filteredBookings = this.filterBookingsByDate(date);
-    const busyIntervals = this.createBusyIntervals(
+    const filteredBookings = RoomSchedule.filterBookingsByDate(date, [
+      ...this.bookings,
+    ]);
+    const busyIntervals = RoomSchedule.createBusyIntervals(
       filteredBookings,
       dayStart,
       dayEnd,
     );
-    const mergedIntervals = this.mergeOverlappingIntervals(busyIntervals);
+    const mergedIntervals =
+      RoomSchedule.mergeOverlappingIntervals(busyIntervals);
 
-    // Encontrar slots livres entre os intervalos ocupados
-    return this.findFreeSlots(mergedIntervals, dayStart, dayEnd, minMinutes);
+    return RoomSchedule.findFreeSlots(
+      mergedIntervals,
+      dayStart,
+      dayEnd,
+      minMinutes,
+    );
   }
 
   /**
@@ -430,7 +473,7 @@ export class RoomSchedule {
    * @param date Data a ser ajustada
    * @returns Nova data ajustada para o próximo intervalo de 5 minutos
    */
-  private getNextAllowedTime(date: Date): Date {
+  private static getNextAllowedTime(date: Date): Date {
     const adjusted = new Date(date.getTime());
     const minutes = adjusted.getMinutes();
     const remainder = minutes % 5;
@@ -445,7 +488,7 @@ export class RoomSchedule {
    * @param date Data a ser ajustada
    * @returns Nova data ajustada para o intervalo de 5 minutos anterior
    */
-  private getPreviousAllowedTime(date: Date): Date {
+  private static getPreviousAllowedTime(date: Date): Date {
     const adjusted = new Date(date.getTime());
     const minutes = adjusted.getMinutes();
     adjusted.setMinutes(minutes - (minutes % 5), 0, 0);
@@ -455,13 +498,17 @@ export class RoomSchedule {
   /**
    * Filtra os agendamentos que ocorrem na data especificada.
    * @param date Data de referência
+   * @param bookings O array contendo todas as reservas da sala
    * @returns Array de BookingSlot que ocorrem na data especificada
    */
-  private filterBookingsByDate(date: Date): BookingSlot[] {
+  private static filterBookingsByDate(
+    date: Date,
+    bookings: BookingSlot[],
+  ): BookingSlot[] {
     const inputDate = new Date(date);
     inputDate.setHours(0, 0, 0, 0);
 
-    return this.bookings.filter((booking) => {
+    return bookings.filter((booking) => {
       const bookingDate = new Date(booking.startTime);
       bookingDate.setHours(0, 0, 0, 0);
       return bookingDate.getTime() === inputDate.getTime();
@@ -475,7 +522,7 @@ export class RoomSchedule {
    * @param dayEnd Fim do dia de operação
    * @returns Array de intervalos ocupados
    */
-  private createBusyIntervals(
+  private static createBusyIntervals(
     filteredBookings: BookingSlot[],
     dayStart: Date,
     dayEnd: Date,
@@ -503,7 +550,7 @@ export class RoomSchedule {
    * @param busyIntervals Intervalos ocupados
    * @returns Array de intervalos mesclados
    */
-  private mergeOverlappingIntervals(
+  private static mergeOverlappingIntervals(
     busyIntervals: Array<{ start: Date; end: Date }>,
   ): Array<{ start: Date; end: Date }> {
     if (busyIntervals.length === 0) return [];
@@ -533,7 +580,7 @@ export class RoomSchedule {
    * @param minMinutes Duração mínima em minutos
    * @returns Array de slots livres
    */
-  private findFreeSlots(
+  private static findFreeSlots(
     mergedIntervals: Array<{ start: Date; end: Date }>,
     dayStart: Date,
     dayEnd: Date,
@@ -542,7 +589,6 @@ export class RoomSchedule {
     const freeSlots: { startTime: Date; endTime: Date }[] = [];
     let previousEnd = dayStart;
 
-    // Verificar lacunas entre os intervalos ocupados
     for (const interval of mergedIntervals) {
       if (previousEnd < interval.start) {
         this.addFreeSlotIfValid(
@@ -555,10 +601,8 @@ export class RoomSchedule {
       previousEnd = interval.end;
     }
 
-    // Verificar lacuna após o último intervalo até o fim do dia
-    if (previousEnd < dayEnd) {
+    if (previousEnd < dayEnd)
       this.addFreeSlotIfValid(previousEnd, dayEnd, minMinutes, freeSlots);
-    }
 
     return freeSlots;
   }
@@ -570,7 +614,7 @@ export class RoomSchedule {
    * @param minMinutes Duração mínima em minutos
    * @param freeSlots Array de slots livres para adicionar o novo slot
    */
-  private addFreeSlotIfValid(
+  private static addFreeSlotIfValid(
     gapStart: Date,
     gapEnd: Date,
     minMinutes: number,
