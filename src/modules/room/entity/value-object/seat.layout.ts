@@ -6,6 +6,10 @@ import { SeatRow } from "./seat.row";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { isNull } from "../../../../shared/validator/validator";
+import {
+  ensureNotNull,
+  validateAndCollect,
+} from "../../../../shared/validator/common.validators";
 
 export class SeatLayout {
   private static readonly MINIMUM_ROW_COUNT = 4;
@@ -29,62 +33,55 @@ export class SeatLayout {
   public static create(
     rowConfigurations: ISeatRowConfiguration[],
   ): Result<SeatLayout> {
-    const validationFailures: SimpleFailure[] = [];
+    const failures = ensureNotNull({ rowConfigurations });
+    if (failures.length > 0) return failure(failures);
 
-    Validate.array(rowConfigurations)
-      .field("rowConfigurations")
-      .failures(validationFailures)
+    Validate.array({ rowConfigurations }, failures)
       .isRequired()
       .isNotEmpty()
       .hasLengthBetween(
         SeatLayout.MINIMUM_ROW_COUNT,
         SeatLayout.MAXIMUM_ROW_COUNT,
       );
-
-    if (validationFailures.length > 0) return failure(validationFailures);
+    if (failures.length > 0) return failure(failures);
 
     const seatRowsMap = new Map<number, SeatRow>();
     const preferentialSeatsByRow = new Map<number, string[]>();
     let totalPreferentialSeatsCount = 0;
     let roomTotalCapacity = 0;
 
-    for (const rowConfig of rowConfigurations) {
-      const rowResult = SeatRow.create(
-        rowConfig.rowNumber,
-        rowConfig.lastColumnLetter,
-        rowConfig?.preferentialSeatLetters,
+    for (const r of rowConfigurations) {
+      const seatRow = validateAndCollect(
+        SeatRow.create(
+          r.rowNumber,
+          r.lastColumnLetter,
+          r?.preferentialSeatLetters,
+        ),
+        failures,
       );
-      if (rowResult.invalid) {
-        validationFailures.push(...rowResult.failures);
-        continue;
-      }
-
-      const seatRow = rowResult.value;
+      if (seatRow === null) continue;
 
       if (seatRow.preferentialSeatLetters.length > 0) {
         totalPreferentialSeatsCount += seatRow.preferentialSeatLetters.length;
-        preferentialSeatsByRow.set(rowConfig.rowNumber, [
+        preferentialSeatsByRow.set(r.rowNumber, [
           ...seatRow.preferentialSeatLetters,
         ]);
       }
 
       roomTotalCapacity += seatRow.capacity;
-      seatRowsMap.set(rowConfig.rowNumber, seatRow);
+      seatRowsMap.set(r.rowNumber, seatRow);
     }
 
     if (
       roomTotalCapacity < this.MINIMUM_ROOM_CAPACITY ||
       roomTotalCapacity > this.MAXIMUM_ROOM_CAPACITY
     )
-      validationFailures.push({
-        // a capacidade de uma sala deve estar entre os limites permitidos
-        code: FailureCode.INVALID_ROOM_CAPACITY,
+      failures.push({
+        code: FailureCode.ROOM_WITH_INVALID_CAPACITY,
         details: {
-          capacity: {
-            actual: roomTotalCapacity,
-            min: this.MINIMUM_ROOM_CAPACITY,
-            max: this.MAXIMUM_ROOM_CAPACITY,
-          },
+          capacity: roomTotalCapacity,
+          min: this.MINIMUM_ROOM_CAPACITY,
+          max: this.MAXIMUM_ROOM_CAPACITY,
         },
       });
 
@@ -99,22 +96,16 @@ export class SeatLayout {
       totalPreferentialSeatsCount < minimumRequiredPreferentialSeats ||
       totalPreferentialSeatsCount > maximumAllowedPreferentialSeats
     )
-      validationFailures.push({
-        // Quantidade de assentos preferenciais inválida
-        code: FailureCode.INVALID_NUMBER_OF_PREFERENTIAL_SEATS,
+      failures.push({
+        code: FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS,
         details: {
-          preferentialSeats: {
-            actual: totalPreferentialSeatsCount,
-            min: minimumRequiredPreferentialSeats,
-            max: maximumAllowedPreferentialSeats,
-            minPercentage: this.MINIMUM_PREFERENTIAL_PERCENTAGE,
-            maxPercentage: this.MAXIMUM_PREFERENTIAL_PERCENTAGE,
-          },
+          count: totalPreferentialSeatsCount,
+          percentage: this.MINIMUM_PREFERENTIAL_PERCENTAGE,
         },
       });
 
-    return validationFailures.length > 0
-      ? failure(validationFailures)
+    return failures.length > 0
+      ? failure(failures)
       : success(
           new SeatLayout(
             seatRowsMap,

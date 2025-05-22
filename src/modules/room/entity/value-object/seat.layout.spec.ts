@@ -2,10 +2,18 @@ import { SeatLayout } from "./seat.layout";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { ISeatRowConfiguration } from "../room";
 import { SeatRow } from "./seat.row";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("SeatLayout", () => {
   describe("Métodos Estáticos", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       describe("Cenários de sucesso", () => {
         const createValidLayout = (): ISeatRowConfiguration[] => [
           {
@@ -32,20 +40,20 @@ describe("SeatLayout", () => {
           const layout = createValidLayout();
 
           // Act
-          const result = SeatLayout.create(layout);
+          const result = validateAndCollect(
+            SeatLayout.create(layout),
+            failures,
+          );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.seatRows.size).toBe(4);
-          expect(result.value.totalCapacity).toBe(26); // 5+6+7+8 = 26
-          expect(result.value.preferentialSeatsByRow.size).toBe(2);
-          expect(result.value.preferentialSeatsByRow.get(1)).toEqual([
-            "A",
-            "B",
-          ]);
-          expect(result.value.preferentialSeatsByRow.get(2)).toEqual(["C"]);
-          expect(result.value.preferentialSeatsByRow.has(3)).toBe(false);
-          expect(result.value.preferentialSeatsByRow.has(4)).toBe(false);
+          expect(result).toBeDefined();
+          expect(result.seatRows.size).toBe(4);
+          expect(result.totalCapacity).toBe(26); // 5+6+7+8 = 26
+          expect(result.preferentialSeatsByRow.size).toBe(2);
+          expect(result.preferentialSeatsByRow.get(1)).toEqual(["A", "B"]);
+          expect(result.preferentialSeatsByRow.get(2)).toEqual(["C"]);
+          expect(result.preferentialSeatsByRow.has(3)).toBe(false);
+          expect(result.preferentialSeatsByRow.has(4)).toBe(false);
         });
 
         it("deve criar um layout com o número máximo de fileiras", () => {
@@ -62,12 +70,15 @@ describe("SeatLayout", () => {
           }
 
           // Act
-          const result = SeatLayout.create(layout);
+          const result = validateAndCollect(
+            SeatLayout.create(layout),
+            failures,
+          );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.seatRows.size).toBe(maxRows);
-          expect(result.value.totalCapacity).toBe(maxRows * 5); // 20 fileiras * 5 assentos = 100
+          expect(result).toBeDefined();
+          expect(result.seatRows.size).toBe(maxRows);
+          expect(result.totalCapacity).toBe(maxRows * 5); // 20 fileiras * 5 assentos = 100
         });
 
         // deve criar um com quantidade mínima de linhas
@@ -82,13 +93,13 @@ describe("SeatLayout", () => {
             {
               scenario: "layout nulo",
               layout: null as any,
-              errorCode: FailureCode.OBJECT_IS_EMPTY,
+              errorCode: FailureCode.MISSING_REQUIRED_DATA,
               field: "rowConfigurations",
             },
             {
               scenario: "layout vazio",
               layout: [],
-              errorCode: FailureCode.OBJECT_IS_EMPTY,
+              errorCode: FailureCode.MISSING_REQUIRED_DATA,
               field: "rowConfigurations",
             },
             {
@@ -118,12 +129,15 @@ describe("SeatLayout", () => {
           failureCases.forEach(({ scenario, layout, errorCode, field }) => {
             it(`deve falhar quando o ${scenario}`, () => {
               // Act
-              const result = SeatLayout.create(layout);
+              const result = validateAndCollect(
+                SeatLayout.create(layout),
+                failures,
+              );
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures[0].code).toBe(errorCode);
-              expect(result.failures[0].details.field).toBe(field);
+              expect(result).toBeNull();
+              expect(failures[0].code).toBe(errorCode);
+              expect(failures[0].details.field).toBe(field);
             });
           });
         });
@@ -139,15 +153,18 @@ describe("SeatLayout", () => {
             ];
 
             // Act
-            const result = SeatLayout.create(layout);
+            const result = validateAndCollect(
+              SeatLayout.create(layout),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(
-              FailureCode.INVALID_ROOM_CAPACITY,
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(
+              FailureCode.ROOM_WITH_INVALID_CAPACITY,
             );
-            expect(result.failures[0].details.capacity.actual).toBe(16);
-            expect(result.failures[0].details.capacity.min).toBe(20);
+            expect(failures[0].details.capacity).toBe(16);
+            expect(failures[0].details.min).toBe(20);
           });
 
           it("deve falhar quando a capacidade total é maior que o máximo permitido", () => {
@@ -160,15 +177,18 @@ describe("SeatLayout", () => {
               }));
 
             // Act
-            const result = SeatLayout.create(layout);
+            const result = validateAndCollect(
+              SeatLayout.create(layout),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(
-              FailureCode.INVALID_ROOM_CAPACITY,
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(
+              FailureCode.ROOM_WITH_INVALID_CAPACITY,
             );
-            expect(result.failures[0].details.capacity.actual).toBe(300);
-            expect(result.failures[0].details.capacity.max).toBe(250);
+            expect(failures[0].details.capacity).toBe(300);
+            expect(failures[0].details.max).toBe(250);
           });
         });
 
@@ -184,17 +204,18 @@ describe("SeatLayout", () => {
               }));
 
             // Act
-            const result = SeatLayout.create(layout);
+            const result = validateAndCollect(
+              SeatLayout.create(layout),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(
-              FailureCode.INVALID_NUMBER_OF_PREFERENTIAL_SEATS,
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(
+              FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS,
             );
-            expect(result.failures[0].details.preferentialSeats.actual).toBe(0);
-            expect(
-              result.failures[0].details.preferentialSeats.minPercentage,
-            ).toBe(5);
+            expect(failures[0].details.count).toBe(0);
+            expect(failures[0].details.percentage).toBe(5);
           });
 
           it("deve falhar quando a quantidade de assentos preferenciais é maior que o máximo permitido", () => {
@@ -208,19 +229,17 @@ describe("SeatLayout", () => {
               }));
 
             // Act
-            const result = SeatLayout.create(layout);
+            const result = validateAndCollect(
+              SeatLayout.create(layout),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(
-              FailureCode.INVALID_NUMBER_OF_PREFERENTIAL_SEATS,
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(
+              FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS,
             );
-            expect(result.failures[0].details.preferentialSeats.actual).toBe(
-              30,
-            );
-            expect(
-              result.failures[0].details.preferentialSeats.maxPercentage,
-            ).toBe(20);
+            expect(failures[0].details.count).toBe(30);
           });
         });
       });
