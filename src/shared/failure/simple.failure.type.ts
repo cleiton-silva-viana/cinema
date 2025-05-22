@@ -32,7 +32,9 @@ export type FailureDetails = {
 
   target?: string,
 
-  row?: string,
+  row?: number,
+  column?: string
+  seat?: string,
 
   resource?: string,
 
