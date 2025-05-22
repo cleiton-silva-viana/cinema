@@ -2,6 +2,9 @@ import { BookingSlot, BookingType } from "./booking.slot";
 import { ScreeningUID } from "../../../screening/aggregate/value-object/screening.uid";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
+import { v4 } from "uuid";
 
 describe("BookingSlot", () => {
   let originalDateNow: () => number;
@@ -19,6 +22,12 @@ describe("BookingSlot", () => {
   });
 
   describe("create", () => {
+    let failures: SimpleFailure[];
+
+    beforeEach(() => {
+      failures = [];
+    });
+
     const NOW = new Date(Date.now());
     const VALID_SCREENING_UID = ScreeningUID.create();
     const VALID_START_TIME = new Date(NOW.getTime() + 1000 * 60 * 60); // 1 hora no futuro
@@ -35,20 +44,23 @@ describe("BookingSlot", () => {
           );
 
           // Act
-          const result = BookingSlot.create(
-            VALID_SCREENING_UID,
-            VALID_START_TIME,
-            VALID_END_TIME,
-            BookingType.SCREENING,
+          const result = validateAndCollect(
+            BookingSlot.create(
+              VALID_SCREENING_UID,
+              VALID_START_TIME,
+              VALID_END_TIME,
+              BookingType.SCREENING,
+            ),
+            failures,
           );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.screeningUID).toBe(VALID_SCREENING_UID);
-          expect(result.value.startTime).toBe(VALID_START_TIME);
-          expect(result.value.endTime).toBe(VALID_END_TIME);
-          expect(result.value.type).toBe(BookingType.SCREENING);
-          expect(result.value.durationInMinutes).toBe(minutes);
+          expect(result).toBeDefined();
+          expect(result.screeningUID).toBe(VALID_SCREENING_UID);
+          expect(result.startTime).toBe(VALID_START_TIME);
+          expect(result.endTime).toBe(VALID_END_TIME);
+          expect(result.type).toBe(BookingType.SCREENING);
+          expect(result.durationInMinutes).toBe(minutes);
         });
 
         it("Deve criar um BookingSlot do tipo CLEANING com sucesso", () => {
@@ -58,19 +70,17 @@ describe("BookingSlot", () => {
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
 
           // Act
-          const result = BookingSlot.create(
-            null,
-            startTime,
-            endTime,
-            BookingType.CLEANING,
+          const result = validateAndCollect(
+            BookingSlot.create(null, startTime, endTime, BookingType.CLEANING),
+            failures,
           );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.type).toBe(BookingType.CLEANING);
-          expect(result.value.screeningUID).toBeNull();
-          expect(result.value.bookingUID).toBeDefined();
-          expect(result.value.durationInMinutes).toBe(minutes);
+          expect(result).toBeDefined();
+          expect(result.type).toBe(BookingType.CLEANING);
+          expect(result.screeningUID).toBeNull();
+          expect(result.bookingUID).toBeDefined();
+          expect(result.durationInMinutes).toBe(minutes);
         });
 
         it("Deve criar um BookingSlot do tipo CLEANING associado à um screen uid com sucesso", () => {
@@ -80,19 +90,22 @@ describe("BookingSlot", () => {
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
 
           // Act
-          const result = BookingSlot.create(
-            VALID_SCREENING_UID,
-            startTime,
-            endTime,
-            BookingType.CLEANING,
+          const result = validateAndCollect(
+            BookingSlot.create(
+              VALID_SCREENING_UID,
+              startTime,
+              endTime,
+              BookingType.CLEANING,
+            ),
+            failures,
           );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.type).toBe(BookingType.CLEANING);
-          expect(result.value.screeningUID).toBe(VALID_SCREENING_UID);
-          expect(result.value.bookingUID).toBeDefined();
-          expect(result.value.durationInMinutes).toBe(minutes);
+          expect(result).toBeDefined();
+          expect(result.type).toBe(BookingType.CLEANING);
+          expect(result.screeningUID).toBe(VALID_SCREENING_UID);
+          expect(result.bookingUID).toBeDefined();
+          expect(result.durationInMinutes).toBe(minutes);
         });
 
         it("Deve criar um BookingSlot do tipo MAINTENANCE com sucesso", () => {
@@ -102,20 +115,23 @@ describe("BookingSlot", () => {
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000); // 8 horas
 
           // Act
-          const result = BookingSlot.create(
-            null,
-            startTime,
-            endTime,
-            BookingType.MAINTENANCE,
+          const result = validateAndCollect(
+            BookingSlot.create(
+              null,
+              startTime,
+              endTime,
+              BookingType.MAINTENANCE,
+            ),
+            failures,
           );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.type).toBe(BookingType.MAINTENANCE);
-          expect(result.value.screeningUID).toBeNull();
-          expect(result.value.durationInMinutes).toBe(minutes);
-          expect(result.value.startTime).toEqual(startTime);
-          expect(result.value.endTime).toEqual(endTime);
+          expect(result).toBeDefined();
+          expect(result.type).toBe(BookingType.MAINTENANCE);
+          expect(result.screeningUID).toBeNull();
+          expect(result.durationInMinutes).toBe(minutes);
+          expect(result.startTime).toEqual(startTime);
+          expect(result.endTime).toEqual(endTime);
         });
 
         it("Deve criar um BookingSlot do tipo EXIT_TIME com sucesso", () => {
@@ -125,21 +141,24 @@ describe("BookingSlot", () => {
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000);
 
           // Act
-          const result = BookingSlot.create(
-            VALID_SCREENING_UID,
-            startTime,
-            endTime,
-            BookingType.EXIT_TIME,
+          const result = validateAndCollect(
+            BookingSlot.create(
+              VALID_SCREENING_UID,
+              startTime,
+              endTime,
+              BookingType.EXIT_TIME,
+            ),
+            failures,
           );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.type).toBe(BookingType.EXIT_TIME);
-          expect(result.value.bookingUID).toBeDefined();
-          expect(result.value.screeningUID).toBe(VALID_SCREENING_UID);
-          expect(result.value.durationInMinutes).toBe(minutes);
-          expect(result.value.startTime).toEqual(startTime);
-          expect(result.value.endTime).toEqual(endTime);
+          expect(result).toBeDefined();
+          expect(result.type).toBe(BookingType.EXIT_TIME);
+          expect(result.bookingUID).toBeDefined();
+          expect(result.screeningUID).toBe(VALID_SCREENING_UID);
+          expect(result.durationInMinutes).toBe(minutes);
+          expect(result.startTime).toEqual(startTime);
+          expect(result.endTime).toEqual(endTime);
         });
 
         it("Deve criar um BookingSlot do tipo ENTRY_TIME com sucesso", () => {
@@ -150,21 +169,24 @@ describe("BookingSlot", () => {
           const endTime = new Date(VALID_START_TIME);
 
           // Act
-          const result = BookingSlot.create(
-            VALID_SCREENING_UID,
-            startTime,
-            endTime,
-            BookingType.ENTRY_TIME,
+          const result = validateAndCollect(
+            BookingSlot.create(
+              VALID_SCREENING_UID,
+              startTime,
+              endTime,
+              BookingType.ENTRY_TIME,
+            ),
+            failures,
           );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.type).toBe(BookingType.ENTRY_TIME);
-          expect(result.value.bookingUID).toBeDefined();
-          expect(result.value.screeningUID).toBe(VALID_SCREENING_UID);
-          expect(result.value.durationInMinutes).toBe(minutes);
-          expect(result.value.startTime).toEqual(startTime);
-          expect(result.value.endTime).toEqual(endTime);
+          expect(result).toBeDefined();
+          expect(result.type).toBe(BookingType.ENTRY_TIME);
+          expect(result.bookingUID).toBeDefined();
+          expect(result.screeningUID).toBe(VALID_SCREENING_UID);
+          expect(result.durationInMinutes).toBe(minutes);
+          expect(result.startTime).toEqual(startTime);
+          expect(result.endTime).toEqual(endTime);
         });
       });
 
@@ -269,18 +291,21 @@ describe("BookingSlot", () => {
               };
 
               // Act
-              const result = BookingSlot.create(
-                input.screeningUID,
-                input.startTime,
-                input.endTime,
-                input.type,
+              const result = validateAndCollect(
+                BookingSlot.create(
+                  input.screeningUID,
+                  input.startTime,
+                  input.endTime,
+                  input.type,
+                ),
+                failures,
               );
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures.length).toBe(1);
-              expect(result.failures[0].code).toBe(expectedCode);
-              expect(result.failures[0].details.field).toBe(field);
+              expect(result).toBeNull();
+              expect(failures.length).toBe(1);
+              expect(failures[0].code).toBe(expectedCode);
+              expect(failures[0].details.field).toBe(field);
             });
           });
         });
@@ -405,17 +430,20 @@ describe("BookingSlot", () => {
               };
 
               // Act
-              const result = BookingSlot.create(
-                input.screeningUID,
-                input.startTime,
-                input.endTime,
-                input.type,
+              const result = validateAndCollect(
+                BookingSlot.create(
+                  input.screeningUID,
+                  input.startTime,
+                  input.endTime,
+                  input.type,
+                ),
+                failures,
               );
 
               // Assert
-              expect(result.invalid).toBe(true);
-              expect(result.failures.length).toBe(1);
-              expect(result.failures[0].code).toBe(expectedCode);
+              expect(result).toBeNull();
+              expect(failures.length).toBe(1);
+              expect(failures[0].code).toBe(expectedCode);
             });
           });
         });
@@ -480,10 +508,6 @@ describe("BookingSlot", () => {
             scenario: "type é nulo",
             props: { type: null as any },
           },
-          {
-            scenario: "type é inválido",
-            props: { type: "INVALID_TYPE" as any },
-          },
         ];
 
         invalidHydrateCases.forEach(({ scenario, props }) => {
@@ -521,15 +545,16 @@ describe("BookingSlot", () => {
         const endTime = new Date(
           startTime.getTime() + durationInMinutes * 60 * 1000,
         );
-        const result = BookingSlot.create(
-          VALID_SCREENING_UID,
+        const bookingSlot = BookingSlot.hydrate(
+          v4(),
+          VALID_SCREENING_UID.value,
           startTime,
           endTime,
           BookingType.SCREENING,
         );
 
         // Act
-        const calculatedDuration = result.value.durationInMinutes;
+        const calculatedDuration = bookingSlot.durationInMinutes;
 
         // Assert
         expect(calculatedDuration).toBe(durationInMinutes);
@@ -542,15 +567,16 @@ describe("BookingSlot", () => {
         const endTime = new Date(
           startTime.getTime() + durationInMinutes * 60 * 1000,
         );
-        const result = BookingSlot.create(
-          VALID_SCREENING_UID,
+        const bookingSlot = BookingSlot.hydrate(
+          v4(),
+          VALID_SCREENING_UID.value,
           startTime,
           endTime,
           BookingType.EXIT_TIME,
         );
 
         // Act
-        const calculatedDuration = result.value.durationInMinutes;
+        const calculatedDuration = bookingSlot.durationInMinutes;
 
         // Assert
         expect(calculatedDuration).toBe(durationInMinutes);

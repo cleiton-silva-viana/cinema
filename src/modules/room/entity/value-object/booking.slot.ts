@@ -6,6 +6,7 @@ import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { isNull } from "../../../../shared/validator/validator";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { v4 } from "uuid";
+import { collectNullFields } from "../../../../shared/validator/common.validators";
 
 /**
  * Define os tipos de agendamento possíveis para uma sala de cinema.
@@ -84,15 +85,7 @@ export class BookingSlot {
     )
       return failure(failures);
 
-    if (
-      !BookingSlot.validateDuration(
-        screeningUID,
-        startTime,
-        endTime,
-        type,
-        failures,
-      )
-    )
+    if (!BookingSlot.validateDuration(startTime, endTime, type, failures))
       return failure(failures);
 
     return success(
@@ -120,15 +113,7 @@ export class BookingSlot {
     endTime: Date,
     type: BookingType,
   ): BookingSlot {
-    const fields = [];
-
-    if (isNull(bookingUID)) fields.push("bookingUID");
-    if (isNull(startTime)) fields.push("startTime");
-    if (isNull(endTime)) fields.push("endTime");
-    if (isNull(type) || !Object.values(BookingType).includes(type)) {
-      fields.push("type");
-    }
-
+    const fields = collectNullFields({ bookingUID, startTime, endTime, type });
     TechnicalError.if(fields.length > 0, FailureCode.INVALID_HYDRATE_DATA, {
       fields,
     });
@@ -162,22 +147,16 @@ export class BookingSlot {
   ): boolean {
     const now = new Date();
 
-    Validate.date(startTime)
-      .field("startTime")
-      .failures(failures)
+    Validate.date({ startTime }, failures)
       .isRequired()
       .isAfter(now, FailureCode.DATE_CANNOT_BE_PAST)
       .then(() => {
-        Validate.date(endTime)
-          .field("endTime")
-          .failures(failures)
+        Validate.date({ endTime }, failures)
           .isRequired()
           .isAfter(startTime, FailureCode.DATE_WITH_INVALID_SEQUENCE);
       });
 
-    Validate.string(type)
-      .field("type")
-      .failures(failures)
+    Validate.string({ type }, failures)
       .isRequired()
       .isInEnum(BookingType)
       .when(
@@ -202,7 +181,6 @@ export class BookingSlot {
    * Valida a duração do agendamento com base no tipo.
    */
   private static validateDuration(
-    screeningUID: ScreeningUID | null,
     startTime: Date,
     endTime: Date,
     type: BookingType,
@@ -215,14 +193,9 @@ export class BookingSlot {
       failures.push({
         code: FailureCode.INVALID_OPERATION_DURATION,
         details: {
-          screeningUID: screeningUID?.value,
-          startTime,
-          endTime,
-          duration: {
-            provided: duration,
-            ...(config.min > 0 ? { min: config.min } : {}),
-            max: config.max,
-          },
+          duration: duration,
+          min: config.min,
+          max: config.max,
         },
       });
       return false;
