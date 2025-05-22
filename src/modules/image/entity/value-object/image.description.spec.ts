@@ -1,6 +1,8 @@
-import { ImageDescription } from "./image-description";
+import { ImageDescription } from "./image.description";
 import { faker } from "@faker-js/faker/.";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("ImageDescription", () => {
   const validPtDescription = "Descrição da Imagem com tamanho válido";
@@ -12,6 +14,12 @@ describe("ImageDescription", () => {
 
   describe("ImageDescription", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       describe("deve retornar uma instância de ImageDescription com sucesso", () => {
         const successCases = [
           {
@@ -40,11 +48,14 @@ describe("ImageDescription", () => {
         successCases.forEach(({ contents, scenario }) => {
           it(`deve aceitar uma descrição ${scenario}`, () => {
             // Act
-            const result = ImageDescription.create(contents);
+            const result = validateAndCollect(
+              ImageDescription.create(contents),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(false);
-            expect(result.value).toBeInstanceOf(ImageDescription);
+            expect(result).toBeDefined();
+            expect(result).toBeInstanceOf(ImageDescription);
           });
         });
       });
@@ -80,11 +91,14 @@ describe("ImageDescription", () => {
         failureCases.forEach(({ contents, scenario, errorCode }) => {
           it(`deve rejeitar uma descrição ${scenario}`, () => {
             // Act
-            const result = ImageDescription.create(contents);
+            const result = validateAndCollect(
+              ImageDescription.create(contents),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures[0].code).toBe(errorCode);
+            expect(result).toBeNull();
+            expect(failures[0].code).toBe(errorCode);
           });
         });
       });
