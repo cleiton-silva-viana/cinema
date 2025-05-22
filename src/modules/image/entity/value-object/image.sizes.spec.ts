@@ -1,6 +1,8 @@
-import { ImageSizes } from "./image-sizes";
+import { ImageSizes } from "./image.sizes";
 import { faker } from "@faker-js/faker";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("ImageSizes", () => {
   const sizes = {
@@ -10,16 +12,21 @@ describe("ImageSizes", () => {
   };
 
   describe("create", () => {
+    let failures: SimpleFailure[];
+
+    beforeEach(() => {
+      failures = [];
+    });
+
     it("deve retornar uma instância de ImageSizes com sucesso", () => {
       // Act
-      const result = ImageSizes.create(sizes);
+      const result = validateAndCollect(ImageSizes.create(sizes), failures);
 
       // Assert
-      expect(result.invalid).toBe(false);
-      expect(result.value).toBeInstanceOf(ImageSizes);
-      expect(result.value.small).toBe(sizes.small);
-      expect(result.value.normal).toBe(sizes.normal);
-      expect(result.value.large).toBe(sizes.large);
+      expect(result).toBeDefined();
+      expect(result.small).toBe(sizes.small);
+      expect(result.normal).toBe(sizes.normal);
+      expect(result.large).toBe(sizes.large);
     });
 
     describe("deve retornar um erro quando os tamanhos são inválidos", () => {
@@ -53,11 +60,11 @@ describe("ImageSizes", () => {
       failureCases.forEach(({ sizes, scenario, errorCode }) => {
         it(`deve rejeitar tamanhos de imagem ${scenario}`, () => {
           // Act
-          const result = ImageSizes.create(sizes);
+          const result = validateAndCollect(ImageSizes.create(sizes), failures);
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(errorCode);
+          expect(result).toBeNull();
+          expect(failures[0].code).toBe(errorCode);
         });
       });
     });

@@ -1,8 +1,6 @@
 import { failure, Result, success } from "../../../../shared/result/result";
 import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
 import { Validate } from "../../../../shared/validator/validate";
-import { isNull } from "../../../../shared/validator/validator";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 
 /**
@@ -37,18 +35,16 @@ export class ImageSizes {
   public static create(sizes: Sizes): Result<ImageSizes> {
     const failures: SimpleFailure[] = [];
 
-    Validate.object(sizes)
-      .field("sizes")
-      .failures(failures)
+    Validate.object({ sizes }, failures)
       .isRequired()
       .property("small", () =>
-        this.validateSize("small", sizes.small, failures),
+        this.validateSize({ size_small: sizes.small }, failures),
       )
       .property("normal", () =>
-        this.validateSize("normal", sizes.normal, failures),
+        this.validateSize({ size_normal: sizes.normal }, failures),
       )
       .property("large", () =>
-        this.validateSize("large", sizes.large, failures),
+        this.validateSize({ size_large: sizes.large }, failures),
       );
 
     return failures.length > 0
@@ -69,35 +65,24 @@ export class ImageSizes {
     normal: string;
     large: string;
   }): ImageSizes {
-    const fields = [];
-
-    if (isNull(sizes)) fields.push("sizes");
-    if (isNull(sizes.small)) fields.push("small");
-    if (isNull(sizes.normal)) fields.push("normal");
-    if (isNull(sizes.large)) fields.push("large");
-
-    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
-      fields: fields,
+    TechnicalError.validateRequiredFields({ sizes });
+    TechnicalError.validateRequiredFields({
+      sizes_small: sizes.small,
+      size_normal: sizes.normal,
+      sizes_large: sizes.large,
     });
-
     return new ImageSizes(sizes.small, sizes.normal, sizes.large);
   }
 
   /**
    * Valida um tamanho específico e adiciona falhas ao array de falhas
-   * @param sizeKey Nome da chave do tamanho (small, normal, large)
-   * @param sizeValue Valor do tamanho (URL)
+   * @param size Valor do tamanho (URL)
    * @param failures Array para armazenar as falhas
    */
   private static validateSize(
-    sizeKey: string,
-    sizeValue: string,
+    size: Record<string, string>,
     failures: SimpleFailure[],
   ): void {
-    Validate.string(sizeValue)
-      .field(sizeKey)
-      .failures(failures)
-      .isRequired()
-      .isNotEmpty();
+    Validate.string(size, failures).isRequired().isNotEmpty();
   }
 }
