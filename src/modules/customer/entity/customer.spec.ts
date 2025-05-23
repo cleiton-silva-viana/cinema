@@ -27,7 +27,7 @@ describe("Customer", () => {
       it("deve criar um Customer válido com todos os campos fornecidos", async () => {
         // Act
         const result = validateAndCollect(
-          await Customer.create(validName, validBirthDate, validEmail),
+          Customer.create(validName, validBirthDate, validEmail),
           failures,
         );
 
@@ -46,7 +46,7 @@ describe("Customer", () => {
       it("deve falhar ao criar um Customer com nome inválido", async () => {
         // Act
         const result = validateAndCollect(
-          await Customer.create("J", validBirthDate, validEmail),
+          Customer.create("J", validBirthDate, validEmail),
           failures,
         ); // Nome muito curto
 
@@ -60,7 +60,7 @@ describe("Customer", () => {
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 1); // Data no futuro
         const result = validateAndCollect(
-          await Customer.create(validName, futureDate, validEmail),
+          Customer.create(validName, futureDate, validEmail),
           failures,
         );
 
@@ -72,7 +72,7 @@ describe("Customer", () => {
       it("deve falhar ao criar um Customer com email inválido", async () => {
         // Act
         const result = validateAndCollect(
-          await Customer.create(validName, validBirthDate, "invalid-email"),
+          Customer.create(validName, validBirthDate, "invalid-email"),
           failures,
         );
 
@@ -84,7 +84,7 @@ describe("Customer", () => {
       it("deve acumular falhas se múltiplos campos forem inválidos", async () => {
         // Act
         const result = validateAndCollect(
-          await Customer.create("J", new Date(2500, 0, 1), "invalid-email"),
+          Customer.create("J", new Date(2500, 0, 1), "invalid-email"),
           failures,
         );
 

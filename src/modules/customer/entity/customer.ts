@@ -41,11 +41,11 @@ export class Customer {
    * @param email O endereço de e-mail do cliente.
    * @returns Um `Result` contendo a instância de `Customer` ou uma lista de falhas.
    */
-  public static async create(
+  public static create(
     name: string,
     birthDate: Date,
     email: string,
-  ): Promise<Result<Customer>> {
+  ): Result<Customer> {
     const failures: SimpleFailure[] = [];
 
     const nameVO = validateAndCollect(Name.create(name), failures);
