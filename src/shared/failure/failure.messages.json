@@ -1318,5 +1318,27 @@
       "pt": "O idioma obrigatório '{language}' não foi fornecido.",
       "en": "The required language '{language}' was not provided."
     }
+  },
+  "STUDENT_CARD_ID_INVALID_FORMAT": {
+    "status": 400,
+    "title": {
+      "pt-BR": "Formato Inválido da Carteirinha de Estudante",
+      "en-US": "Invalid Student Card ID Format"
+    },
+    "template": {
+      "pt-BR": "O ID da carteirinha de estudante '{value}' possui um formato inválido.",
+      "en-US": "The student card ID '{value}' has an invalid format."
+    }
+  },
+  "STUDENT_CARD_EXPIRED": {
+    "status": 400,
+    "title": {
+      "pt-BR": "Carteirinha de Estudante Expirada",
+      "en-US": "Student Card Expired"
+    },
+    "template": {
+      "pt-BR": "A carteirinha de estudante expirou em {validity}. Data atual: {currentDate}.",
+      "en-US": "The student card expired on {validity}. Current date: {currentDate}."
+    }
   }
 }
