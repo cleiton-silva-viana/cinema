@@ -105,10 +105,65 @@
     "en": "Zero or Negative Divisor Not Allowed"
   },
   "template": {
-    "pt": "Não é permitido dividir um preço por zero ou por um valor negativo ({divisor}). Use apenas valores positivos.",
-    "en": "Dividing a price by zero or a negative value ({divisor}) is not allowed. Use only positive values."
-  }
-},
+      "pt": "Não é permitido dividir um preço por zero ou por um valor negativo ({divisor}). Use apenas valores positivos.",
+      "en": "Dividing a price by zero or a negative value ({divisor}) is not allowed. Use only positive values."
+    }
+  },
+  "PASSWORD_LENGTH_OUT_OF_RANGE": {
+    "status": 400,
+    "title": {
+      "pt": "Tamanho da Senha Inválido",
+      "en": "Invalid Password Length"
+    },
+    "template": {
+      "pt": "A senha deve ter entre {min} e {max} caracteres.",
+      "en": "The password must be between {min} and {max} characters."
+    }
+  },
+  "PASSWORD_MISSING_UPPERCASE": {
+    "status": 400,
+    "title": {
+      "pt": "Senha Sem Letra Maiúscula",
+      "en": "Password Missing Uppercase Letter"
+    },
+    "template": {
+      "pt": "A senha deve conter pelo menos uma letra maiúscula.",
+      "en": "The password must contain at least one uppercase letter."
+    }
+  },
+  "PASSWORD_MISSING_LOWERCASE": {
+    "status": 400,
+    "title": {
+      "pt": "Senha Sem Letra Minúscula",
+      "en": "Password Missing Lowercase Letter"
+    },
+    "template": {
+      "pt": "A senha deve conter pelo menos uma letra minúscula.",
+      "en": "The password must contain at least one lowercase letter."
+    }
+  },
+  "PASSWORD_MISSING_DIGIT": {
+    "status": 400,
+    "title": {
+      "pt": "Senha Sem Dígito",
+      "en": "Password Missing Digit"
+    },
+    "template": {
+      "pt": "A senha deve conter pelo menos um dígito (0-9).",
+      "en": "The password must contain at least one digit (0-9)."
+    }
+  },
+  "PASSWORD_MISSING_SPECIAL_CHARACTER": {
+    "status": 400,
+    "title": {
+      "pt": "Senha Sem Caractere Especial",
+      "en": "Password Missing Special Character"
+    },
+    "template": {
+      "pt": "A senha deve conter pelo menos um caractere especial.",
+      "en": "The password must contain at least one special character."
+    }
+  },
   "UID_WITH_INVALID_FORMAT": {
     "status": 400,
     "title": {
@@ -1172,8 +1227,8 @@
       "en": "Uncatalogued Error"
     },
     "template": {
-      "pt": "Ocorreu um erro não catalogado no sistema. Detalhes: {error_details}.",
-      "en": "An uncatalogued error occurred in the system. Details: {error_details}."
+      "pt": "Ocorreu um erro inesperado: {message}",
+      "en": "An unexpected error occurred: {message}"
     }
   },
   "CONTENT_WITH_INVALID_ITEMS": {
