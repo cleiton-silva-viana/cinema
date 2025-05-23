@@ -5,11 +5,17 @@ import { IImageRepository } from "../repository/image.repository.interface";
 import { IImageHandler } from "../handler/image.handler.interface";
 import { IStorageService } from "../../storage/storage.service.interface";
 import { ImageHandlerConfig } from "../handler/types/image.handler.config";
-import { ImageUID } from "../entity/value-object/image-uid.vo";
+import { ImageUID } from "../entity/value-object/image.uid";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
 import { ResourceTypes } from "../../../shared/constant/resource.types";
 import { IMAGE_HANDLER, IMAGE_REPOSITORY } from "../constant/image.constant";
-import { IImageService } from "./image.service.interface";
+import { IImageService } from "./image.application.service.interface";
+import {
+  collectNullFields,
+  ensureNotNull,
+  validateAndCollect,
+} from "../../../shared/validator/common.validators";
+import { isNull } from "../../../shared/validator/validator";
 
 /**
  * Serviço de aplicação para operações relacionadas a imagens.
@@ -18,7 +24,7 @@ import { IImageService } from "./image.service.interface";
  * serviços de domínio, repositórios e serviços de infraestrutura.
  */
 @Injectable()
-export class ImageService implements IImageService {
+export class ImageApplicationService implements IImageService {
   constructor(
     @Inject(IMAGE_HANDLER) private readonly handler: IImageHandler,
     @Inject() private readonly storage: IStorageService,
@@ -32,10 +38,13 @@ export class ImageService implements IImageService {
    * @returns Result contendo a entidade Image ou falha
    */
   public async findById(uid: string): Promise<Result<Image>> {
-    const uidResult = ImageUID.parse(uid);
-    if (uidResult.invalid) return failure(uidResult.failures);
+    const failures = ensureNotNull({ uid });
+    if (failures.length > 0) return failure(failures);
 
-    const image = await this.repository.findById(uidResult.value);
+    const uidVO = validateAndCollect(ImageUID.parse(uid), failures);
+    if (failures.length > 0) return failure(failures);
+
+    const image = await this.repository.findById(uidVO);
 
     return image === null
       ? failure({
@@ -68,39 +77,49 @@ export class ImageService implements IImageService {
     image: Express.Multer.File,
     configs: ImageHandlerConfig,
   ): Promise<Result<Image>> {
-    const processResult = await this.handler.process(image, configs);
-    if (processResult.invalid) return failure(processResult.failures);
+    const failures = ensureNotNull({ title, description, image, configs });
+    if (failures.length > 0) return failure(failures);
+
+    const imageSizeBuffer = validateAndCollect(
+      await this.handler.process(image, configs),
+      failures,
+    );
+    if (failures.length > 0) return failure(failures);
 
     const path = "./storage/image/"; // TODO: recuperar este valor de uma variável de ambiente
-    const saveResult = await this.storage.save(path, processResult.value);
-    if (saveResult.invalid) return failure(saveResult.failures);
-    const url = saveResult.value;
+    const filePaths = validateAndCollect(
+      await this.storage.save(path, imageSizeBuffer),
+      failures,
+    );
+    if (failures.length > 0) return failure(failures);
 
-    const imageResult = Image.create({
-      uid: url.uid,
-      title,
-      description,
-      sizes: {
-        small: url.small,
-        normal: url.normal,
-        large: url.large,
-      },
-    });
-
-    if (imageResult.invalid) {
-      await this.storage.delete(saveResult.value.uid);
-      return failure(imageResult.failures);
+    const imageCreated = validateAndCollect(
+      Image.create({
+        uid: filePaths.uid,
+        title,
+        description,
+        sizes: {
+          small: filePaths.small,
+          normal: filePaths.normal,
+          large: filePaths.large,
+        },
+      }),
+      failures,
+    );
+    if (failures.length > 0) {
+      await this.storage.delete(filePaths.uid);
+      return failure(failures);
     }
 
     try {
-      const image = await this.repository.create(imageResult.value);
-      if (!image) {
-        await this.storage.delete(saveResult.value.uid);
+      const image = await this.repository.create(imageCreated);
+      if (isNull(image)) {
+        await this.storage.delete(imageCreated.uid.value);
         return failure({ code: FailureCode.FAILURE_TO_PERSIST_DATA });
       }
       return success(image);
     } catch (e) {
-      await this.storage.delete(saveResult.value.uid);
+      await this.storage.delete(imageCreated.uid.value);
       throw e;
     }
   }
@@ -121,21 +140,21 @@ export class ImageService implements IImageService {
     uid: string,
     params: IUpdateImageParams,
   ): Promise<Result<Image>> {
-    const findImageResult = await this.findById(uid);
-    if (findImageResult.invalid) return failure(findImageResult.failures);
-    const image = findImageResult.value;
+    const failures = ensureNotNull({ uid, params });
+    if (failures.length > 0) return failure(failures);
 
-    // Atualiza a entidade com os novos dados
-    const updateResult = image.update(params);
-    if (updateResult.invalid) return failure(updateResult.failures);
+    const image = validateAndCollect(await this.findById(uid), failures);
+    if (failures.length > 0) return failure(failures);
 
-    // Persiste a entidade atualizada no repositório
+    const updatedImage = validateAndCollect(image.update(params), failures);
+    if (failures.length > 0) return failure(failures);
+
     try {
-      const updatedImage = await this.repository.update(updateResult.value);
-      if (!updatedImage) {
+      const savedImage = await this.repository.update(updatedImage);
+      if (!savedImage) {
         return failure({ code: FailureCode.FAILURE_TO_PERSIST_DATA });
       }
-      return success(updatedImage);
+      return success(savedImage);
     } catch (e) {
       throw e;
     }
@@ -153,12 +172,14 @@ export class ImageService implements IImageService {
    * @returns Result indicando sucesso ou falha
    */
   public async delete(uid: string): Promise<Result<null>> {
-    const findImageResult = await this.findById(uid);
-    if (findImageResult.invalid) return failure(findImageResult.failures);
-    const imageUID = findImageResult.value.uid;
+    const failures = ensureNotNull({ uid });
+    if (failures.length > 0) return failure(failures);
 
-    const storageResult = await this.storage.delete(imageUID.value);
-    if (storageResult.invalid) return failure(storageResult.failures);
+    const imageUID = validateAndCollect(ImageUID.parse(uid), failures);
+    if (failures.length > 0) return failure(failures);
+
+    validateAndCollect(await this.storage.delete(imageUID.value), failures);
+    if (failures.length > 0) return failure(failures);
 
     await this.repository.delete(imageUID);
     return success(null);
