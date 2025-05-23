@@ -20,13 +20,11 @@ class TestValidator extends BaseValidator<TestValidator> {
     return this._flow;
   }
 
-  // Método auxiliar para testes
   field(fieldName: string): TestValidator {
     this._field = fieldName;
     return this;
   }
 
-  // Método auxiliar para testes
   failures(failures: SimpleFailure[]): TestValidator {
     this._failures = failures;
     return this;
@@ -34,7 +32,7 @@ class TestValidator extends BaseValidator<TestValidator> {
 }
 
 describe("BaseValidator", () => {
-  const CUSTOM_CODE = FailureCode.CONTENT_INVALID_TYPE;
+  const CUSTOM_CODE = FailureCode.INVALID_ENUM_VALUE;
   const CUSTOM_DETAILS = { message: "message" };
   const FIELD = "field";
 
@@ -389,7 +387,7 @@ describe("BaseValidator", () => {
       // Act
       new TestValidator("test", failures).isTrue(
         true,
-        FailureCode.CONTENT_INVALID_TYPE,
+        FailureCode.INVALID_ENUM_VALUE,
       );
 
       // Assert
@@ -418,7 +416,7 @@ describe("BaseValidator", () => {
       // Act
       new TestValidator("test", failures)
         .field(FIELD)
-        .isTrue(false, FailureCode.CONTENT_INVALID_TYPE, CUSTOM_DETAILS);
+        .isTrue(false, FailureCode.INVALID_ENUM_VALUE, CUSTOM_DETAILS);
 
       // Assert
       expect(failures.length).toBe(1);
