@@ -52,7 +52,7 @@ export class FailureMapper implements IFailureMapper {
 
     const messageTemplate =
       messageConfig.template?.[language] || messageConfig.template?.en;
-    const title = messageConfig.template[language] || messageConfig.template.en;
+    const title = messageConfig.title[language] || messageConfig.title?.en;
 
     const status = messageConfig.statusCode as HttpStatus;
 
