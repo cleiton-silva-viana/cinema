@@ -65,46 +65,46 @@
       "en": "The operation would result in a negative price, which is not allowed. Initial value: {initial_value}, subtracted value: {subtracted_value}, result: {result}."
     }
   },
-"PRICE_INVALID_MULTIPLICATION_FACTOR": {
-  "status": 400,
-  "title": {
-    "pt": "Fator de Multiplicação Inválido",
-    "en": "Invalid Multiplication Factor"
+  "PRICE_INVALID_MULTIPLICATION_FACTOR": {
+    "status": 400,
+    "title": {
+      "pt": "Fator de Multiplicação Inválido",
+      "en": "Invalid Multiplication Factor"
+    },
+    "template": {
+      "pt": "O fator de multiplicação '{value}' não é um número válido. É esperado um valor do tipo '{type}'.",
+      "en": "The multiplication factor '{value}' is not a valid number. A value of type '{type}' is expected."
+    }
   },
-  "template": {
-    "pt": "O fator de multiplicação '{value}' não é um número válido. É esperado um valor do tipo '{type}'.",
-    "en": "The multiplication factor '{value}' is not a valid number. A value of type '{type}' is expected."
-  }
-},
-"PRICE_NEGATIVE_FACTOR_NOT_ALLOWED": {
-  "status": 400,
-  "title": {
-    "pt": "Fator Negativo Não Permitido",
-    "en": "Negative Factor Not Allowed"
+  "PRICE_NEGATIVE_FACTOR_NOT_ALLOWED": {
+    "status": 400,
+    "title": {
+      "pt": "Fator Negativo Não Permitido",
+      "en": "Negative Factor Not Allowed"
+    },
+    "template": {
+      "pt": "Não é permitido multiplicar um preço por um fator negativo ({factor}). Use apenas valores positivos.",
+      "en": "Multiplying a price by a negative factor ({factor}) is not allowed. Use only positive values."
+    }
   },
-  "template": {
-    "pt": "Não é permitido multiplicar um preço por um fator negativo ({factor}). Use apenas valores positivos.",
-    "en": "Multiplying a price by a negative factor ({factor}) is not allowed. Use only positive values."
-  }
-},
-"PRICE_INVALID_DIVISION_FACTOR": {
-  "status": 400,
-  "title": {
-    "pt": "Fator de Divisão Inválido",
-    "en": "Invalid Division Factor"
+  "PRICE_INVALID_DIVISION_FACTOR": {
+    "status": 400,
+    "title": {
+      "pt": "Fator de Divisão Inválido",
+      "en": "Invalid Division Factor"
+    },
+    "template": {
+      "pt": "O divisor '{value}' não é um número válido. É esperado um valor do tipo '{type}'.",
+      "en": "The divisor '{value}' is not a valid number. A value of type '{type}' is expected."
+    }
   },
-  "template": {
-    "pt": "O divisor '{value}' não é um número válido. É esperado um valor do tipo '{type}'.",
-    "en": "The divisor '{value}' is not a valid number. A value of type '{type}' is expected."
-  }
-},
-"PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED": {
-  "status": 400,
-  "title": {
-    "pt": "Divisor Zero ou Negativo Não Permitido",
-    "en": "Zero or Negative Divisor Not Allowed"
-  },
-  "template": {
+  "PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED": {
+    "status": 400,
+    "title": {
+      "pt": "Divisor Zero ou Negativo Não Permitido",
+      "en": "Zero or Negative Divisor Not Allowed"
+    },
+    "template": {
       "pt": "Não é permitido dividir um preço por zero ou por um valor negativo ({divisor}). Use apenas valores positivos.",
       "en": "Dividing a price by zero or a negative value ({divisor}) is not allowed. Use only positive values."
     }
@@ -1339,6 +1339,28 @@
     "template": {
       "pt-BR": "A carteirinha de estudante expirou em {validity}. Data atual: {currentDate}.",
       "en-US": "The student card expired on {validity}. Current date: {currentDate}."
+    }
+  },
+  "CPF_ALREADY_IN_USE": {
+    "status": 409,
+    "title": {
+      "pt": "CPF já em Uso",
+      "en": "CPF Already in Use"
+    },
+    "template": {
+      "pt": "O CPF '{cpf}' já está em uso.",
+      "en": "The CPF '{cpf}' is already in use."
+    }
+  },
+  "STUDENT_CARD_ALREADY_IN_USE": {
+    "status": 409,
+    "title": {
+      "pt": "Carteirinha de Estudante já em Uso",
+      "en": "Student Card Already in Use"
+    },
+    "template": {
+      "pt": "A carteirinha de estudante '{studentCardId}' já está em uso.",
+      "en": "The student card '{studentCardId}' is already in use."
     }
   }
 }
