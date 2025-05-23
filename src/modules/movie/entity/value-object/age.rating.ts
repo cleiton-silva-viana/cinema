@@ -2,6 +2,7 @@ import { TechnicalError } from "../../../../shared/error/technical.error";
 import { failure, Result, success } from "../../../../shared/result/result";
 import { isNull } from "../../../../shared/validator/validator";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { parseToEnum } from "../../../../shared/validator/common.validators";
 
 /**
  * Enumeração que representa a Classificação Etária dos Filmes de acordo com o padrão brasileiro.
@@ -43,22 +44,9 @@ export class AgeRating {
    * @returns AgeRating
    */
   public static create(rating: string): Result<AgeRating> {
-    const isInvalid = !Object.values(AgeRatingEnum).includes(
-      rating as AgeRatingEnum,
-    );
-
-    if (isInvalid) {
-      return failure({
-        code: FailureCode.INVALID_ENUM_VALUE,
-        details: {
-          value: rating,
-          validOptions: Object.values(AgeRatingEnum),
-          field: "ageRating",
-        },
-      });
-    }
-
-    return success(new AgeRating(rating as AgeRatingEnum));
+    const result = parseToEnum(rating, AgeRatingEnum);
+    if (result.isInvalid()) return result;
+    return success(new AgeRating(result.value));
   }
 
   /**
@@ -70,10 +58,7 @@ export class AgeRating {
    * @throws TechnicalError se o rating for nulo
    */
   public static hydrate(rating: string): AgeRating {
-    TechnicalError.if(isNull(rating), FailureCode.MISSING_REQUIRED_DATA, {
-      field: "ageRating",
-    });
-
+    TechnicalError.validateRequiredFields({ rating });
     return new AgeRating(rating as AgeRatingEnum);
   }
 

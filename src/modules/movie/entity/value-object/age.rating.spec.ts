@@ -1,19 +1,30 @@
 import { AgeRating, AgeRatingEnum } from "./age.rating";
 import { TechnicalError } from "../../../../shared/error/technical.error";
 import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { fa } from "@faker-js/faker";
+import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../../shared/validator/common.validators";
 
 describe("AgeRating", () => {
   describe("Static Methods", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       it("deve criar um Result de sucesso com classificação existente", () => {
         // Arrange
         const validRatings = Object.values(AgeRatingEnum);
 
-        // Act & Assert
         validRatings.forEach((rating) => {
-          const result = AgeRating.create(rating);
-          expect(result.invalid).toBe(false);
-          expect(result.value.value).toBe(rating);
+          // Act
+          const result = validateAndCollect(AgeRating.create(rating), failures);
+
+          // Assert
+          expect(result).toBeDefined();
+          expect(result.value).toBe(rating);
         });
       });
 
@@ -22,11 +33,14 @@ describe("AgeRating", () => {
         const invalidRating = "INVALID_RATING";
 
         // Act
-        const result = AgeRating.create(invalidRating);
+        const result = validateAndCollect(
+          AgeRating.create(invalidRating),
+          failures,
+        );
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE);
+        expect(result).toBeNull();
+        expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE);
       });
     });
 
@@ -53,6 +67,12 @@ describe("AgeRating", () => {
   });
 
   describe("Instance Methods", () => {
+    let failures: SimpleFailure[];
+
+    beforeEach(() => {
+      failures = [];
+    });
+
     describe("canWatch", () => {
       it("deve permitir qualquer idade para classificação Livre", () => {
         // Arrange
