@@ -7,9 +7,11 @@ import {
   ItextContent,
   IUpdateImageParams,
 } from "./image";
-import { ImageUID } from "./value-object/image-uid.vo";
+import { ImageUID } from "./value-object/image.uid";
 import { SupportedLanguage } from "../../../shared/value-object/multilingual-content";
 import { TechnicalError } from "../../../shared/error/technical.error";
+import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
+import { validateAndCollect } from "../../../shared/validator/common.validators";
 
 describe("Image", () => {
   const UID = ImageUID.create().value;
@@ -32,6 +34,12 @@ describe("Image", () => {
 
   describe("Static Methods", () => {
     describe("create", () => {
+      let failures: SimpleFailure[];
+
+      beforeEach(() => {
+        failures = [];
+      });
+
       const VALID_PARAMS: ICreateImageParams = {
         uid: UID,
         title: VALID_TITLE,
@@ -41,17 +49,17 @@ describe("Image", () => {
 
       it("deve criar uma imagem válida", () => {
         // Act
-        const result = Image.create(VALID_PARAMS);
+        const result = validateAndCollect(Image.create(VALID_PARAMS), failures);
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value.uid).toBeDefined();
-        expect(result.value.title).toBeDefined();
-        expect(result.value.description).toBeDefined();
-        expect(result.value.sizes).toBeDefined();
-        expect(result.value.sizes.small).toBe(SIZES.small);
-        expect(result.value.sizes.normal).toBe(SIZES.normal);
-        expect(result.value.sizes.large).toBe(SIZES.large);
+        expect(result).toBeDefined();
+        expect(result.uid).toBeDefined();
+        expect(result.title).toBeDefined();
+        expect(result.description).toBeDefined();
+        expect(result.sizes).toBeDefined();
+        expect(result.sizes.small).toBe(SIZES.small);
+        expect(result.sizes.normal).toBe(SIZES.normal);
+        expect(result.sizes.large).toBe(SIZES.large);
       });
 
       describe("deve falhar ao tentar criar uma imagem com dados inválidos", () => {
@@ -113,11 +121,11 @@ describe("Image", () => {
             };
 
             // Act
-            const result = Image.create(params);
+            const result = validateAndCollect(Image.create(params), failures);
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures).toHaveLength(test.expectedFailures);
+            expect(result).toBeNull();
+            expect(failures).toHaveLength(test.expectedFailures);
           });
         });
       });
@@ -163,29 +171,32 @@ describe("Image", () => {
           {
             scenario: "parâmetro título é nulo",
             params: {
-              title: null as Array<any>,
+              title: null as any,
             },
           },
           {
             scenario: "parâmetro description é nulo",
             params: {
-              description: undefined as Array<any>,
+              description: undefined as any,
             },
           },
           {
             scenario: "parâmetro sizes é nulo",
             params: {
-              sizes: {} as Array<any>,
+              sizes: {} as any,
             },
           },
         ];
 
         failureCases.forEach((test) => {
           // Arrange
-          const params = { ...VALID_PARAMS, ...test.params };
+          const params: IHydrateImageParams = {
+            ...VALID_PARAMS,
+            ...test.params,
+          };
 
           // Act & Assert
-          expect(() => Image.hydrate(null)).toThrow(TechnicalError);
+          expect(() => Image.hydrate(params)).toThrow(TechnicalError);
         });
       });
     });
@@ -194,8 +205,10 @@ describe("Image", () => {
   describe("Instance Methods", () => {
     describe("update", () => {
       let instance: Image;
+      let failures: SimpleFailure[];
 
       beforeEach(() => {
+        failures = [];
         instance = Image.hydrate({
           uid: UID,
           title: VALID_TITLE[0],
@@ -215,18 +228,21 @@ describe("Image", () => {
           };
 
           // Act
-          const result = instance.update(params as IUpdateImageParams);
+          const result = validateAndCollect(
+            instance.update(params as IUpdateImageParams),
+            failures,
+          );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.uid.value).toBe(instance.uid.value);
-          expect(result.value.description).toEqual(instance.description);
-          expect(result.value.sizes).toEqual(instance.sizes);
-          expect(result.value.title).not.toEqual(instance.title);
-          expect(result.value.title.content(SupportedLanguage.EN)).toBe(
+          expect(result).toBeDefined();
+          expect(result.uid.value).toBe(instance.uid.value);
+          expect(result.description).toEqual(instance.description);
+          expect(result.sizes).toEqual(instance.sizes);
+          expect(result.title).not.toEqual(instance.title);
+          expect(result.title.content(SupportedLanguage.EN)).toBe(
             params.title[0].text,
           );
-          expect(result.value.title.content(SupportedLanguage.PT)).toBe(
+          expect(result.title.content(SupportedLanguage.PT)).toBe(
             params.title[1].text,
           );
         });
@@ -241,18 +257,21 @@ describe("Image", () => {
           };
 
           // Act
-          const result = instance.update(params as IUpdateImageParams);
+          const result = validateAndCollect(
+            instance.update(params as IUpdateImageParams),
+            failures,
+          );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.uid.value).toBe(instance.uid.value);
-          expect(result.value.title).toEqual(instance.title);
-          expect(result.value.sizes).toEqual(instance.sizes);
-          expect(result.value.description).not.toEqual(instance.description);
-          expect(result.value.description.content(SupportedLanguage.EN)).toBe(
+          expect(result).toBeDefined();
+          expect(result.uid.value).toBe(instance.uid.value);
+          expect(result.title).toEqual(instance.title);
+          expect(result.sizes).toEqual(instance.sizes);
+          expect(result.description).not.toEqual(instance.description);
+          expect(result.description.content(SupportedLanguage.EN)).toBe(
             params.description[0].text,
           );
-          expect(result.value.description.content(SupportedLanguage.PT)).toBe(
+          expect(result.description.content(SupportedLanguage.PT)).toBe(
             params.description[1].text,
           );
         });
@@ -268,24 +287,27 @@ describe("Image", () => {
           };
 
           // Act
-          const result = instance.update(params as IUpdateImageParams);
+          const result = validateAndCollect(
+            instance.update(params as IUpdateImageParams),
+            failures,
+          );
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.uid.value).toBe(instance.uid.value);
-          expect(result.value.title).toEqual(instance.title);
-          expect(result.value.description).toEqual(instance.description);
-          expect(result.value.sizes).not.toEqual(instance.sizes);
-          expect(result.value.sizes.small).toEqual(params.sizes.small);
-          expect(result.value.sizes.normal).toEqual(params.sizes.normal);
-          expect(result.value.sizes.large).toEqual(params.sizes.large);
+          expect(result).toBeDefined();
+          expect(result.uid.value).toBe(instance.uid.value);
+          expect(result.title).toEqual(instance.title);
+          expect(result.description).toEqual(instance.description);
+          expect(result.sizes).not.toEqual(instance.sizes);
+          expect(result.sizes.small).toEqual(params.sizes.small);
+          expect(result.sizes.normal).toEqual(params.sizes.normal);
+          expect(result.sizes.large).toEqual(params.sizes.large);
         });
       });
 
       describe("deve falhar ao tentar atualizar com dados inválidos", () => {
         const failureCases = [
           {
-            scenario: "títluo é inválido",
+            scenario: "título é inválido",
             params: {
               title: [] as Array<any>,
             },
@@ -293,7 +315,7 @@ describe("Image", () => {
           {
             scenario: "description é inválido",
             params: {
-              description: null as any,
+              description: [] as Array<any>,
             },
           },
           {
@@ -307,22 +329,25 @@ describe("Image", () => {
         failureCases.forEach(({ scenario, params }) => {
           it(scenario, () => {
             // Act
-            const result = instance.update(params as IUpdateImageParams);
+            const result = validateAndCollect(
+              instance.update(params as IUpdateImageParams),
+              failures,
+            );
 
             // Assert
-            expect(result.invalid).toBe(true);
-            expect(result.failures.length).toBeGreaterThan(0);
+            expect(result).toBeNull();
+            expect(failures.length).toBeGreaterThan(0);
           });
         });
       });
 
       it("deve falhar ao não receber dados para atualização", () => {
         // Act
-        const result = instance.update(null);
+        const result = validateAndCollect(instance.update(null), failures);
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures.length).toBe(1);
+        expect(result).toBeNull();
+        expect(failures.length).toBe(1);
       });
     });
   });

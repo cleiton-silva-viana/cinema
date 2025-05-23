@@ -1,13 +1,17 @@
 import { failure, Result, success } from "../../../shared/result/result";
 import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
-import { ImageUID } from "./value-object/image-uid.vo";
-import { ImageTitle } from "./value-object/image-title";
-import { ImageDescription } from "./value-object/image-description";
-import { ImageSizes } from "./value-object/image-sizes";
+import { ImageUID } from "./value-object/image.uid";
+import { ImageTitle } from "./value-object/image.title";
+import { ImageDescription } from "./value-object/image.description";
+import { ImageSizes } from "./value-object/image.sizes";
 import { Validate } from "../../../shared/validator/validate";
 import { isNull } from "../../../shared/validator/validator";
 import { TechnicalError } from "../../../shared/error/technical.error";
 import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import {
+  ensureNotNull,
+  validateAndCollect,
+} from "../../../shared/validator/common.validators";
 
 /**
  * Interface que define o conteúdo textual em um idioma específico.
@@ -125,28 +129,20 @@ export class Image {
    * um array de falhas (SimpleFailure) caso a validação falhe.
    */
   public static create(params: ICreateImageParams): Result<Image> {
-    const failures: SimpleFailure[] = [];
+    const failures = ensureNotNull({ params });
+    if (failures.length > 0) return failure(failures);
 
-    const uidResult = ImageUID.parse(params.uid);
-    const titleResult = ImageTitle.create(params.title);
-    const descriptionResult = ImageDescription.create(params.description);
-    const sizesResult = ImageSizes.create(params.sizes);
-
-    if (uidResult.invalid) failures.push(...uidResult.failures);
-    if (titleResult.invalid) failures.push(...titleResult.failures);
-    if (descriptionResult.invalid) failures.push(...descriptionResult.failures);
-    if (sizesResult.invalid) failures.push(...sizesResult.failures);
+    const uid = validateAndCollect(ImageUID.parse(params.uid), failures);
+    const title = validateAndCollect(ImageTitle.create(params.title), failures);
+    const description = validateAndCollect(
+      ImageDescription.create(params.description),
+      failures,
+    );
+    const sizes = validateAndCollect(ImageSizes.create(params.sizes), failures);
 
     return failures.length > 0
       ? failure(failures)
-      : success(
-          new Image(
-            uidResult.value,
-            titleResult.value,
-            descriptionResult.value,
-            sizesResult.value,
-          ),
-        );
+      : success(new Image(uid, title, description, sizes));
   }
 
   /**
@@ -160,8 +156,10 @@ export class Image {
    * @throws TechnicalError com código MISSING_REQUIRED_DATA se params for nulo
    */
   public static hydrate(params: IHydrateImageParams): Image {
-    TechnicalError.if(isNull(params), FailureCode.MISSING_REQUIRED_DATA, {
-      field: "params",
+    TechnicalError.validateRequiredFields({ params });
+    TechnicalError.validateRequiredFields({
+      title: params.title,
+      description: params.description,
     });
 
     return new Image(
@@ -192,36 +190,22 @@ export class Image {
    * ou um array de falhas (SimpleFailure) caso a validação falhe.
    */
   public update(params: IUpdateImageParams): Result<Image> {
-    const failures: SimpleFailure[] = [];
+    const failures = ensureNotNull({ params });
+    if (failures.length > 0) return failure(failures);
+
     let title = this.title;
     let description = this.description;
     let sizes = this.sizes;
 
-    Validate.object(params)
-      .field("params")
-      .failures(failures)
-      .isRequired()
-      .isNotEmpty()
-      .guard(
-        () =>
-          params !== null &&
-          (!!params.sizes || !!params.title || !!params.description),
-      )
-      .optionalProperty("title", () => {
-        const result = ImageTitle.create(params.title);
-        if (result.invalid) failures.push(...result.failures);
-        if (!result.invalid) title = result.value;
-      })
-      .optionalProperty("description", () => {
-        const result = ImageDescription.create(params.description);
-        if (result.invalid) failures.push(...result.failures);
-        if (!result.invalid) description = result.value;
-      })
-      .optionalProperty("sizes", () => {
-        const result = ImageSizes.create(params.sizes);
-        if (result.invalid) failures.push(...result.failures);
-        if (!result.invalid) sizes = result.value;
-      });
+    if (params.title)
+      title = validateAndCollect(ImageTitle.create(params.title), failures);
+    if (params.description)
+      description = validateAndCollect(
+        ImageDescription.create(params.description),
+        failures,
+      );
+    if (params.sizes)
+      sizes = validateAndCollect(ImageSizes.create(params.sizes), failures);
 
     return failures.length > 0
       ? failure(failures)
