@@ -1,324 +1,454 @@
-import { faker } from "@faker-js/faker/locale/pt_PT";
-import { Customer } from "./customer";
-import { Name } from "../../../shared/value-object/name";
-import { Email } from "./value-object/email";
-import { BirthDate } from "../../../shared/value-object/birth.date";
-import { CustomerUID } from "./value-object/customer.uid";
-import { FailureCode } from "../../../shared/failure/failure.codes.enum";
-import { validateAndCollect } from "../../../shared/validator/common.validators";
+import { Customer, IHydrateCustomerProps } from "./customer";
 import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
+import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { CPF } from "./value-object/cpf";
+import { StudentCard } from "./value-object/student-card";
+import { CustomerUID } from "./value-object/customer.uid";
+import { validateAndCollect } from "../../../shared/validator/common.validators";
+import { v4 } from "uuid";
 
 describe("Customer", () => {
-  const NAME = faker.person.fullName();
-  const BIRTH_DATE = faker.date.birthdate({ mode: "age", min: 18, max: 90 });
-  const EMAIL = faker.internet.email();
+  let failures: SimpleFailure[];
 
-  describe("Métodos Estáticos", () => {
+  beforeEach(() => {
+    failures = [];
+  });
+
+  const validName = "John Doe";
+  const validBirthDate = new Date(1990, 0, 1);
+  const validEmail = "john.doe@example.com";
+  const validCpf = "123.456.789-01";
+  const validStudentCardId = "STUDENT123";
+  const validStudentCardValidity = new Date();
+  validStudentCardValidity.setDate(validStudentCardValidity.getDate() + 30); // Validade para 30 dias no futuro
+
+  describe("Métodos estáticos", () => {
     describe("create", () => {
-      let failures: SimpleFailure[];
-
-      beforeEach(() => {
-        failures = [];
-      });
-
-      it("deve criar um cliente válido", () => {
+      it("deve criar um Customer válido com todos os campos fornecidos", async () => {
         // Act
         const result = validateAndCollect(
-          Customer.create(NAME, BIRTH_DATE, EMAIL),
+          await Customer.create(validName, validBirthDate, validEmail),
           failures,
         );
 
         // Assert
         expect(result).toBeDefined();
-        expect(result.uid).toBeDefined();
-        expect(result.name.value).toBe(NAME);
-        expect(result.email.value).toBe(EMAIL);
-        expect(result.birthDate.value).toEqual(BIRTH_DATE);
+        expect(result).toBeInstanceOf(Customer);
+        expect(result.name.value).toBe(validName);
+        expect(result.birthDate.value.toISOString()).toBe(
+          validBirthDate.toISOString(),
+        );
+        expect(result.email.value).toBe(validEmail);
+        expect(result.cpf).toBeUndefined();
+        expect(result.studentCard).toBeUndefined();
       });
 
-      describe("deve falhar ao criar um cliente com dados inválidos", () => {
-        const failureCases = [
-          {
-            name: "",
-            birthDate: BIRTH_DATE,
-            email: EMAIL,
-            description: "quando nome é inválido",
-            expectedFailures: 1,
-          },
-          {
-            name: NAME,
-            birthDate: BIRTH_DATE,
-            email: "invalid_mail.com",
-            description: "quando email é inválido",
-            expectedFailures: 1,
-          },
-          {
-            name: NAME,
-            birthDate: new Date(),
-            email: EMAIL,
-            description: "quando data de nascimento é inválida",
-            expectedFailures: 1,
-          },
-          {
-            name: "",
-            birthDate: BIRTH_DATE,
-            email: "invalid_mail.com",
-            description: "quando nome e email são inválidos",
-            expectedFailures: 2,
-          },
-          {
-            name: NAME,
-            birthDate: new Date(),
-            email: "invalid_mail.com",
-            description: "quando email e data de nascimento são inválidos",
-            expectedFailures: 2,
-          },
-          {
-            name: "",
-            birthDate: new Date(),
-            email: "invalid_mail.com",
-            description: "quando todos os campos são inválidos",
-            expectedFailures: 3,
-          },
-        ];
+      it("deve falhar ao criar um Customer com nome inválido", async () => {
+        // Act
+        const result = validateAndCollect(
+          await Customer.create("J", validBirthDate, validEmail),
+          failures,
+        ); // Nome muito curto
 
-        failureCases.forEach(
-          ({ name, birthDate, email, description, expectedFailures }) => {
-            it(description, () => {
-              // Act
-              const result = validateAndCollect(
-                Customer.create(name, birthDate, email),
-                failures,
-              );
+        // Assert
+        expect(result).toBeNull();
+        expect(failures).toHaveLength(1);
+      });
 
-              // Assert
-              expect(result).toBeNull();
-              expect(failures).toHaveLength(expectedFailures);
-            });
-          },
+      it("deve falhar ao criar um Customer com data de nascimento inválida", async () => {
+        // Act
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 1); // Data no futuro
+        const result = validateAndCollect(
+          await Customer.create(validName, futureDate, validEmail),
+          failures,
         );
+
+        // Assert
+        expect(result).toBeNull();
+        expect(failures).toHaveLength(1);
+      });
+
+      it("deve falhar ao criar um Customer com email inválido", async () => {
+        // Act
+        const result = validateAndCollect(
+          await Customer.create(validName, validBirthDate, "invalid-email"),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeNull();
+        expect(failures).toHaveLength(1);
+      });
+
+      it("deve acumular falhas se múltiplos campos forem inválidos", async () => {
+        // Act
+        const result = validateAndCollect(
+          await Customer.create("J", new Date(2500, 0, 1), "invalid-email"),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeNull();
+        expect(failures.length).toBe(3);
       });
     });
 
     describe("hydrate", () => {
-      it("deve criar um objeto Customer sem validação", () => {
-        // Arrange
-        const customerUid = CustomerUID.create().value;
+      const hydrateProps: IHydrateCustomerProps = {
+        uid: CustomerUID.create().value,
+        name: validName,
+        birthDate: validBirthDate,
+        email: validEmail,
+        cpf: validCpf,
+        studentCard: {
+          id: validStudentCardId,
+          validity: validStudentCardValidity,
+        },
+      };
 
+      it("deve hidratar um Customer com todos os campos", () => {
         // Act
-        const customer = Customer.hydrate(customerUid, NAME, BIRTH_DATE, EMAIL);
+        const customer = Customer.hydrate(hydrateProps);
 
         // Assert
         expect(customer).toBeInstanceOf(Customer);
-        expect(customer.uid.value).toBe(customerUid);
-        expect(customer.name.value).toBe(NAME);
-        expect(customer.email.value).toBe(EMAIL);
-        expect(customer.birthDate.value).toEqual(BIRTH_DATE);
+        expect(customer.uid.value).toBe(hydrateProps.uid);
+        expect(customer.name.value).toBe(hydrateProps.name);
+        expect(customer.birthDate.value.toISOString().split("T")[0]).toBe(
+          hydrateProps.birthDate.toISOString().split("T")[0],
+        );
+        expect(customer.email.value).toBe(hydrateProps.email);
+        expect(customer.cpf?.value).toBe(hydrateProps.cpf);
+        expect(customer.studentCard?.id).toBe(hydrateProps.studentCard?.id);
+        expect(customer.studentCard?.validity.toISOString().split("T")[0]).toBe(
+          hydrateProps.studentCard?.validity.toISOString().split("T")[0],
+        );
       });
 
-      it("deve lançar TechnicalError quando algum valor é nulo", () => {
-        // Act & Assert
-        expect(() => Customer.hydrate(null, NAME, BIRTH_DATE, EMAIL)).toThrow(
-          FailureCode.MISSING_REQUIRED_DATA,
-        );
+      it("deve hidratar um Customer sem CPF e StudentCard", () => {
+        // Arrange
+        const propsWithoutOptional: IHydrateCustomerProps = {
+          uid: CustomerUID.create().value,
+          name: validName,
+          birthDate: validBirthDate,
+          email: validEmail,
+        };
+
+        // Act
+        const customer = Customer.hydrate(propsWithoutOptional);
+
+        // Assert
+        expect(customer.cpf).toBeNull();
+        expect(customer.studentCard).toBeNull();
+      });
+
+      it("deve hidratar um Customer apenas com CPF", () => {
+        // Arrange
+        const propsWithCpf: IHydrateCustomerProps = {
+          uid: CustomerUID.create().value,
+          name: validName,
+          birthDate: validBirthDate,
+          email: validEmail,
+          cpf: validCpf,
+        };
+
+        // Act
+        const customer = Customer.hydrate(propsWithCpf);
+
+        // Assert
+        expect(customer.cpf?.value).toBe(validCpf);
+        expect(customer.studentCard).toBeNull();
+      });
+
+      it("deve hidratar um Customer apenas com StudentCard", () => {
+        // Arrange
+        const propsWithStudentCard: IHydrateCustomerProps = {
+          uid: CustomerUID.create().value,
+          name: validName,
+          birthDate: validBirthDate,
+          email: validEmail,
+          studentCard: {
+            id: validStudentCardId,
+            validity: validStudentCardValidity,
+          },
+        };
+
+        // Act
+        const customer = Customer.hydrate(propsWithStudentCard);
+
+        // Assert
+        expect(customer.cpf).toBeNull();
+        expect(customer.studentCard?.id).toBe(validStudentCardId);
+      });
+
+      // Testes de TechnicalError para campos obrigatórios ausentes em hydrate
+      const requiredFields: (keyof IHydrateCustomerProps)[] = [
+        "uid",
+        "name",
+        "birthDate",
+        "email",
+      ];
+      requiredFields.forEach((field) => {
+        it(`deve lançar TechnicalError se ${field} estiver ausente no hydrate`, () => {
+          const incompleteProps = { ...hydrateProps };
+          delete incompleteProps[field];
+          expect(() => Customer.hydrate(incompleteProps as any)).toThrow(Error); // TechnicalError
+        });
       });
     });
   });
 
-  describe("Métodos de Instância", () => {
-    describe("update", () => {
-      let failures: SimpleFailure[];
-      let validNameVO = Name.hydrate(faker.person.firstName());
-      let validEmailVO = Email.hydrate(faker.internet.email());
-      let validBirthDateVO = BirthDate.hydrate(new Date(BIRTH_DATE));
-      let customer = Customer.hydrate(
-        CustomerUID.create().value,
-        NAME,
-        BIRTH_DATE,
-        EMAIL,
-      );
-
-      beforeEach(() => {
-        failures = [];
+  describe("Métodos de instância", () => {
+    const createBaseCustomer = async () => {
+      return Customer.hydrate({
+        uid: v4(),
+        name: validName,
+        birthDate: validBirthDate,
+        email: validEmail,
       });
+    };
 
-      describe("deve atualizar um cliente com sucesso", () => {
-        it("com valores primitivos - nome", () => {
-          // Arrange
-          const newName = faker.person.firstName();
-          const updates = { name: newName };
+    describe("updateName", () => {
+      it("deve atualizar o nome com sucesso", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const newName = "Jane Doe";
 
-          // Act
-          const result = validateAndCollect(customer.update(updates), failures);
-
-          // Assert
-          expect(result).toBeDefined();
-          expect(result.name.value).toBe(newName);
-          expect(result.email).toBe(customer.email);
-          expect(result.birthDate).toBe(customer.birthDate);
-        });
-
-        it("com valores primitivos - email", () => {
-          // Arrange
-          const newEmail = faker.internet.email();
-          const updates = { email: newEmail };
-
-          // Act
-          const result = validateAndCollect(customer.update(updates), failures);
-
-          // Assert
-          expect(result).toBeDefined();
-          expect(result.name).toBe(customer.name);
-          expect(result.email.value).toBe(newEmail);
-          expect(result.birthDate).toBe(customer.birthDate);
-        });
-
-        it("com valores primitivos - data de nascimento", () => {
-          // Arrange
-          const newBirthDate = new Date("1995-01-01");
-          const updates = { birthDate: newBirthDate };
-
-          // Act
-          const result = validateAndCollect(customer.update(updates), failures);
-
-          // Assert
-          expect(result).toBeDefined();
-          expect(result.name).toBe(customer.name);
-          expect(result.email).toBe(customer.email);
-          expect(result.birthDate.value).toEqual(newBirthDate);
-        });
-
-        it("com valores primitivos - todos os campos", () => {
-          // Arrange
-          const newName = faker.person.firstName();
-          const newEmail = faker.internet.email();
-          const newBirthDate = new Date("1995-01-01");
-          const updates = {
-            name: newName,
-            email: newEmail,
-            birthDate: newBirthDate,
-          };
-
-          // Act
-          const result = validateAndCollect(customer.update(updates), failures);
-
-          // Assert
-          expect(result).toBeDefined();
-          expect(result.name.value).toBe(newName);
-          expect(result.email.value).toBe(newEmail);
-          expect(result.birthDate.value).toEqual(newBirthDate);
-        });
-
-        it("com objetos de valor - nome", () => {
-          // Arrange
-          const updates = { name: validNameVO };
-
-          // Act
-          const result = validateAndCollect(customer.update(updates), failures);
-
-          // Assert
-          expect(result).toBeDefined();
-          expect(result).toBeInstanceOf(Customer);
-          expect(result.name).toBe(validNameVO);
-          expect(result.email).toBe(customer.email);
-          expect(result.birthDate).toBe(customer.birthDate);
-        });
-
-        it("com objetos de valor - email", () => {
-          // Arrange
-          const updates = { email: validEmailVO };
-
-          // Act
-          const result = validateAndCollect(customer.update(updates), failures);
-
-          // Assert
-          expect(result).toBeDefined();
-          expect(result.name).toBe(customer.name);
-          expect(result.email).toBe(validEmailVO);
-          expect(result.birthDate).toBe(customer.birthDate);
-        });
-
-        it("com objetos de valor - data de nascimento", () => {
-          // Arrange
-          const updates = { birthDate: validBirthDateVO };
-
-          // Act
-          const result = validateAndCollect(customer.update(updates), failures);
-
-          // Assert
-          expect(result).toBeDefined();
-          expect(result.name).toBe(customer.name);
-          expect(result.email).toBe(customer.email);
-          expect(result.birthDate).toBe(validBirthDateVO);
-        });
-
-        it("com objetos de valor - todos os campos", () => {
-          // Arrange
-          const updates = {
-            name: validNameVO,
-            email: validEmailVO,
-            birthDate: validBirthDateVO,
-          };
-
-          // Act
-          const result = validateAndCollect(customer.update(updates), failures);
-
-          // Assert
-          expect(result).toBeDefined();
-          expect(result.name).toBe(validNameVO);
-          expect(result.email).toBe(validEmailVO);
-          expect(result.birthDate).toBe(validBirthDateVO);
-        });
-      });
-
-      describe("deve falhar ao atualizar com dados inválidos", () => {
-        const failureCases = [
-          {
-            scenario: "quando email é inválido",
-            updates: {
-              email: "invalid-email",
-            },
-          },
-          {
-            scenario: "quando nome é inválido e email é válido (tudo ou nada)",
-            updates: {
-              name: "a", // nome inválido
-              email: faker.internet.email(),
-            },
-          },
-        ];
-        failureCases.forEach(({ scenario, updates }) => {
-          it(scenario, () => {
-            // Arrange
-            const originalName = customer.name;
-            const originalEmail = customer.email;
-            const originalBirthDate = customer.birthDate;
-
-            // Act
-            const result = validateAndCollect(
-              customer.update(updates),
-              failures,
-            );
-
-            // Assert
-            expect(result).toBeNull();
-            expect(customer.name).toBe(originalName);
-            expect(customer.email).toBe(originalEmail);
-            expect(customer.birthDate).toBe(originalBirthDate);
-            expect(failures.length).toBeGreaterThan(0);
-          });
-        });
-      });
-
-      it("deve falhar quando receber um objeto nulo", () => {
         // Act
-        const result = validateAndCollect(customer.update(null), failures);
+        const result = validateAndCollect(
+          customer.updateName(newName),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result.name.value).toBe(newName);
+        expect(result.uid).toBe(customer.uid);
+      });
+
+      it("deve falhar ao atualizar com nome inválido", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const invalidName = "J";
+
+        // Act
+        const result = validateAndCollect(
+          customer.updateName(invalidName),
+          failures,
+        );
 
         // Assert
         expect(result).toBeNull();
-        expect(failures).toBeDefined();
-        expect(failures.length).toBe(1);
-        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
+        expect(failures).toHaveLength(1);
+      });
+    });
+
+    describe("updateBirthDate", () => {
+      it("deve atualizar a data de nascimento com sucesso", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const newBirthDate = new Date(1995, 5, 15);
+
+        // Act
+        const result = validateAndCollect(
+          customer.updateBirthDate(newBirthDate),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result.birthDate.value.toISOString()).toBe(
+          newBirthDate.toISOString(),
+        );
+      });
+
+      it("deve falhar ao atualizar com data de nascimento inválida", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const invalidBirthDate = new Date(2500, 0, 1); // Data no futuro
+
+        // Act
+        const result = validateAndCollect(
+          customer.updateBirthDate(invalidBirthDate),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeNull();
+        expect(failures).toHaveLength(1);
+      });
+    });
+
+    describe("updateEmail", () => {
+      it("deve atualizar o email com sucesso", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const newEmail = "jane.doe@example.com";
+
+        // Act
+        const result = validateAndCollect(
+          customer.updateEmail(newEmail),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result.email.value).toBe(newEmail);
+      });
+
+      it("deve falhar ao atualizar com email inválido", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const invalidEmail = "invalid-email";
+
+        // Act
+        const result = validateAndCollect(
+          customer.updateEmail(invalidEmail),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeNull();
+        expect(failures).toHaveLength(1);
+      });
+    });
+
+    describe("assignCPF", () => {
+      it("deve atribuir CPF com sucesso", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+
+        // Act
+        const result = validateAndCollect(
+          customer.assignCPF(validCpf),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result.cpf).toBeInstanceOf(CPF);
+        expect(result.cpf?.value).toBe(validCpf);
+      });
+
+      it("deve falhar ao atribuir CPF inválido", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const invalidCpf = "123";
+
+        // Act
+        const result = validateAndCollect(
+          customer.assignCPF(invalidCpf),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeNull();
+        expect(failures).toHaveLength(1);
+      });
+    });
+
+    describe("removeCPF", () => {
+      it("deve remover o CPF com sucesso", async () => {
+        // Arrange
+        const customerWithCpf = Customer.hydrate({
+          uid: CustomerUID.create().value,
+          name: validName,
+          birthDate: validBirthDate,
+          email: validEmail,
+          cpf: validCpf,
+        });
+
+        // Act
+        const result = validateAndCollect(
+          customerWithCpf.removeCPF(),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result.cpf).toBeNull();
+      });
+    });
+
+    describe("assignStudentCard", () => {
+      it("deve atribuir StudentCard com sucesso", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+
+        // Act
+        const result = validateAndCollect(
+          customer.assignStudentCard(
+            validStudentCardId,
+            validStudentCardValidity,
+          ),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result.studentCard.id).toBe(validStudentCardId);
+        expect(result.studentCard.validity).toBe(validStudentCardValidity);
+      });
+
+      it("deve falhar ao atribuir StudentCard com ID inválido", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const invalidId = "S1";
+
+        // Act
+        const result = validateAndCollect(
+          customer.assignStudentCard(invalidId, validStudentCardValidity),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeNull();
+        expect(failures[0].code).toBe(
+          FailureCode.STUDENT_CARD_ID_INVALID_FORMAT,
+        );
+      });
+
+      it("deve falhar ao atribuir StudentCard com validade inválida (passado)", async () => {
+        // Arrange
+        const customer = await createBaseCustomer();
+        const pastDate = new Date(2000, 0, 1);
+
+        // Act
+        const result = validateAndCollect(
+          customer.assignStudentCard(validStudentCardId, pastDate),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeNull();
+        expect(failures[0].code).toBe(FailureCode.DATE_CANNOT_BE_PAST);
+      });
+    });
+
+    describe("removeStudentCard", () => {
+      it("deve remover o StudentCard com sucesso", async () => {
+        // Arrange
+        const customerWithCard = Customer.hydrate({
+          uid: CustomerUID.create().value,
+          name: validName,
+          birthDate: validBirthDate,
+          email: validEmail,
+          studentCard: {
+            id: validStudentCardId,
+            validity: validStudentCardValidity,
+          },
+        });
+
+        // Act
+        const result = validateAndCollect(
+          customerWithCard.removeStudentCard(),
+          failures,
+        );
+
+        // Assert
+        expect(result).toBeDefined();
+        expect(result.studentCard).toBeNull();
       });
     });
   });
