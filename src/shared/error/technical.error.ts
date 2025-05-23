@@ -34,11 +34,6 @@ export class TechnicalError extends Error {
       `[DETAILS]${detailsString}`;
 
     super(message);
-
-    this.name = "TechnicalError";
-    this.details = failure.details;
-    this.richFailure = richFailure;
-    Object.setPrototypeOf(this, TechnicalError.prototype);
   }
 
   /**
@@ -81,9 +76,11 @@ export class TechnicalError extends Error {
     additionalDetails: Record<string, any> = {},
   ): void {
     const nullFields = collectNullFields(fields);
+    if (nullFields.length === 0) return;
 
+    const str = nullFields.reduce((field) => ` ${field}`);
     this.if(nullFields.length > 0, failureCode, {
-      fields: nullFields,
+      resource: str,
       ...additionalDetails,
     });
   }
