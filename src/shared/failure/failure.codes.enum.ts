@@ -164,16 +164,6 @@ export enum FailureCode {
   VALIDATOR_WITH_INVALID_DATA_STRUCTURE = "VALIDATOR_WITH_INVALID_DATA_STRUCTURE",
   STUDENT_CARD_ID_INVALID_FORMAT = "STUDENT_CARD_ID_INVALID_FORMAT",
   STUDENT_CARD_EXPIRED = "STUDENT_CARD_EXPIRED",
+  CPF_ALREADY_IN_USE = "CPF_ALREADY_IN_USE",
+  STUDENT_CARD_ALREADY_IN_USE = "STUDENT_CARD_ALREADY_IN_USE",
 }
-
-/*
-
-- Sempre utilize placeholders como {resource},
- {action} ,
-  {field} ,
-  {min} ,
-  {max} ,
-  {uuid} ,
-  {value} ,
- etc., conforme o contexto do erro.
-*/
