@@ -1,5 +1,5 @@
 import { Image } from "../entity/image";
-import { ImageUID } from "../entity/value-object/image-uid.vo";
+import { ImageUID } from "../entity/value-object/image.uid";
 
 /**
  * Interface para o repositório de imagens.
