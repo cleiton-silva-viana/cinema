@@ -1,4 +1,22 @@
-import { extractTemplateVariables } from "@scripts/gererate.error.types";
+import { faker } from "@faker-js/faker/.";
+import {
+  analyzeErrorTemplate,
+  extractTemplateVariables,
+} from "@scripts/gererate.error.types";
+
+function generateTemplate(template?: { pt: string; en: string }) {
+  return {
+    title: {
+      pt: faker.lorem.lines(1),
+      en: faker.lorem.lines(1),
+    },
+    template: template || {
+      pt: faker.lorem.lines(1),
+      en: faker.lorem.lines(1),
+    },
+    status: 400,
+  };
+}
 
 describe("extractTemplateVariables", () => {
   it("deve retornar um array contendo todas as variáveis contída sno template", () => {
@@ -73,5 +91,57 @@ describe("extractTemplateVariables", () => {
     expect(result.some((f) => (f) => field1.name && f === field1.type));
     expect(result.some((f) => (f) => field3.name && f === field3.type));
     expect(result.some((f) => (f) => field4.name && f === field4.type));
+  });
+});
+
+describe("analyzeErrorTemplate", () => {
+  it("deve retornar um array contendo todos as variáveis contidas nos templates em pt e en", () => {
+    // Arrange
+    const min = "min";
+    const max = "max";
+    const resource = "resource";
+    const type = "type";
+    const count = "count";
+
+    const temp = generateTemplate({
+      en: `This {${type}} must have length between {${min}} of {${max}}.`,
+      pt: `Este {${resource}} deve ter {${count}} valores.`,
+    });
+
+    // Act
+    const result = analyzeErrorTemplate(temp);
+
+    // Assert
+    expect(result.length).toBe(5);
+  });
+
+  it("deve retornar os campos duplicados no template apenas 1 vez", () => {
+    // Arrange
+    const min = "min";
+    const max = "max";
+    const type = "type";
+
+    const temp = generateTemplate({
+      en: `This {${type}} must have length between {${min}} of {${max}}.`,
+      pt: `O {${type}} deve ter uma tamanho entre {${min}} e {${max}}.`,
+    });
+
+    // Act
+    const result = analyzeErrorTemplate(temp);
+
+    // Assert
+    expect(result.length).toBe(3);
+  });
+
+  it("deve retornar um array vazio se não houver variáveis no template", () => {
+    // Arrange
+    const template = generateTemplate();
+
+    // Act
+    const result = analyzeErrorTemplate(template);
+
+    // Assert
+    expect(result.length).toBe(0);
+    expect(result).toEqual([]);
   });
 });
