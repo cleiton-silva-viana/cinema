@@ -4,8 +4,8 @@ import {
   extractTemplateVariables,
   generateCodeConstant,
   generateFailureCodes,
-} from "@scripts/gererate.error.types";
-import { FailureTemplate } from "src/shared/failure/failures.template";
+} from "@scripts/generate.error.types";
+import { FailureTemplate } from "src/shared/failure/failure.template";
 
 function generateTemplate(template?: { pt: string; en: string }) {
   return {

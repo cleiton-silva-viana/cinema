@@ -1,4 +1,4 @@
-import { FailureTemplate } from "src/shared/failure/failures.template";
+import { FailureTemplate } from "src/shared/failure/failure.template";
 
 type Failures = Record<string, FailureTemplate>;
 type TemplateVariable = { field: string; type: string };
@@ -74,9 +74,9 @@ export function generateCodeConstant(failures: Failures): string {
     let params = analyzeErrorTemplate(template);
     if (params.length === 0) {
       codes += `${code}: (): SimpleFailure => ({ 
-        code: 'FailureCode.${code}', 
+        code: FailureCode.${code}, 
         details: {} 
-      })\n`;
+      }),\n`;
       return;
     }
 
@@ -92,10 +92,10 @@ export function generateCodeConstant(failures: Failures): string {
     codes += `${code}: (${functionArguments}): SimpleFailure => ({ 
       code: FailureCode.${code}, 
       details: { ${detailsKey} }
-    })\n`;
+    }),\n`;
   });
 
-  return `export const Codes = {
+  return `export const FailureFactory = {
     ${codes}
   }`;
 }
