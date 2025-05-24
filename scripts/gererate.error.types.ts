@@ -1,5 +1,6 @@
 import { FailureTemplate } from "src/shared/failure/failures.template";
 
+type Failures = Record<string, FailureTemplate>;
 type TemplateVariable = { field: string; type: string };
 
 /**
@@ -47,4 +48,16 @@ export function analyzeErrorTemplate(
   });
 
   return Array.from(uniqueVars.values());
+}
+
+/**
+ * Gera uma string de enum contendo todos os códigos de erro contídos no objeto passado por parâmetro
+ * */
+export function generateFailureCodes(failures: Failures): string {
+  const codes = Object.keys(failures)
+    .sort()
+    .map((code) => `  ${code} = '${code}'`)
+    .join(",\n");
+
+  return `export enum FailureCode {\n${codes}\n}\n// Este arquivo é gerado automaticamente. NÃO EDITE MANUALMENTE!`;
 }

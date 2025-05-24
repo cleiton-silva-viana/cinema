@@ -2,7 +2,9 @@ import { faker } from "@faker-js/faker/.";
 import {
   analyzeErrorTemplate,
   extractTemplateVariables,
+  generateFailureCodes,
 } from "@scripts/gererate.error.types";
+import { FailureTemplate } from "src/shared/failure/failures.template";
 
 function generateTemplate(template?: { pt: string; en: string }) {
   return {
@@ -143,5 +145,28 @@ describe("analyzeErrorTemplate", () => {
     // Assert
     expect(result.length).toBe(0);
     expect(result).toEqual([]);
+  });
+});
+
+describe("generateFailureCodes", () => {
+  it("deve gerar os códigos de erro ordenamos corretamente", () => {
+    // Arrange
+    const failures: Record<string, FailureTemplate> = {
+      A_FIRST: generateTemplate(),
+      Z_LAST: generateTemplate(),
+      B_SECOND: generateTemplate(),
+      F_THIRD: generateTemplate(),
+    };
+
+    // Act
+    const result = generateFailureCodes(failures);
+
+    // Assert
+    expect(result).toBeDefined();
+    expect(result).toContain("A_FIRST");
+    expect(result).toContain("F_THIRD");
+    expect(result).toContain("Z_LAST");
+    expect(result).toContain("B_SECOND");
+    expect(result).toContain("FailureCode");
   });
 });
