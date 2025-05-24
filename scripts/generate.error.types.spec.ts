@@ -2,6 +2,7 @@ import { faker } from "@faker-js/faker/.";
 import {
   analyzeErrorTemplate,
   extractTemplateVariables,
+  generateCodeConstant,
   generateFailureCodes,
 } from "@scripts/gererate.error.types";
 import { FailureTemplate } from "src/shared/failure/failures.template";
@@ -168,5 +169,31 @@ describe("generateFailureCodes", () => {
     expect(result).toContain("Z_LAST");
     expect(result).toContain("B_SECOND");
     expect(result).toContain("FailureCode");
+  });
+});
+
+describe("generateCodeConstant", () => {
+  it("deve criar ", () => {
+    // Arrange
+    const failures: Record<string, FailureTemplate> = {
+      WITHOUT_VAR: generateTemplate({
+        pt: "Sem propriedade alguma",
+        en: "Without any property",
+      }),
+      WITH_ONE_VAR: generateTemplate({
+        pt: "Com uma {name}, property",
+        en: "With one {name} property",
+      }),
+      WITH_TWO_VAR: generateTemplate({
+        pt: "Com uma {name}, {property}",
+        en: "With one {name} {property}",
+      }),
+    };
+
+    // Act
+    const result = generateCodeConstant(failures);
+
+    // Assert
+    expect(result).toBeDefined();
   });
 });

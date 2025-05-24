@@ -61,3 +61,41 @@ export function generateFailureCodes(failures: Failures): string {
 
   return `export enum FailureCode {\n${codes}\n}\n// Este arquivo é gerado automaticamente. NÃO EDITE MANUALMENTE!`;
 }
+
+/**
+ * Gera uma constante contendo as funções de criação de simpleFailure
+ * */
+export function generateCodeConstant(failures: Failures): string {
+  const entries = Object.entries(failures);
+
+  let codes: string = "";
+
+  entries.forEach(([code, template]) => {
+    let params = analyzeErrorTemplate(template);
+    if (params.length === 0) {
+      codes += `${code}: (): SimpleFailure => ({ 
+        code: 'FailureCode.${code}', 
+        details: {} 
+      })\n`;
+      return;
+    }
+
+    let functionArguments: string = "";
+    let detailsKey: string = "";
+    params.forEach((p) => {
+      const variable = `${p.field}: ${p.type}`;
+      functionArguments +=
+        functionArguments.length === 0 ? variable : `, ${variable}`;
+      detailsKey += detailsKey === "" ? p.field : `, ${p.field}`;
+    });
+
+    codes += `${code}: (${functionArguments}): SimpleFailure => ({ 
+      code: FailureCode.${code}, 
+      details: { ${detailsKey} }
+    })\n`;
+  });
+
+  return `export const Codes = {
+    ${codes}
+  }`;
+}
