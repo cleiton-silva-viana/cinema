@@ -1,14 +1,15 @@
-import { BaseValidator } from "./base.validator.ts";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { TechnicalError } from "../error/technical.error";
-import { SimpleFailure } from "../failure/simple.failure.type";
+import { BaseValidator } from './base.validator.ts'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { TechnicalError } from '../error/technical.error'
+import { SimpleFailure } from '../failure/simple.failure.type'
+import { isNull } from '@/shared/validator/validator'
 
 /**
  * Validador para datas
  */
 export class DateValidator extends BaseValidator<DateValidator> {
   constructor(value: Record<string, Date>, failures: SimpleFailure[]) {
-    super(value, failures);
+    super(value, failures)
   }
 
   /**
@@ -19,32 +20,23 @@ export class DateValidator extends BaseValidator<DateValidator> {
    */
   public isAfter(
     limitDate: Date,
-    code: FailureCode = FailureCode.DATE_NOT_AFTER_LIMIT, // Código de erro corrigido
-    details: Record<string, any> = {},
+    code: FailureCode = FailureCode.DATE_NOT_AFTER_LIMIT,
+    details: Record<string, any> = {}
   ): DateValidator {
-    TechnicalError.if(
-      !(limitDate instanceof Date),
-      FailureCode.CONTENT_WITH_INVALID_FORMAT,
-      {
-        max_date: limitDate.toString(),
-      },
-    );
+    TechnicalError.validateRequiredFields({ limitDate })
 
-    const isValid =
-      this._value instanceof Date && !isNaN(this._value.getTime());
+    const isValid = this._value instanceof Date && !isNaN(this._value.getTime())
 
-    const date = isValid
-      ? this._value
-      : new Date(new Date(limitDate).setDate(limitDate.getDate() - 10000));
+    const date = isValid ? this._value : new Date(new Date(limitDate).setDate(limitDate.getDate() - 10000))
 
     return this.validate(() => date < limitDate, {
       code,
       details: {
-        date: isValid ? date.toISOString() : "N/A",
+        date: isValid ? date.toISOString() : 'N/A',
         max_date: limitDate.toISOString(),
         ...details,
       },
-    });
+    })
   }
 
   /**
@@ -55,33 +47,23 @@ export class DateValidator extends BaseValidator<DateValidator> {
    */
   public isBefore(
     limitDate: Date,
-    code: FailureCode = FailureCode.DATE_NOT_BEFORE_LIMIT, // Código de erro corrigido
-    details: Record<string, any> = {},
+    code: FailureCode = FailureCode.DATE_NOT_BEFORE_LIMIT,
+    details: Record<string, any> = {}
   ): DateValidator {
-    TechnicalError.if(
-      !(limitDate instanceof Date),
-      FailureCode.CONTENT_WITH_INVALID_TYPE,
-      {
-        value: limitDate.toString(),
-        object_type: typeof limitDate,
-      },
-    );
+    TechnicalError.validateRequiredFields({ limitDate })
 
-    const isValid =
-      this._value instanceof Date && !isNaN(this._value.getTime());
+    const isValid = this._value instanceof Date && !isNaN(this._value.getTime())
 
-    const date = isValid
-      ? this._value
-      : new Date(new Date(limitDate).setDate(limitDate.getDate() + 10000));
+    const date = isValid ? this._value : new Date(new Date(limitDate).setDate(limitDate.getDate() + 10000))
 
     return this.validate(() => date > limitDate, {
       code,
       details: {
-        date: isValid ? date.toISOString() : "N/A",
+        date: isValid ? date.toISOString() : 'N/A',
         min_date: limitDate?.toISOString(),
         ...details,
       },
-    });
+    })
   }
 
   /**
@@ -95,20 +77,9 @@ export class DateValidator extends BaseValidator<DateValidator> {
     startDate: Date,
     endDate: Date,
     code: FailureCode = FailureCode.DATE_OUT_OF_RANGE,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): DateValidator {
-    const fails: string[] = [];
-
-    if (!startDate || !(startDate instanceof Date)) fails.push("startDate");
-    if (!endDate || !(endDate instanceof Date)) fails.push("endDate");
-
-    TechnicalError.if(
-      fails.length > 0,
-      FailureCode.CONTENT_WITH_INVALID_FORMAT,
-      {
-        field: fails.toString(),
-      },
-    );
+    TechnicalError.validateRequiredFields({ startDate, endDate })
 
     if (startDate > endDate)
       return this.validate(() => true, {
@@ -117,12 +88,12 @@ export class DateValidator extends BaseValidator<DateValidator> {
           start_date: startDate?.toISOString(),
           end_date: endDate?.toISOString(),
         },
-      });
+      })
 
     return this.validate(
       () => {
-        const time = this._value.getTime();
-        return !(time >= startDate && time <= endDate);
+        const time = this._value.getTime()
+        return !(time >= startDate && time <= endDate)
       },
       {
         code,
@@ -133,7 +104,7 @@ export class DateValidator extends BaseValidator<DateValidator> {
           max_days: endDate.getDay() - startDate.getDay(),
           ...details,
         },
-      },
-    );
+      }
+    )
   }
 }
