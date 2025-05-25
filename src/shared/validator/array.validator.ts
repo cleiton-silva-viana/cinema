@@ -1,13 +1,13 @@
-import { BaseValidator } from "./base.validator.ts";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { SimpleFailure } from "../failure/simple.failure.type";
+import { BaseValidator } from './base.validator.ts'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { SimpleFailure } from '../failure/simple.failure.type'
 
 /**
  * Validador para arrays
  */
 export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
   constructor(value: Record<string, Array<T>>, failures: SimpleFailure[] = []) {
-    super(value, failures);
+    super(value, failures)
   }
 
   /**
@@ -17,12 +17,12 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
    */
   public isNotEmpty(
     code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): ArrayValidator<T> {
     return this.validate(() => !(this._value.length > 0), {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -35,13 +35,13 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
   public hasLengthBetween(
     min: number,
     max: number,
-    code: FailureCode = FailureCode.LENGTH_OUT_OF_RANGE,
-    details: Record<string, any> = {},
+    code: FailureCode = FailureCode.STRING_LENGTH_OUT_OF_RANGE,
+    details: Record<string, any> = {}
   ): ArrayValidator<T> {
     return this.validate(
       () => {
-        const length = this._value.length;
-        return !(length >= min && length <= max);
+        const length = this._value.length
+        return !(length >= min && length <= max)
       },
       {
         code,
@@ -51,8 +51,8 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
           count: this._value.length,
           ...details,
         },
-      },
-    );
+      }
+    )
   }
 
   /**
@@ -64,14 +64,12 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
   public contains(
     item: T,
     code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): ArrayValidator<T> {
     return this.validate(() => !this._value.includes(item), {
       code,
-      details: {
-        ...details,
-      },
-    });
+      details,
+    })
   }
 
   /**
@@ -83,12 +81,12 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
   public every(
     predicate: (item: T) => boolean,
     code: FailureCode = FailureCode.CONTENT_WITH_INVALID_ITEMS,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): ArrayValidator<T> {
     return this.validate(() => !this._value.every(predicate), {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -100,8 +98,8 @@ export class ArrayValidator<T> extends BaseValidator<ArrayValidator<T>> {
   public some(
     predicate: (item: T) => boolean,
     code: FailureCode = FailureCode.MISSING_VALID_ITEM,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): ArrayValidator<T> {
-    return this.validate(() => !this._value.some(predicate), { code, details });
+    return this.validate(() => !this._value.some(predicate), { code, details })
   }
 }
