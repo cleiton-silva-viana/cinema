@@ -1,4 +1,4 @@
-import {FailureCode} from './failure.codes.enum'
+import { FailureCode } from './failure.codes.enum'
 
 /**
  * Detalhes contextuais de uma falha.

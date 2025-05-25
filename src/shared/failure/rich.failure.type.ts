@@ -1,4 +1,4 @@
-import { HttpStatus } from "@nestjs/common";
+import { HttpStatus } from '@nestjs/common'
 
 /**
  * Representa uma estrutura de erro detalhada e padronizada, projetada especificamente
@@ -18,7 +18,7 @@ export type RichFailure = {
    * É útil para referência interna e, opcionalmente, para lógica de tratamento específica no cliente.
    * Exemplo: "VALIDATION_FIELD_REQUIRED", "AUTH_UNAUTHORIZED", "RESOURCE_NOT_FOUND".
    */
-  code: string;
+  code: string
 
   /**
    * O código de status HTTP (conforme definido pelo `HttpStatus`, e.g., do @nestjs/common)
@@ -26,7 +26,7 @@ export type RichFailure = {
    * interpretação da resposta pelo cliente HTTP.
    * Exemplo: HttpStatus.BAD_REQUEST (400), HttpStatus.UNAUTHORIZED (401), HttpStatus.NOT_FOUND (404).
    */
-  status: HttpStatus;
+  status: HttpStatus
 
   /**
    * Um título curto e legível por humanos que resume a natureza geral do erro.
@@ -34,7 +34,7 @@ export type RichFailure = {
    * ou mensagens de erro concisas.
    * Exemplo: "Erro de Validação", "Autenticação Necessária", "Recurso Não Encontrado".
    */
-  title: string;
+  title: string
 
   /**
    * Uma mensagem detalhada e formatada que explica o erro de forma clara para o usuário final.
@@ -43,5 +43,5 @@ export type RichFailure = {
    * É ideal para exibição em interfaces de usuário ou logs detalhados.
    * Exemplo: "O campo nome não está definido", "Um nome deve ter entre 3 e 50 caracteres."
    */
-  message: string;
-};
+  message: string
+}
