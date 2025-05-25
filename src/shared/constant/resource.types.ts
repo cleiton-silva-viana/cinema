@@ -5,4 +5,4 @@ export const ResourceTypes = {
   ROOM: 'ROOM',
   IMAGE: 'IMAGE',
   SCREENING: 'SCREENING',
-};
+}
