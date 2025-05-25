@@ -9,21 +9,15 @@
     "skipLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@scripts/*": [
-        "scripts/*"
-      ]
+      "@/*": ["src/*"],
+      "@scripts/*": ["scripts/*"],
+      "@shared/*": ["src/shared/*"]
     },
     "outDir": "./dist",
     "rootDir": "./",
     "noEmit": true,
     "types": ["node", "jest"]
   },
-  "include": [
-    "src/**/*.ts",
-    "scripts/**/*.ts"
-  ],
+  "include": ["src/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
