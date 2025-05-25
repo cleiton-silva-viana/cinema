@@ -1,7 +1,5 @@
 import {SimpleFailure} from '../failure/simple.failure.type'
 
-export type ResultStatus = 'SUCCESS' | 'FAILURE'
-
 interface ISuccess<V> extends IBaseResult<V> {
   readonly type: 'SUCCESS'
   readonly value: V
