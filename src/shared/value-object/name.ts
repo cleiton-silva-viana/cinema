@@ -1,28 +1,24 @@
-import { failure, Result, success } from "../result/result";
-import { Assert, Flow } from "../assert/assert";
-import { not } from "../assert/not";
-import { is } from "../assert/is";
-import { SimpleFailure } from "../failure/simple.failure.type";
-import { TechnicalError } from "../error/technical.error";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { Validate } from "../validator/validate";
-import { isNull } from "../validator/validator";
+import { failure, Result, success } from '../result/result'
+import { SimpleFailure } from '../failure/simple.failure.type'
+import { TechnicalError } from '../error/technical.error'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { Validate } from '../validator/validate'
+import { isNull } from '../validator/validator'
 
 /**
  * Representa um nome válido encapsulado com validações de formato e tamanho.
  * Garante que nomes sigam regras de negócio (ex: mínimo 3 caracteres, apenas letras e espaços).
  */
 export class Name {
-  private constructor(public readonly value: string) {}
-
-  private static readonly MIN_NAME_LENGTH = 3;
-  private static readonly MAX_NAME_LENGTH = 50;
-
+  private static readonly MIN_NAME_LENGTH = 3
+  private static readonly MAX_NAME_LENGTH = 50
   /**
    * Regex que permite letras (incluindo acentos e caracteres Unicode) e espaços.
    * Exemplos válidos: "João", "José Silva", "Élise".
    */
-  private static readonly NAME_FORMAT_REGEX = /^[\p{L}\s]{3,50}$/u;
+  private static readonly NAME_FORMAT_REGEX = /^[\p{L}\s]{3,50}$/u
+
+  private constructor(public readonly value: string) {}
 
   /**
    * Cria uma instância válida de Name com validações de formato e tamanho.
@@ -34,18 +30,15 @@ export class Name {
    * - `FailureCode.NAME_WITH_INVALID_FORMAT`: Se conter caracteres não alfabéticos ou especiais
    */
   public static create(name: string): Result<Name> {
-    const failures: SimpleFailure[] = [];
+    const failures: SimpleFailure[] = []
 
     Validate.string({ name }, failures)
       .isRequired()
       .isNotEmpty()
       .hasLengthBetween(Name.MIN_NAME_LENGTH, Name.MAX_NAME_LENGTH)
-      .matchesPattern(
-        Name.NAME_FORMAT_REGEX,
-        FailureCode.NAME_WITH_INVALID_FORMAT,
-      );
+      .matchesPattern(Name.NAME_FORMAT_REGEX, FailureCode.NAME_WITH_INVALID_FORMAT)
 
-    return failures.length > 0 ? failure(failures) : success(new Name(name));
+    return failures.length > 0 ? failure(failures) : success(new Name(name))
   }
 
   /**
@@ -56,8 +49,8 @@ export class Name {
   public static hydrate(name: string): Name {
     TechnicalError.if(isNull(name), FailureCode.MISSING_REQUIRED_DATA, {
       field: name,
-    });
-    return new Name(name);
+    })
+    return new Name(name)
   }
 
   /**
@@ -66,6 +59,6 @@ export class Name {
    * @returns true se os valores forem idênticos, false caso contrário
    */
   public equal(other: Name): boolean {
-    return other instanceof Name && other.value === this.value;
+    return other instanceof Name && other.value === this.value
   }
 }
