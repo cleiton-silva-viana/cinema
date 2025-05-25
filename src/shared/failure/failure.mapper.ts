@@ -1,40 +1,39 @@
-import { HttpStatus } from "@nestjs/common";
-import { SimpleFailure } from "./simple.failure.type";
-import { RichFailure } from "./rich.failure.type";
-import { IFailureMessageProvider } from "./failure.message.provider.interface";
-import { IFailureMapper } from "./failure.mapper.interface";
-import { FailureMessageProvider } from "./failure.message.provider";
+import { HttpStatus } from '@nestjs/common'
+import { SimpleFailure } from './simple.failure.type'
+import { RichFailure } from './rich.failure.type'
+import { IFailureMessageProvider } from './failure.message.provider.interface'
+import { IFailureMapper } from './failure.mapper.interface'
+import { FailureMessageProvider } from './failure.message.provider'
 
 /**
  * Classe responsável por mapear SimpleFailure para RichFailureType,
  * utilizando as configurações definidas no arquivo failure.messages.json
  */
 export class FailureMapper implements IFailureMapper {
-  private static instance: FailureMapper | null = null;
+  private static instance: FailureMapper | null = null
 
   private constructor(
-    private readonly messageProvider: IFailureMessageProvider = FailureMessageProvider.getInstance(),
+    private readonly messageProvider: IFailureMessageProvider = FailureMessageProvider.getInstance()
   ) {}
 
   public static getInstance(): FailureMapper {
-    if (FailureMapper.instance === null)
-      FailureMapper.instance = new FailureMapper();
-    return FailureMapper.instance;
+    if (FailureMapper.instance === null) FailureMapper.instance = new FailureMapper()
+    return FailureMapper.instance
   }
 
   /**
    * Reseta a instância do singleton (útil para testes)
    */
   public static reset(): void {
-    FailureMapper.instance = null;
+    FailureMapper.instance = null
   }
 
   /**
    * Define um provedor de mensagens personalizado (útil para testes)
    */
   public static setMessageProvider(provider: IFailureMessageProvider): void {
-    FailureMapper.reset();
-    FailureMapper.instance = new FailureMapper(provider);
+    FailureMapper.reset()
+    FailureMapper.instance = new FailureMapper(provider)
   }
 
   /**
@@ -44,24 +43,17 @@ export class FailureMapper implements IFailureMapper {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Um objeto RichFailureType com informações completas sobre o erro
    */
-  public toRichFailure(
-    failure: SimpleFailure,
-    language: "pt" | "en" = "pt",
-  ): RichFailure {
-    const messageConfig = this.messageProvider.getMessageConfig(failure.code);
+  public toRichFailure(failure: SimpleFailure, language: 'pt' | 'en' = 'pt'): RichFailure {
+    const messageConfig = this.messageProvider.getMessageConfig(failure.code)
 
-    const messageTemplate =
-      messageConfig.template?.[language] || messageConfig.template?.en;
-    const title = messageConfig.title[language] || messageConfig.title?.en;
+    const messageTemplate = messageConfig.template?.[language] || messageConfig.template?.en
+    const title = messageConfig.title[language] || messageConfig.title?.en
 
-    const status = messageConfig.statusCode as HttpStatus;
+    const status = messageConfig.statusCode as HttpStatus
 
-    let formattedMessage = title;
+    let formattedMessage = title
     if (messageTemplate) {
-      formattedMessage = this.formatMessageWithTemplate(
-        messageTemplate,
-        failure.details || {},
-      );
+      formattedMessage = this.formatMessageWithTemplate(messageTemplate, failure.details || {})
     }
 
     return {
@@ -69,26 +61,7 @@ export class FailureMapper implements IFailureMapper {
       status,
       title,
       message: formattedMessage,
-    };
-  }
-
-  /**
-   * Formata uma mensagem substituindo os placeholders pelos valores dos detalhes
-   *
-   * @param template Template da mensagem com placeholders no formato {placeholder}
-   * @param details Objeto com os valores para substituir os placeholders
-   * @returns Mensagem formatada com os valores substituídos
-   */
-  private formatMessageWithTemplate(
-    template: string,
-    details: Record<string, any>,
-  ): string {
-    return template.replace(/{(\w+)}/g, (match, placeholder) => {
-      if (details && details[placeholder] !== undefined) {
-        return String(details[placeholder]);
-      }
-      return match; // Mantém o placeholder se não houver valor correspondente
-    });
+    }
   }
 
   /**
@@ -98,10 +71,23 @@ export class FailureMapper implements IFailureMapper {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Array de objetos RichFailureType
    */
-  public toRichFailures(
-    failures: SimpleFailure[],
-    language: "pt" | "en" = "pt",
-  ): RichFailure[] {
-    return failures.map((failure) => this.toRichFailure(failure, language));
+  public toRichFailures(failures: SimpleFailure[], language: 'pt' | 'en' = 'pt'): RichFailure[] {
+    return failures.map((failure) => this.toRichFailure(failure, language))
+  }
+
+  /**
+   * Formata uma mensagem substituindo os placeholders pelos valores dos detalhes
+   *
+   * @param template Template da mensagem com placeholders no formato {placeholder}
+   * @param details Objeto com os valores para substituir os placeholders
+   * @returns Mensagem formatada com os valores substituídos
+   */
+  private formatMessageWithTemplate(template: string, details: Record<string, any>): string {
+    return template.replace(/{(\w+)}/g, (match, placeholder) => {
+      if (details && details[placeholder] !== undefined) {
+        return String(details[placeholder])
+      }
+      return match // Mantém o placeholder se não houver valor correspondente
+    })
   }
 }
