@@ -1,9 +1,10 @@
-import { failure, Result, success } from "../result/result";
-import { isNull } from "../validator/validator";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { ensureNotNull } from "../validator/common.validators";
-import { Validate } from "../validator/validate";
-import { TechnicalError } from "../error/technical.error";
+import { failure, Result, success } from '../result/result'
+import { isNull } from '../validator/validator'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { ensureNotNull } from '../validator/common.validators'
+import { Validate } from '../validator/validate'
+import { TechnicalError } from '../error/technical.error'
+import { FailureFactory } from '../failure/failure.factory'
 
 /**
  * Representa um valor monetário (Preço).
@@ -25,8 +26,23 @@ export class Price {
    * @param value O valor em centavos (já multiplicado por 100).
    */
   private constructor(
-    public readonly value: number, // Representa o valor monetário em centavos.
+    public readonly value: number // Representa o valor monetário em centavos.
   ) {}
+
+  /**
+   * Formata o preço para exibição como valor monetário.
+   *
+   * @returns String formatada do preço (ex: "R$ 10,50")
+   */
+  get format(): string {
+    const formatter = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    return formatter.format(this.value)
+  }
 
   /**
    * Método Fábrica para criar instâncias de Price.
@@ -37,22 +53,16 @@ export class Price {
    * @returns Result<Price> contendo o Preço ou uma lista de falhas.
    */
   public static create(valueInCents: number): Result<Price> {
-    const failures = ensureNotNull({ value: valueInCents });
-    if (failures.length > 0) return failure(failures);
+    const failures = ensureNotNull({ value: valueInCents })
+    if (failures.length > 0) return failure(failures)
 
     Validate.number({ valueInCents }, failures)
       .isRequired()
       .isInteger(FailureCode.PRICE_MUST_BE_INTEGER, { value: valueInCents })
-      .isTrue(valueInCents >= 0, FailureCode.PRICE_MUST_BE_POSITIVE, {
-        value: valueInCents,
-      })
-      .isTrue(!isNaN(valueInCents), FailureCode.PRICE_INVALID_INSTANCE, {
-        type: typeof valueInCents,
-      });
+      .isTrue(valueInCents >= 0, FailureCode.PRICE_MUST_BE_POSITIVE, { value: valueInCents })
+      .isTrue(!isNaN(valueInCents), FailureCode.PRICE_INVALID_INSTANCE, { type: typeof valueInCents })
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(new Price(valueInCents));
+    return failures.length > 0 ? failure(failures) : success(new Price(valueInCents))
   }
 
   /**
@@ -62,9 +72,9 @@ export class Price {
    * @returns boolean True se os preços tiverem o mesmo valor.
    */
   public equals(other: Price): boolean {
-    if (isNull(other)) return false;
-    if (!(other instanceof Price)) return false;
-    return this.value === other.value;
+    if (isNull(other)) return false
+    if (!(other instanceof Price)) return false
+    return this.value === other.value
   }
 
   /**
@@ -75,14 +85,10 @@ export class Price {
    * @returns Result<Price> O novo preço resultante.
    */
   public add(other: Price): Result<Price> {
-    if (!(other instanceof Price))
-      return failure({
-        code: FailureCode.PRICE_INVALID_INSTANCE,
-        details: { type: typeof other },
-      });
+    if (!(other instanceof Price)) return failure(FailureFactory.PRICE_INVALID_INSTANCE(typeof other))
 
-    const newValue = this.value + other.value;
-    return Price.create(newValue);
+    const newValue = this.value + other.value
+    return Price.create(newValue)
   }
 
   /**
@@ -95,25 +101,14 @@ export class Price {
    * @throws Falha com código PRICE_NEGATIVE_RESULT_NOT_ALLOWED se o resultado for negativo.
    */
   public subtract(other: Price): Result<Price> {
-    if (!(other instanceof Price))
-      return failure({
-        code: FailureCode.PRICE_INVALID_INSTANCE,
-        details: { type: typeof other },
-      });
+    if (!(other instanceof Price)) return failure(FailureFactory.PRICE_INVALID_INSTANCE(typeof other))
 
-    const newValue = this.value - other.value;
+    const newValue = this.value - other.value
 
     if (newValue < 0)
-      return failure({
-        code: FailureCode.PRICE_NEGATIVE_RESULT_NOT_ALLOWED,
-        details: {
-          value: this.value,
-          subtracted_value: other.value,
-          result: newValue,
-        },
-      });
+      return failure(FailureFactory.PRICE_NEGATIVE_RESULT_NOT_ALLOWED(this.value, other.value, newValue))
 
-    return Price.create(newValue);
+    return Price.create(newValue)
   }
 
   /**
@@ -125,22 +120,14 @@ export class Price {
    * @throws Falha com código PRICE_NEGATIVE_FACTOR_NOT_ALLOWED se o fator for negativo.
    */
   public multiply(factor: number): Result<Price> {
-    if (typeof factor !== "number" || isNaN(factor))
-      return failure({
-        code: FailureCode.PRICE_INVALID_MULTIPLICATION_FACTOR,
-        details: { value: factor, type: "number" },
-      });
+    if (typeof factor !== 'number' || isNaN(factor))
+      return failure(FailureFactory.PRICE_INVALID_MULTIPLICATION_FACTOR(factor, typeof factor))
 
-    if (factor < 0)
-      return failure({
-        code: FailureCode.PRICE_NEGATIVE_FACTOR_NOT_ALLOWED,
-        details: { factor },
-      });
+    if (factor < 0) return failure(FailureFactory.PRICE_NEGATIVE_FACTOR_NOT_ALLOWED(factor))
 
-    const newValue = this.value * factor;
-    // O resultado da multiplicação pode não ser um inteiro, arredondamos para o centavo mais próximo
-    const roundedValue = Math.round(newValue);
-    return Price.create(roundedValue);
+    const newValue = this.value * factor
+    const roundedValue = Math.round(newValue)
+    return Price.create(roundedValue)
   }
 
   /**
@@ -153,21 +140,14 @@ export class Price {
    * @throws Falha com código PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED se o divisor for zero ou negativo.
    */
   public divide(divisor: number): Result<Price> {
-    if (typeof divisor !== "number" || isNaN(divisor))
-      return failure({
-        code: FailureCode.PRICE_INVALID_DIVISION_FACTOR,
-        details: { value: divisor, type: "number" },
-      });
+    if (typeof divisor !== 'number' || isNaN(divisor))
+      return failure(FailureFactory.PRICE_INVALID_DIVISION_FACTOR(divisor, 'number'))
 
-    if (divisor <= 0)
-      return failure({
-        code: FailureCode.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED,
-        details: { divisor },
-      });
+    if (divisor <= 0) return failure(FailureFactory.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED(divisor))
 
-    const newValue = this.value / divisor;
-    const roundedValue = Math.round(newValue);
-    return Price.create(roundedValue);
+    const newValue = this.value / divisor
+    const roundedValue = Math.round(newValue)
+    return Price.create(roundedValue)
   }
 
   /**
@@ -178,28 +158,10 @@ export class Price {
    * @throws TechnicalError se o parâmetro não for uma instância de Price.
    */
   public compare(other: Price): number {
-    TechnicalError.if(
-      !(other instanceof Price),
-      FailureCode.PRICE_INVALID_INSTANCE,
-    );
+    TechnicalError.if(!(other instanceof Price), FailureCode.PRICE_INVALID_INSTANCE)
 
-    if (this.value < other.value) return -1;
-    if (this.value > other.value) return 1;
-    return 0;
-  }
-
-  /**
-   * Formata o preço para exibição como valor monetário.
-   *
-   * @returns String formatada do preço (ex: "R$ 10,50")
-   */
-  get format(): string {
-    const formatter = new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    return formatter.format(this.value);
+    if (this.value < other.value) return -1
+    if (this.value > other.value) return 1
+    return 0
   }
 }
