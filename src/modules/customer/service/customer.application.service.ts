@@ -1,302 +1,182 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { CUSTOMER_REPOSITORY } from "../constant/customer.constants";
-import { ICustomerRepository } from "../repository/customer.repository.interface";
-import { CustomerUID } from "../entity/value-object/customer.uid";
-import { failure, Result, success } from "../../../shared/result/result";
-import { Customer } from "../entity/customer";
-import {
-  ensureNotNull,
-  validateAndCollect,
-} from "../../../shared/validator/common.validators";
-import { FailureCode } from "../../../shared/failure/failure.codes.enum";
-import { ResourceTypes } from "../../../shared/constant/resource.types";
-import { Email } from "../entity/value-object/email";
-import { Password } from "../entity/value-object/password";
-import { CPF } from "../entity/value-object/cpf";
-import { isNull } from "../../../shared/validator/validator";
+import { Inject, Injectable } from '@nestjs/common'
+import { CUSTOMER_REPOSITORY } from '../constant/customer.constants'
+import { ICustomerRepository } from '../repository/customer.repository.interface'
+import { CustomerUID } from '../entity/value-object/customer.uid'
+import { Customer } from '../entity/customer'
+import { Email } from '../entity/value-object/email'
+import { Password } from '../entity/value-object/password'
+import { failure, Result, success } from '@shared/result/result'
+import { ensureNotNull } from '@shared/validator/common.validators'
+import { ResourceTypes } from '@shared/constant/resource.types'
+import { isNull } from '@shared/validator/validator'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 export interface ICreateCustomerProps {
-  name: string;
-  birthDate: Date;
-  email: string;
-  password: string;
+  name: string
+  birthDate: Date
+  email: string
+  password: string
+}
+
+export interface IStudentCardInput {
+  id: string
+  validity: Date
 }
 
 @Injectable()
 export class CustomerApplicationService {
-  constructor(
-    @Inject(CUSTOMER_REPOSITORY)
-    private readonly repository: ICustomerRepository,
-  ) {}
+  constructor(@Inject(CUSTOMER_REPOSITORY) private readonly repository: ICustomerRepository) {}
 
   public async findById(uid: string | CustomerUID): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ uid });
-    if (failures.length > 0) return failure(failures);
+    const failures = ensureNotNull({ uid })
+    if (failures.length > 0) return failure(failures)
 
-    let customerUID: CustomerUID | null =
-      uid instanceof CustomerUID
-        ? uid
-        : validateAndCollect(CustomerUID.parse(uid), failures);
+    const parseCustomerUidResult = uid instanceof CustomerUID ? success(uid) : CustomerUID.parse(uid)
 
-    if (failures.length > 0) return failure(failures);
+    if (parseCustomerUidResult.isInvalid()) return parseCustomerUidResult
 
-    const customer = await this.repository.findById(customerUID);
+    const customer = await this.repository.findById(parseCustomerUidResult.value)
 
-    return !customer
-      ? failure({
-          code: FailureCode.RESOURCE_NOT_FOUND,
-          details: { resource: ResourceTypes.CUSTOMER },
-        })
-      : success(customer);
+    return !customer ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, uid)) : success(customer)
   }
 
   public async findByEmail(email: string | Email): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ email });
-    if (failures.length > 0) return failure(failures);
+    const failures = ensureNotNull({ email })
+    if (failures.length > 0) return failure(failures)
 
-    const emailChecked: Email | null =
-      email instanceof Email
-        ? email
-        : validateAndCollect(Email.create(email), failures);
-    if (failures.length > 0) return failure(failures);
+    const emailCheckedResult = email instanceof Email ? success(email) : Email.create(email)
 
-    const customer = await this.repository.findByEmail(emailChecked);
+    if (emailCheckedResult.isInvalid()) return emailCheckedResult
+
+    const customer = await this.repository.findByEmail(emailCheckedResult.value)
+
     return isNull(customer)
-      ? failure({
-          code: FailureCode.RESOURCE_NOT_FOUND,
-          details: { resource: ResourceTypes.CUSTOMER },
-        })
-      : success(customer);
+      ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, email))
+      : success(customer)
   }
 
-  public async create(
-    createProps: ICreateCustomerProps,
-  ): Promise<Result<Customer>> {
-    const failures = ensureNotNull({
-      createProps,
-      name: createProps.name,
-      birthDate: createProps.birthDate,
-      email: createProps.email,
-    });
-    if (failures.length > 0) return failure(failures);
+  public async create(props: ICreateCustomerProps): Promise<Result<Customer>> {
+    const failures = ensureNotNull({ props })
+    if (failures.length > 0) return failure(failures)
 
-    const emailAlreadyInUse = await this.repository.hasEmail(createProps.email);
-    if (emailAlreadyInUse)
-      return failure({
-        code: FailureCode.EMAIL_ALREADY_IN_USE,
-        details: {
-          resource: ResourceTypes.CUSTOMER,
-          email: createProps.email,
-        },
-      });
+    const { name, birthDate, email, password } = props
+    failures.push(...ensureNotNull({ name, birthDate, email, password }))
+    if (failures.length > 0) return failure(failures)
 
-    const customer = validateAndCollect(
-      Customer.create(
-        createProps.name,
-        createProps.birthDate,
-        createProps.email,
-      ),
-      failures,
-    );
-    const password = validateAndCollect(
-      await Password.create(createProps.password),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
+    const createCustomerResult = Customer.create(name, birthDate, email)
+    if (createCustomerResult.isInvalid()) return createCustomerResult
 
-    return success(await this.repository.create(customer, password));
+    const customer = createCustomerResult.value
+
+    const emailAlreadyInUse = await this.repository.hasEmail(customer.email)
+    if (emailAlreadyInUse) return failure(FailureFactory.EMAIL_ALREADY_IN_USE(email))
+
+    const createPasswordResult = await Password.create(password)
+    if (createPasswordResult.isInvalid()) return createPasswordResult
+
+    return success(await this.repository.create(customer))
   }
 
-  public async updateCustomerEmail(
-    customerId: string,
-    email: string,
-  ): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ customerId, email });
-    if (failures.length > 0) return failure(failures);
+  public async updateCustomerEmail(customerUID: string, email: string): Promise<Result<Partial<Customer>>> {
+    const failures = ensureNotNull({ customerUID, email })
+    if (failures.length > 0) return failure(failures)
 
-    const emailVO = validateAndCollect(Email.create(email), failures);
-    if (failures.length > 0) return failure(failures);
+    const createEmailResult = Email.create(email)
+    if (createEmailResult.isInvalid()) return createEmailResult
+    const emailVO = createEmailResult.value
 
-    const emailExists = await this.repository.hasEmail(emailVO);
-    if (emailExists)
-      return failure({
-        code: FailureCode.EMAIL_ALREADY_IN_USE,
-        details: {
-          value: emailVO.value,
-        },
-      });
+    const emailExists = await this.repository.hasEmail(emailVO)
+    if (emailExists) return failure(FailureFactory.EMAIL_ALREADY_IN_USE(email))
 
-    const customer = validateAndCollect(
-      await this.findById(customerId),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
+    const findCustomerResult = await this.findById(customerUID)
+    if (findCustomerResult.isInvalid()) return findCustomerResult
+    const customer = findCustomerResult.value
 
-    const updatedCustomer = validateAndCollect(
-      customer.updateEmail(emailVO.value),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
+    const updatedCustomerResult = customer.updateEmail(emailVO.value)
+    if (updatedCustomerResult.isInvalid()) return updatedCustomerResult
+    const updatedCustomer = updatedCustomerResult.value
 
-    return success(
-      await this.repository.update(customer.uid, {
-        email: updatedCustomer.email,
-      }),
-    );
+    return success(await this.repository.update(customer.uid, { email: updatedCustomer.email }))
   }
 
-  public async updateCustomerName(
-    customerId: string,
-    newName: string,
-  ): Promise<Result<Customer>> {
-    const customerResult = await this.findById(customerId);
-    if (customerResult.isInvalid()) return customerResult;
+  public async updateCustomerName(customerUID: string, newName: string): Promise<Result<Partial<Customer>>> {
+    const findCustomerResult = await this.findById(customerUID)
+    if (findCustomerResult.isInvalid()) return findCustomerResult
 
-    const customer = customerResult.value;
-    const updateResult = customer.updateName(newName);
-    if (updateResult.isInvalid()) return updateResult;
+    const customer = findCustomerResult.value
+    const updateResult = customer.updateName(newName)
+    if (updateResult.isInvalid()) return updateResult
 
-    return success(
-      await this.repository.update(customer.uid, { name: customer.name }),
-    );
+    return success(await this.repository.update(customer.uid, { name: customer.name }))
   }
 
-  public async updateCustomerBirthDate(
-    customerId: string,
-    birthDate: Date,
-  ): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ customerId, birthDate });
-    if (failures.length > 0) return failure(failures);
+  public async updateCustomerBirthDate(customerUID: string, birthDate: Date): Promise<Result<Partial<Customer>>> {
+    const findCustomerResult = await this.findById(customerUID)
+    if (findCustomerResult.isInvalid()) return findCustomerResult
+    const customer = findCustomerResult.value
 
-    const customer = validateAndCollect(
-      await this.findById(customerId),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
+    const updateCustomerResult = customer.updateBirthDate(birthDate)
+    if (updateCustomerResult.isInvalid()) return updateCustomerResult
+    const updatedCustomer = updateCustomerResult.value
 
-    const updateResult = validateAndCollect(
-      customer.updateBirthDate(birthDate),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
-
-    return success(
-      await this.repository.update(customer.uid, {
-        birthDate: updateResult.birthDate,
-      }),
-    );
+    return success(await this.repository.update(customer.uid, { birthDate: updatedCustomer.birthDate }))
   }
 
-  public async assignCustomerCPF(
-    customerUID: string,
-    cpf: string,
-  ): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ customerUID, cpf });
-    if (failures.length > 0) return failure(failures);
+  public async assignCustomerCPF(customerUID: string, cpf: string): Promise<Result<Partial<Customer>>> {
+    const findCustomerResult = await this.findById(customerUID)
+    if (findCustomerResult.isInvalid()) return findCustomerResult
+    const customer = findCustomerResult.value
 
-    const cpfVO = validateAndCollect(CPF.create(cpf), failures);
-    const customerUidVO = validateAndCollect(
-      CustomerUID.parse(customerUID),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
+    const customerUpdateResult = customer.assignCPF(cpf)
+    if (customerUpdateResult.isInvalid()) return customerUpdateResult
+    const updatedCustomer = customerUpdateResult.value
 
-    const cpfAlreadyInUse = await this.repository.hasCPF(cpfVO);
-    if (cpfAlreadyInUse)
-      return failure({
-        code: FailureCode.CPF_ALREADY_IN_USE,
-        details: {
-          resource: ResourceTypes.CUSTOMER,
-          value: cpf,
-        },
-      });
+    const cpfAlreadyInUse = await this.repository.hasCPF(updatedCustomer.cpf!)
+    if (cpfAlreadyInUse) return failure(FailureFactory.CPF_ALREADY_IN_USE(cpf))
 
-    const customer = validateAndCollect(
-      await this.findById(customerUID),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
-
-    const assignResult = customer.assignCPF(cpf);
-    if (assignResult.isInvalid()) return assignResult;
-
-    return success(
-      await this.repository.update(customer.uid, { cpf: customer.cpf }),
-    );
+    return success(await this.repository.update(customer.uid, { cpf: customer.cpf }))
   }
 
-  public async removeCustomerCPF(
-    customerId: string,
-  ): Promise<Result<Customer>> {
-    const customerResult = await this.findById(customerId);
-    if (customerResult.isInvalid()) return customerResult;
+  public async removeCustomerCPF(customerUID: string): Promise<Result<Partial<Customer>>> {
+    const findCustomerResult = await this.findById(customerUID)
+    if (findCustomerResult.isInvalid()) return findCustomerResult
 
-    const customer = customerResult.value;
-    const withoutCPF = validateAndCollect(customer.removeCPF(), []);
+    const customer = findCustomerResult.value
+    const updatedCustomerResult = customer.removeCPF()
+    if (updatedCustomerResult.isInvalid()) return updatedCustomerResult
 
-    return success(
-      await this.repository.update(customer.uid, { cpf: withoutCPF.cpf }),
-    );
+    return success(await this.repository.update(customer.uid, { cpf: updatedCustomerResult.value.cpf }))
   }
 
   public async assignCustomerStudentCard(
-    customerId: string,
-    studentCard: { id: string; validity: Date },
-  ): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ customerId, studentCard });
-    if (failures.length > 0) return failure(failures);
+    customerUID: string,
+    studentCard: IStudentCardInput
+  ): Promise<Result<Partial<Customer>>> {
+    const findCustomerResult = await this.findById(customerUID)
+    if (findCustomerResult.isInvalid()) return findCustomerResult
 
-    const { id, validity } = studentCard;
-    failures.push(
-      ...ensureNotNull({ studentCardId: id, studentCardValidity: validity }),
-    );
+    const customer = findCustomerResult.value
 
-    const customer = validateAndCollect(
-      await this.findById(customerId),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
+    const updateCustomerResult = customer.assignStudentCard(studentCard?.id, studentCard?.validity)
+    if (updateCustomerResult.isInvalid()) return updateCustomerResult
 
-    const withAssign = validateAndCollect(
-      customer.assignStudentCard(id, validity),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
+    const updatedCustomer = updateCustomerResult.value
 
-    const studentCardExists = await this.repository.hasStudentCardID(
-      withAssign.studentCard.id,
-    );
-    if (studentCardExists) {
-      return failure({
-        code: FailureCode.STUDENT_CARD_ALREADY_IN_USE,
-        details: {
-          value: withAssign.studentCard.id,
-        },
-      });
-    }
+    const studentCardExists = await this.repository.hasStudentCardID(updatedCustomer.studentCard!.id)
+    if (studentCardExists) failure(FailureFactory.STUDENT_CARD_ALREADY_IN_USE(studentCard.id))
 
-    return success(
-      await this.repository.update(customer.uid, {
-        studentCard: withAssign.studentCard,
-      }),
-    );
+    return success(await this.repository.update(customer.uid, { studentCard: updatedCustomer.studentCard }))
   }
 
-  public async removeCustomerStudentCard(
-    customerId: string,
-  ): Promise<Result<Customer>> {
-    const customerResult = await this.findById(customerId);
-    if (customerResult.isInvalid()) return customerResult;
+  public async removeCustomerStudentCard(customerUID: string): Promise<Result<Partial<Customer>>> {
+    const findCustomerResult = await this.findById(customerUID)
+    if (findCustomerResult.isInvalid()) return findCustomerResult
 
-    const customer = customerResult.value;
+    const customer = findCustomerResult.value
 
-    const removeResult = customer.removeStudentCard();
-    if (removeResult.isInvalid()) return removeResult;
+    const updateCustomerResult = customer.removeStudentCard()
+    if (updateCustomerResult.isInvalid()) return updateCustomerResult
 
-    return success(
-      await this.repository.update(customer.uid, {
-        studentCard: removeResult.value.studentCard,
-      }),
-    );
+    return success(await this.repository.update(customer.uid, { studentCard: updateCustomerResult.value.studentCard }))
   }
 }
