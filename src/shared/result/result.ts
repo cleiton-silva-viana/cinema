@@ -1,18 +1,15 @@
-import { SimpleFailure } from "../failure/simple.failure.type";
+import {SimpleFailure} from '../failure/simple.failure.type'
 
-export enum ResultStatus {
-  SUCCESS = "SUCCESS",
-  FAILURE = "FAILURE",
-}
+export type ResultStatus = 'SUCCESS' | 'FAILURE'
 
 interface ISuccess<V> extends IBaseResult<V> {
-  readonly type: ResultStatus.SUCCESS;
-  readonly value: V;
+  readonly type: 'SUCCESS'
+  readonly value: V
 }
 
 interface IFailure extends IBaseResult<never> {
-  readonly type: ResultStatus.FAILURE;
-  readonly failures: ReadonlyArray<SimpleFailure>;
+  readonly type: 'FAILURE'
+  readonly failures: ReadonlyArray<SimpleFailure>
 }
 
 interface IBaseResult<V> {
@@ -20,12 +17,13 @@ interface IBaseResult<V> {
    * Verifica se o resultado é um sucesso.
    * Se verdadeiro, o TypeScript inferirá o tipo como ISuccess<V> dentro do bloco condicional.
    */
-  isValid(): this is ISuccess<V>;
+  isValid(): this is ISuccess<V>
+
   /**
    * Verifica se o resultado é uma falha.
    * Se verdadeiro, o TypeScript inferirá o tipo como IFailure dentro do bloco condicional.
    */
-  isInvalid(): this is IFailure;
+  isInvalid(): this is IFailure
 }
 
 /**
@@ -34,7 +32,7 @@ interface IBaseResult<V> {
  *
  * @template V O tipo do valor contido em caso de sucesso.
  */
-export type Result<V> = ISuccess<V> | IFailure;
+export type Result<V> = ISuccess<V> | IFailure
 
 /**
  * Cria uma instância de `Result<V>` representando um resultado bem-sucedido.
@@ -43,15 +41,15 @@ export type Result<V> = ISuccess<V> | IFailure;
  * @returns Uma instância de `ISuccess<V>`.
  */
 export const success = <V>(value: V): Result<V> => ({
-  type: ResultStatus.SUCCESS,
+  type: 'SUCCESS',
   value,
   isValid(): this is ISuccess<V> {
-    return this.type === ResultStatus.SUCCESS;
+    return this.type === 'SUCCESS'
   },
   isInvalid(): this is IFailure {
-    return this.type === ResultStatus.FAILURE;
+    return false
   },
-});
+})
 
 /**
  * Cria uma instância de `Result<never>` representando um resultado de falha.
@@ -59,18 +57,16 @@ export const success = <V>(value: V): Result<V> => ({
  * @param errors Um único erro (`SimpleFailure`) ou um array de erros a serem encapsulados.
  * @returns Uma instância de `IFailure`, que é compatível com `Result<V>` para qualquer `V`.
  */
-export const failure = (
-  errors: SimpleFailure | ReadonlyArray<SimpleFailure>,
-): Result<never> => {
-  const errorArray = Array.isArray(errors) ? [...errors] : [errors];
+export const failure = (errors: SimpleFailure | ReadonlyArray<SimpleFailure>): Result<never> => {
+  const errorArray = Array.isArray(errors) ? [...errors] : [errors]
   return {
-    type: ResultStatus.FAILURE,
+    type: 'FAILURE',
     failures: Object.freeze(errorArray),
     isValid(): this is ISuccess<never> {
-      return this.type === ResultStatus.SUCCESS;
+      return false
     },
     isInvalid(): this is IFailure {
-      return this.type === ResultStatus.FAILURE;
+      return true
     },
-  };
-};
+  }
+}
