@@ -1,7 +1,10 @@
 {
   "preset": "ts-jest",
   "testEnvironment": "node",
-  "roots": ["./src"],
+  "roots": [
+    "./src",
+    "./scripts"
+  ],
   "testMatch": ["**/__tests__/**/*.+(ts|tsx|js)", "**/?(*.)+(spec|test).+(ts|tsx|js)"],
   "transform": {
     "^.+\\.(ts|tsx)$": [
@@ -14,5 +17,10 @@
   "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
   "collectCoverage": true,
   "coverageDirectory": "coverage",
-  "collectCoverageFrom": ["src/**/*.{ts,tsx}", "!src/**/*.d.ts", "!src/**/index.ts"]
+  "collectCoverageFrom": [
+    "src/**/*.{ts,tsx}",
+    "scripts/**/*.{ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/**/index.ts"
+  ]
 }
