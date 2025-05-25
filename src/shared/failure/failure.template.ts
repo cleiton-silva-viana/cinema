@@ -1,11 +1,11 @@
 export type FailureTemplate = {
-  status: number;
+  status: number
   title: {
-    pt: string;
-    en: string;
-  };
+    pt: string
+    en: string
+  }
   template: {
-    pt?: string;
-    en: string;
-  };
-};
+    pt: string
+    en: string
+  }
+}
