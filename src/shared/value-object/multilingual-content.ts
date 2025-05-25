@@ -1,15 +1,17 @@
-import { SimpleFailure } from "../failure/simple.failure.type";
-import { failure, Result, success } from "../result/result";
-import { TechnicalError } from "../error/technical.error";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { Validate } from "../validator/validate";
+import { SimpleFailure } from '../failure/simple.failure.type'
+import { failure, Result, success } from '../result/result'
+import { TechnicalError } from '../error/technical.error'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { Validate } from '../validator/validate'
+import { FailureFactory } from '../failure/failure.factory'
+import { parseToEnum } from '../validator/common.validators'
 
 /**
  * Idiomas suportados pela aplicação
  */
 export enum SupportedLanguage {
-  PT = "pt",
-  EN = "en",
+  PT = 'PT',
+  EN = 'EN',
 }
 
 /**
@@ -20,8 +22,8 @@ export enum SupportedLanguage {
  * ```
  */
 export interface IMultilingualInput {
-  text: string;
-  language: string;
+  text: string
+  language: string
 }
 
 /**
@@ -32,8 +34,8 @@ export interface IMultilingualInput {
  * ```
  */
 export interface ILanguageContent {
-  text: string;
-  language: SupportedLanguage;
+  text: string
+  language: SupportedLanguage
 }
 
 /**
@@ -49,28 +51,22 @@ export abstract class MultilingualContent {
   /**
    * Configurações de validação que podem ser sobrescritas pelas classes derivadas
    */
-  protected static readonly MIN_LENGTH: number = 1;
-  protected static readonly MAX_LENGTH: number = 500;
+  protected static readonly MIN_LENGTH: number = 1
+  protected static readonly MAX_LENGTH: number = 500
 
   /**
    * Idiomas obrigatórios por padrão (ex: 'pt' e 'en')
    */
-  protected static readonly REQUIRED_LANGUAGES: SupportedLanguage[] = [
-    SupportedLanguage.PT,
-    SupportedLanguage.EN,
-  ];
+  protected static readonly REQUIRED_LANGUAGES: SupportedLanguage[] = [SupportedLanguage.PT, SupportedLanguage.EN]
 
   /**
    * Expressão regular para validar o formato do texto:
    * - Permite letras (incluindo acentos), números, espaços e alguns símbolos
    * - Não permite caracteres especiais como @, #, etc.
    */
-  protected static readonly FORMAT_REGEX: RegExp =
-    /^[A-Za-zÀ-ÖØ-öø-ÿ\d\s\-._]+$/;
+  protected static readonly FORMAT_REGEX: RegExp = /^[A-Za-zÀ-ÖØ-öø-ÿ\d\s\-._]+$/
 
-  protected constructor(
-    protected readonly contents: Map<SupportedLanguage, string>,
-  ) {}
+  protected constructor(protected readonly contents: Map<SupportedLanguage, string>) {}
 
   /**
    * Cria uma instância válida de conteúdo multilíngue com validações completas.
@@ -84,32 +80,31 @@ export abstract class MultilingualContent {
    * - `FailureCode.CONTENT_DUPLICATE_LANGUAGE`: Se houver idiomas duplicados
    * - `FailureCode.CONTENT_MISSING_REQUIRED_LANGUAGE`: Se faltar algum idioma obrigatório
    */
-  public static create<T extends MultilingualContent>(
-    contents: IMultilingualInput[],
-  ): Result<T> {
-    const failures: SimpleFailure[] = [];
+  public static create<T extends MultilingualContent>(contents: IMultilingualInput[]): Result<T> {
+    const failures: SimpleFailure[] = []
 
-    MultilingualContent.validateContentArray(contents, failures);
-    if (failures.length > 0) return failure(failures);
+    MultilingualContent.validateContentArray(contents, failures)
+    if (failures.length > 0) return failure(failures)
 
-    const contentsParsed: ILanguageContent[] = [];
+    const contentsParsed: ILanguageContent[] = []
     contents.forEach((content) => {
-      contentsParsed.push(this.toLanguageContent(content, failures));
-    });
-    if (failures.length > 0) return failure(failures);
+      const parsedContent = this.toLanguageContent(content, failures)
+      if (parsedContent) contentsParsed.push(parsedContent)
+    })
+    if (failures.length > 0) return failure(failures)
 
-    this.validateContents(contentsParsed, failures);
-    if (failures.length > 0) return failure(failures);
+    this.validateContents(contentsParsed, failures)
+    if (failures.length > 0) return failure(failures)
 
-    this.validateRequiredLanguages(contentsParsed, failures);
-    if (failures.length > 0) return failure(failures);
+    this.validateRequiredLanguages(contentsParsed, failures)
+    if (failures.length > 0) return failure(failures)
 
-    const contentsMap = new Map<SupportedLanguage, string>();
+    const contentsMap = new Map<SupportedLanguage, string>()
     contentsParsed.forEach((content) => {
-      contentsMap.set(content.language, content.text);
-    });
+      contentsMap.set(content.language, content.text)
+    })
 
-    return success(new (this as any)(contentsMap));
+    return success(new (this as any)(contentsMap))
   }
 
   /**
@@ -121,52 +116,15 @@ export abstract class MultilingualContent {
    * @throws TechnicalError se o idioma ou texto forem vazios
    * @throws TechnicalError se o idioma não for suportado
    */
-  public static hydrate<T extends MultilingualContent>(
-    lang: string,
-    value: string,
-  ): T {
-    const fields: string[] = [];
+  public static hydrate<T extends MultilingualContent>(lang: string, value: string): T {
+    TechnicalError.validateRequiredFields({ lang, value })
+    const contentMap = new Map<SupportedLanguage, string>()
 
-    if (!lang) fields.push("language");
-    if (!value) fields.push("value");
+    const langEnumResult = parseToEnum(lang, lang, SupportedLanguage)
+    if (langEnumResult.isInvalid()) new TechnicalError(FailureFactory.CONTENT_WITH_INVALID_LANGUAGE(lang))
+    else contentMap.set(langEnumResult.value, value)
 
-    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
-      fields: fields,
-    });
-
-    const langEnum = this.toSupportedLanguage(lang);
-    TechnicalError.if(!langEnum, FailureCode.INVALID_ENUM_VALUE);
-
-    const contentMap = new Map<SupportedLanguage, string>();
-    contentMap.set(langEnum, value);
-
-    return new (this as any)(contentMap);
-  }
-
-  /**
-   * Obtém o conteúdo em um idioma específico
-   * @param language Idioma a ser buscado
-   * @returns Texto correspondente ou undefined se não existir
-   */
-  public content(language: SupportedLanguage): string | undefined {
-    return this.contents.get(language);
-  }
-
-  /**
-   * Verifica se possui conteúdo em um idioma específico
-   * @param language Idioma a ser verificado
-   * @returns true se o idioma existir, false caso contrário
-   */
-  public hasLanguage(language: SupportedLanguage): boolean {
-    return this.contents.has(language);
-  }
-
-  /**
-   * Obtém todos os idiomas disponíveis
-   * @returns Array de idiomas presentes na instância atual
-   */
-  public languages(): SupportedLanguage[] {
-    return Array.from(this.contents.keys());
+    return new (this as any)(contentMap)
   }
 
   /**
@@ -175,12 +133,8 @@ export abstract class MultilingualContent {
    * @param language Idioma a ser convertido
    * @returns O enum SupportedLanguage correspondente ou undefined se inválido
    */
-  private static toSupportedLanguage(language: string): SupportedLanguage {
-    if (typeof language === "string") {
-      return Object.values(SupportedLanguage).find(
-        (lang) => lang === language.toLowerCase(),
-      );
-    }
+  private static toSupportedLanguage(language: string): SupportedLanguage | undefined {
+    return Object.values(SupportedLanguage).find((lang) => lang === language.toLowerCase())
   }
 
   /**
@@ -191,24 +145,17 @@ export abstract class MultilingualContent {
    */
   private static toLanguageContent(
     content: IMultilingualInput,
-    failures: SimpleFailure[],
+    failures: SimpleFailure[]
   ): ILanguageContent | undefined {
-    const languageEnum = MultilingualContent.toSupportedLanguage(
-      content.language,
-    );
+    const languageEnum = MultilingualContent.toSupportedLanguage(content.language)
     if (!languageEnum) {
-      failures.push({
-        code: FailureCode.CONTENT_WITH_INVALID_LANGUAGE,
-        details: {
-          language: content.language,
-        },
-      });
-      return;
+      failures.push(FailureFactory.CONTENT_WITH_INVALID_LANGUAGE(content.language))
+      return
     }
     return {
       language: languageEnum,
       text: content.text,
-    };
+    }
   }
 
   /**
@@ -216,11 +163,8 @@ export abstract class MultilingualContent {
    * @param contents Array de conteúdos a ser validado
    * @param failures Array para armazenar os erros encontrados
    */
-  private static validateContentArray(
-    contents: any[],
-    failures: SimpleFailure[],
-  ): void {
-    Validate.array({ contents }, failures).isRequired().isNotEmpty();
+  private static validateContentArray(contents: any[], failures: SimpleFailure[]): void {
+    Validate.array({ contents }, failures).isRequired().isNotEmpty()
   }
 
   /**
@@ -233,32 +177,22 @@ export abstract class MultilingualContent {
    * @param failures Array para armazenar os erros encontrados
    * @returns true se válido, false se inválido
    */
-  private static validateContent(
-    content: ILanguageContent,
-    failures: SimpleFailure[],
-  ): boolean {
-    const flag = failures.length;
+  private static validateContent(content: ILanguageContent, failures: SimpleFailure[]): boolean {
+    const flag = failures.length
 
-    Validate.object({ content }, failures)
-      .isRequired()
-      .isNotEmpty()
-      .hasProperty("text")
-      .hasProperty("language");
+    Validate.object({ content }, failures).isRequired().isNotEmpty().hasProperty('text').hasProperty('language')
 
-    if (flag > failures.length) return false;
+    if (flag > failures.length) return false
 
     Validate.string({ text: content.text }, failures)
       .isRequired()
       .isNotEmpty()
       .hasLengthBetween(this.MIN_LENGTH, this.MAX_LENGTH)
-      .matchesPattern(this.FORMAT_REGEX);
+      .matchesPattern(this.FORMAT_REGEX)
 
-    Validate.string({ language: content.language }, failures)
-      .isRequired()
-      .isNotEmpty()
-      .isInEnum(SupportedLanguage);
+    Validate.string({ language: content.language }, failures).isRequired().isNotEmpty().isInEnum(SupportedLanguage)
 
-    return failures.length === flag;
+    return failures.length === flag
   }
 
   /**
@@ -266,25 +200,22 @@ export abstract class MultilingualContent {
    * @param contents Array de conteúdos a ser validado
    * @param failures Array para armazenar os erros encontrados
    */
-  private static validateContents(
-    contents: ILanguageContent[],
-    failures: SimpleFailure[],
-  ): void {
-    const seenLanguages = new Set<SupportedLanguage>();
+  private static validateContents(contents: ILanguageContent[], failures: SimpleFailure[]): void {
+    const seenLanguages = new Set<SupportedLanguage>()
 
     for (const content of contents) {
-      const isInvalid = !this.validateContent(content, failures);
-      if (isInvalid) continue;
+      const isInvalid = !this.validateContent(content, failures)
+      if (isInvalid) continue
 
       if (seenLanguages.has(content.language)) {
         failures.push({
           code: FailureCode.TEXT_DUPLICATED_FOR_LANGUAGE,
           details: { language: content.language },
-        });
-        continue;
+        })
+        continue
       }
 
-      seenLanguages.add(content.language);
+      seenLanguages.add(content.language)
     }
   }
 
@@ -294,21 +225,37 @@ export abstract class MultilingualContent {
    * @param contents Array de conteúdos a ser validado
    * @param failures Array para armazenar os erros encontrados
    */
-  private static validateRequiredLanguages(
-    contents: ILanguageContent[],
-    failures: SimpleFailure[],
-  ): void {
-    const languages = new Set(contents.map((content) => content.language));
+  private static validateRequiredLanguages(contents: ILanguageContent[], failures: SimpleFailure[]): void {
+    const languages = new Set(contents.map((content) => content.language))
 
     for (const requiredLang of this.REQUIRED_LANGUAGES) {
-      if (!languages.has(requiredLang)) {
-        failures.push({
-          code: FailureCode.TEXT_LANGUAGE_REQUIRED,
-          details: {
-            language: requiredLang,
-          },
-        });
-      }
+      if (!languages.has(requiredLang)) failures.push(FailureFactory.TEXT_LANGUAGE_REQUIRED(requiredLang))
     }
+  }
+
+  /**
+   * Obtém o conteúdo em um idioma específico
+   * @param language Idioma a ser buscado
+   * @returns Texto correspondente ou undefined se não existir
+   */
+  public content(language: SupportedLanguage): string | undefined {
+    return this.contents.get(language)
+  }
+
+  /**
+   * Verifica se possui conteúdo em um idioma específico
+   * @param language Idioma a ser verificado
+   * @returns true se o idioma existir, false caso contrário
+   */
+  public hasLanguage(language: SupportedLanguage): boolean {
+    return this.contents.has(language)
+  }
+
+  /**
+   * Obtém todos os idiomas disponíveis
+   * @returns Array de idiomas presentes na instância atual
+   */
+  public languages(): SupportedLanguage[] {
+    return Array.from(this.contents.keys())
   }
 }
