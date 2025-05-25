@@ -1,14 +1,14 @@
-import { BaseValidator } from "./base.validator.ts";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { isEmail, isMatch, isUIDv4, isUIDv7 } from "./validator";
-import { SimpleFailure } from "../failure/simple.failure.type";
+import { BaseValidator } from './base.validator.ts'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { isEmail, isMatch, isUIDv4, isUIDv7 } from './validator'
+import { SimpleFailure } from '../failure/simple.failure.type'
 
 /**
  * Validador para strings
  */
 export class StringValidator extends BaseValidator<StringValidator> {
   constructor(value: Record<string, string>, failures: SimpleFailure[]) {
-    super(value, failures);
+    super(value, failures)
   }
 
   /**
@@ -18,13 +18,13 @@ export class StringValidator extends BaseValidator<StringValidator> {
    */
   public isNotEmpty(
     code: FailureCode = FailureCode.STRING_CANNOT_BE_EMPTY,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
-    const value = this._value?.trim().length || 0;
+    const value = this._value?.trim().length || 0
     return this.validate(() => value === 0, {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -34,14 +34,14 @@ export class StringValidator extends BaseValidator<StringValidator> {
    */
   public hasContent(
     code: FailureCode = FailureCode.STRING_CANNOT_BE_BLANK,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
-    const value = this._value?.trim().length || 0;
+    const value = this._value?.trim().length || 0
 
     return this.validate(() => value === 0, {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -53,12 +53,12 @@ export class StringValidator extends BaseValidator<StringValidator> {
   public matchesPattern(
     pattern: RegExp,
     code: FailureCode = FailureCode.STRING_INVALID_FORMAT,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
     return this.validate(() => !isMatch(pattern, this._value), {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -68,7 +68,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
    */
   public isValidEmail(
     code: FailureCode = FailureCode.EMAIL_WITH_INVALID_FORMAT,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
     return this.validate(() => !isEmail(this._value), {
       code,
@@ -76,7 +76,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
         email: this._value,
         ...details,
       },
-    });
+    })
   }
 
   /**
@@ -86,7 +86,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
    */
   public isValidUUIDv4(
     code: FailureCode = FailureCode.UID_WITH_INVALID_FORMAT,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
     return this.validate(() => !isUIDv4(this._value), {
       code,
@@ -94,7 +94,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
         uuid: this._value,
         ...details,
       },
-    });
+    })
   }
 
   /**
@@ -104,7 +104,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
    */
   public isValidUUIDv7(
     code: FailureCode = FailureCode.UID_WITH_INVALID_FORMAT,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
     return this.validate(() => !isUIDv7(this._value), {
       code,
@@ -112,7 +112,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
         uuid: this._value,
         ...details,
       },
-    });
+    })
   }
 
   /**
@@ -126,9 +126,9 @@ export class StringValidator extends BaseValidator<StringValidator> {
     min: number,
     max: number,
     code: FailureCode = FailureCode.STRING_LENGTH_OUT_OF_RANGE,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
-    const length = this._value?.length || 0;
+    const length = this._value?.length || 0
 
     return this.validate(() => !(length >= min && length <= max), {
       code,
@@ -138,7 +138,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
         length,
         ...details,
       },
-    });
+    })
   }
 
   /**
@@ -150,9 +150,9 @@ export class StringValidator extends BaseValidator<StringValidator> {
   public isInEnum(
     enumType: Record<string, string | number>,
     code: FailureCode = FailureCode.INVALID_ENUM_VALUE,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
-    const enumValues = Object.values(enumType);
+    const enumValues = Object.values(enumType)
 
     return this.validate(() => !enumValues.includes(this._value), {
       code,
@@ -161,7 +161,7 @@ export class StringValidator extends BaseValidator<StringValidator> {
         allowed_values: enumValues.map((value) => String(value)),
         ...details,
       },
-    });
+    })
   }
 
   /**
@@ -173,11 +173,11 @@ export class StringValidator extends BaseValidator<StringValidator> {
   public startsWith(
     prefix: string,
     code: FailureCode = FailureCode.STRING_INVALID_FORMAT,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): StringValidator {
     return this.validate(() => !this._value.startsWith(prefix), {
       code,
       details,
-    });
+    })
   }
 }
