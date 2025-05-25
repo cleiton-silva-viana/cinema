@@ -1,6 +1,6 @@
-import {failure, success} from './result'
-import {SimpleFailure} from '../failure/simple.failure.type'
-import {FailureCode} from '../failure/failure.codes.enum'
+import { failure, success } from './result'
+import { SimpleFailure } from '../failure/simple.failure.type'
+import { FailureCode } from '../failure/failure.codes.enum'
 
 describe('Result', () => {
   describe('success', () => {
@@ -50,7 +50,7 @@ describe('Result', () => {
       // Arrange
       const failData: SimpleFailure = {
         code: FailureCode.ACTIVITY_DURATION_TOO_LONG,
-        details: {field: 'field'},
+        details: { field: 'field' },
       }
 
       // Act
@@ -64,7 +64,7 @@ describe('Result', () => {
 
     it("deve ter a propriedade 'value' como indefinida em um resultado de falha (comportamento de objeto simples)", () => {
       // Arrange
-      const failData: SimpleFailure = {code: FailureCode.ACTIVITY_DURATION_TOO_LONG, details: {}} // Renomeado
+      const failData: SimpleFailure = { code: FailureCode.ACTIVITY_DURATION_TOO_LONG, details: {} } // Renomeado
       const result = failure(failData)
 
       // Act & Assert
@@ -75,8 +75,8 @@ describe('Result', () => {
       // Arrange
       const failsData: SimpleFailure[] = [
         // Renomeado
-        {code: FailureCode.ACTIVITY_DURATION_TOO_LONG, details: {field: 'field1'}},
-        {code: FailureCode.ACTIVITY_DURATION_TOO_SHORT, details: {reason: 'reason2'}},
+        { code: FailureCode.ACTIVITY_DURATION_TOO_LONG, details: { field: 'field1' } },
+        { code: FailureCode.ACTIVITY_DURATION_TOO_SHORT, details: { reason: 'reason2' } },
       ]
 
       // Act

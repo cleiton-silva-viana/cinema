@@ -1,4 +1,4 @@
-import {SimpleFailure} from '../failure/simple.failure.type'
+import { SimpleFailure } from '../failure/simple.failure.type'
 
 interface ISuccess<V> extends IBaseResult<V> {
   readonly type: 'SUCCESS'
