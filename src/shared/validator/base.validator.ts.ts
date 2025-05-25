@@ -1,8 +1,12 @@
-import { SimpleFailure } from "../failure/simple.failure.type";
-import { isEqual, isNull } from "./validator";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { Flow } from "../assert/assert";
-import { TechnicalError } from "../error/technical.error";
+import { SimpleFailure } from '../failure/simple.failure.type'
+import { isEqual, isNull } from './validator'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { TechnicalError } from '../error/technical.error'
+
+export enum Flow {
+  STOP = 'STOP',
+  CONTINUE = 'CONTINUE',
+}
 
 /**
  * Classe base abstrata para validação de propriedades.
@@ -29,27 +33,27 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   /**
    * Indica se alguma validação falhou
    */
-  protected hasFailure: boolean = false;
+  protected hasFailure: boolean = false
 
   /**
    * Controla o fluxo de validação (continuar ou parar após falha)
    */
-  protected _flow: Flow = Flow.stop;
+  protected _flow: Flow = Flow.STOP
 
   /**
    * O valor sendo validado
    */
-  protected _value: any;
+  protected _value: any
 
   /**
    * O nome do campo sendo validado (para mensagens de erro)
    */
-  protected _field: string;
+  protected _field: string
 
   /**
    * Array onde as falhas de validação serão adicionadas
    */
-  protected _failures: SimpleFailure[];
+  protected _failures: SimpleFailure[]
 
   /**
    * Construtor protegido para ser usado por classes derivadas.
@@ -58,15 +62,12 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * @throws Error se o objeto `data` não contiver exatamente uma propriedade.
    */
   protected constructor(data: Record<string, any>, failures: SimpleFailure[]) {
-    const keys = Object.keys(data);
-    TechnicalError.if(
-      keys.length !== 1,
-      FailureCode.VALIDATOR_WITH_INVALID_DATA_STRUCTURE,
-    );
+    const keys = Object.keys(data)
+    TechnicalError.if(keys.length !== 1, FailureCode.VALIDATOR_WITH_INVALID_DATA_STRUCTURE)
 
-    this._field = keys[0];
-    this._value = data[this._field];
-    this._failures = failures;
+    this._field = keys[0]
+    this._value = data[this._field]
+    this._failures = failures
   }
 
   /**
@@ -85,10 +86,10 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    */
   public if(expression: boolean): V {
     if (!expression) {
-      this._flow = Flow.stop;
-      this.hasFailure = true;
+      this._flow = Flow.STOP
+      this.hasFailure = true
     }
-    return this as unknown as V;
+    return this as unknown as V
   }
 
   /**
@@ -97,9 +98,9 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    */
   public then(validator: () => void): this {
     if (this._failures.length === 0 && this.hasFailure === false) {
-      validator();
+      validator()
     }
-    return this;
+    return this
   }
 
   /**
@@ -109,9 +110,9 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    */
   public when(condition: boolean, validator: () => void): this {
     if (condition) {
-      validator();
+      validator()
     }
-    return this;
+    return this
   }
 
   /**
@@ -120,10 +121,10 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    */
   public guard(expression: () => boolean): this {
     if (!expression()) {
-      this._flow = Flow.stop;
-      this.hasFailure = true;
+      this._flow = Flow.STOP
+      this.hasFailure = true
     }
-    return this;
+    return this
   }
 
   /**
@@ -137,8 +138,8 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * ```
    */
   public continue(): V {
-    this._flow = Flow.continue;
-    return this as unknown as V;
+    this._flow = Flow.CONTINUE
+    return this as unknown as V
   }
 
   /**
@@ -153,15 +154,12 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * validator.isRequired({ customDetail: "info" }) // o 'field' já é conhecido
    * ```
    */
-  public isRequired(
-    details: Record<string, any> = {},
-    code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
-  ): V {
+  public isRequired(details: Record<string, any> = {}, code: FailureCode = FailureCode.MISSING_REQUIRED_DATA): V {
     // Alterado o retorno para V para consistência, embora o original não tivesse.
     return this.validate(() => isNull(this._value), {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -180,7 +178,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
   public isEqualTo(
     target: any,
     details: Record<string, any> = {},
-    code: FailureCode = FailureCode.VALUES_NOT_EQUAL,
+    code: FailureCode = FailureCode.VALUES_NOT_EQUAL
   ): V {
     return this.validate(() => !isEqual(this._value, target), {
       code: code,
@@ -189,7 +187,7 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
         target: JSON.stringify(target),
         ...details,
       },
-    });
+    })
   }
 
   /**
@@ -205,15 +203,11 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * validator.isTrue(idade >= 18, FailureCode.AGE_TOO_LOW, { idadeMinima: 18 })
    * ```
    */
-  public isTrue(
-    expression: boolean,
-    code: FailureCode,
-    details: Record<string, any> = {},
-  ): V {
+  public isTrue(expression: boolean, code: FailureCode, details: Record<string, any> = {}): V {
     return this.validate(() => !expression, {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -236,19 +230,19 @@ export abstract class BaseValidator<V extends BaseValidator<V>> {
    * ```
    */
   protected validate(expression: () => boolean, failure: SimpleFailure): V {
-    if (this._flow === Flow.stop && this.hasFailure) {
-      return this as unknown as V;
+    if (this._flow === Flow.STOP && this.hasFailure) {
+      return this as unknown as V
     }
 
     if (expression()) {
-      this.hasFailure = true;
+      this.hasFailure = true
       this._failures.push({
         code: failure.code,
         details: { field: this._field, ...failure.details },
-      });
+      })
     }
 
-    this._flow = Flow.stop;
-    return this as unknown as V;
+    this._flow = Flow.STOP
+    return this as unknown as V
   }
 }
