@@ -1,8 +1,8 @@
-import { FailureDetails, SimpleFailure } from "../failure/simple.failure.type";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { FailureMapper } from "../failure/failure.mapper";
-import { RichFailure } from "../failure/rich.failure.type";
-import { collectNullFields } from "../validator/common.validators";
+import { FailureDetails, SimpleFailure } from '../failure/simple.failure.type'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { FailureMapper } from '../failure/failure.mapper'
+import { collectNullFields } from '../validator/common.validators'
+import { RichFailure } from '@/shared/failure/rich.failure.type'
 
 /**
  * Representa um erro técnico inesperado na aplicação.
@@ -11,29 +11,24 @@ import { collectNullFields } from "../validator/common.validators";
  * Encapsula uma `SimpleFailure` para padronização.
  */
 export class TechnicalError extends Error {
-  public readonly richFailure: RichFailure;
-  public readonly details: Record<string, any>;
-
   /**
    * Cria uma instância de TechnicalError.
    * @param failure O objeto SimpleFailure que descreve o erro técnico.
    */
   constructor(failure: SimpleFailure) {
-    const failureMapper = FailureMapper.getInstance();
+    const failureMapper: FailureMapper = FailureMapper.getInstance()
 
-    const richFailure = failureMapper.toRichFailure(failure, "pt");
+    const richFailure: RichFailure = failureMapper.toRichFailure(failure, 'pt')
 
-    const detailsString = failure.details
-      ? "\n" + JSON.stringify(failure.details, null, 2)
-      : "";
+    const detailsString: string = failure.details ? '\n' + JSON.stringify(failure.details, null, 2) : ''
 
     const message =
       `TechnicalError: ${richFailure.code}\n` +
       `[${richFailure.title}]\n` +
       `[${richFailure.message}]\n` +
-      `[DETAILS]${detailsString}`;
+      `[DETAILS]${detailsString}`
 
-    super(message);
+    super(message)
   }
 
   /**
@@ -44,12 +39,8 @@ export class TechnicalError extends Error {
    * @param details Detalhes adicionais sobre o erro (opcional). Pode incluir contexto ou variáveis relevantes.
    * @throws {TechnicalError} Se a `condition` for `true`.
    */
-  public static if(
-    condition: boolean,
-    code: FailureCode,
-    details?: FailureDetails,
-  ): void {
-    if (condition) throw new TechnicalError({ code, details });
+  public static if(condition: boolean, code: FailureCode, details?: FailureDetails): void {
+    if (condition) throw new TechnicalError({ code, details })
   }
 
   /**
@@ -73,15 +64,15 @@ export class TechnicalError extends Error {
   public static validateRequiredFields(
     fields: Record<string, any>,
     failureCode: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
-    additionalDetails: Record<string, any> = {},
+    additionalDetails: Record<string, any> = {}
   ): void {
-    const nullFields = collectNullFields(fields);
-    if (nullFields.length === 0) return;
+    const nullFields: string[] = collectNullFields(fields)
+    if (nullFields.length === 0) return
 
-    const str = nullFields.reduce((field) => ` ${field}`);
+    const str = nullFields.reduce((field) => ` ${field}`)
     this.if(nullFields.length > 0, failureCode, {
       resource: str,
       ...additionalDetails,
-    });
+    })
   }
 }
