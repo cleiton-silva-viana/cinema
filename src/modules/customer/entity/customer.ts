@@ -1,21 +1,21 @@
-import { failure, Result, success } from "../../../shared/result/result";
-import { TechnicalError } from "../../../shared/error/technical.error";
-import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
-import { CustomerUID } from "./value-object/customer.uid";
-import { Email } from "./value-object/email";
-import { BirthDate } from "../../../shared/value-object/birth.date";
-import { CPF } from "./value-object/cpf";
-import { Name } from "../../../shared/value-object/name";
-import { validateAndCollect } from "../../../shared/validator/common.validators";
-import { StudentCard } from "./value-object/student-card";
+import { CustomerUID } from './value-object/customer.uid'
+import { Email } from './value-object/email'
+import { CPF } from './value-object/cpf'
+import { StudentCard } from './value-object/student-card'
+import { failure, Result, success } from '@shared/result/result'
+import { TechnicalError } from '@shared/error/technical.error'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { BirthDate } from '@shared/value-object/birth.date'
+import { Name } from '@shared/value-object/name'
+import { validateAndCollect } from '@shared/validator/common.validators'
 
 export interface IHydrateCustomerProps {
-  uid: string;
-  name: string;
-  birthDate: Date;
-  email: string;
-  cpf?: string | null;
-  studentCard?: { id: string; validity: Date } | null;
+  uid: string
+  name: string
+  birthDate: Date
+  email: string
+  cpf?: string | null
+  studentCard?: { id: string; validity: Date } | null
 }
 
 /**
@@ -30,8 +30,8 @@ export class Customer {
     public readonly name: Name,
     public readonly birthDate: BirthDate,
     public readonly email: Email,
-    public readonly cpf?: CPF | null, // Permitir null para remoção
-    public readonly studentCard?: StudentCard | null, // Permitir null para remoção
+    public readonly cpf?: CPF | null,
+    public readonly studentCard?: StudentCard | null
   ) {}
 
   /**
@@ -41,25 +41,16 @@ export class Customer {
    * @param email O endereço de e-mail do cliente.
    * @returns Um `Result` contendo a instância de `Customer` ou uma lista de falhas.
    */
-  public static create(
-    name: string,
-    birthDate: Date,
-    email: string,
-  ): Result<Customer> {
-    const failures: SimpleFailure[] = [];
+  public static create(name: string, birthDate: Date, email: string): Result<Customer> {
+    const failures: SimpleFailure[] = []
 
-    const nameVO = validateAndCollect(Name.create(name), failures);
-    const birthDateVO = validateAndCollect(
-      BirthDate.create(birthDate),
-      failures,
-    );
-    const emailVO = validateAndCollect(Email.create(email), failures);
+    const nameVO = validateAndCollect(Name.create(name), failures)
+    const birthDateVO = validateAndCollect(BirthDate.create(birthDate), failures)
+    const emailVO = validateAndCollect(Email.create(email), failures)
 
     return failures.length
       ? failure(failures)
-      : success(
-          new Customer(CustomerUID.create(), nameVO, birthDateVO, emailVO),
-        );
+      : success(new Customer(CustomerUID.create(), nameVO, birthDateVO, emailVO))
   }
 
   /**
@@ -69,19 +60,14 @@ export class Customer {
    * @returns Uma instância de `Customer`.
    */
   public static hydrate(props: IHydrateCustomerProps): Customer {
-    TechnicalError.validateRequiredFields({ props });
-    TechnicalError.validateRequiredFields({
-      uid: props.uid,
-      name: props.name,
-      birthDate: props.birthDate,
-      email: props.email,
-    });
+    TechnicalError.validateRequiredFields({ props })
 
-    const cpfVO = props.cpf ? CPF.hydrate(props.cpf) : null;
-    const studentCardVO =
-      props.studentCard && props.studentCard.id && props.studentCard.validity
-        ? StudentCard.hydrate(props.studentCard.id, props.studentCard.validity)
-        : null;
+    const { uid, name, birthDate, email, cpf, studentCard } = props
+
+    TechnicalError.validateRequiredFields({ uid, name, birthDate, email })
+
+    const cpfVO = cpf ? CPF.hydrate(cpf) : null
+    const studentCardVO = studentCard ? StudentCard.hydrate(studentCard.id, studentCard.validity) : null
 
     return new Customer(
       CustomerUID.hydrate(props.uid),
@@ -89,8 +75,8 @@ export class Customer {
       BirthDate.hydrate(props.birthDate),
       Email.hydrate(props.email),
       cpfVO,
-      studentCardVO,
-    );
+      studentCardVO
+    )
   }
 
   /**
@@ -100,20 +86,10 @@ export class Customer {
    * @returns Um `Result` contendo a nova instância de `Customer` ou uma lista de falhas.
    */
   public updateName(name: string): Result<Customer> {
-    const nameResult = Name.create(name);
-    if (nameResult.isInvalid()) {
-      return failure(nameResult.failures);
-    }
-    return success(
-      new Customer(
-        this.uid,
-        nameResult.value,
-        this.birthDate,
-        this.email,
-        this.cpf,
-        this.studentCard,
-      ),
-    );
+    const nameResult = Name.create(name)
+    return nameResult.isInvalid()
+      ? nameResult
+      : success(new Customer(this.uid, nameResult.value, this.birthDate, this.email, this.cpf, this.studentCard))
   }
 
   /**
@@ -123,20 +99,10 @@ export class Customer {
    * @returns Um `Result` contendo a nova instância de `Customer` ou uma lista de falhas.
    */
   public updateBirthDate(birthDateValue: Date): Result<Customer> {
-    const birthDateResult = BirthDate.create(birthDateValue);
-    if (birthDateResult.isInvalid()) {
-      return failure(birthDateResult.failures);
-    }
-    return success(
-      new Customer(
-        this.uid,
-        this.name,
-        birthDateResult.value,
-        this.email,
-        this.cpf,
-        this.studentCard,
-      ),
-    );
+    const birthDateResult = BirthDate.create(birthDateValue)
+    return birthDateResult.isInvalid()
+      ? birthDateResult
+      : success(new Customer(this.uid, this.name, birthDateResult.value, this.email, this.cpf, this.studentCard))
   }
 
   /**
@@ -146,20 +112,10 @@ export class Customer {
    * @returns Um `Result` contendo a nova instância de `Customer` ou uma lista de falhas.
    */
   public updateEmail(email: string): Result<Customer> {
-    const emailResult = Email.create(email);
-    if (emailResult.isInvalid()) {
-      return failure(emailResult.failures);
-    }
-    return success(
-      new Customer(
-        this.uid,
-        this.name,
-        this.birthDate,
-        emailResult.value,
-        this.cpf,
-        this.studentCard,
-      ),
-    );
+    const emailResult = Email.create(email)
+    return emailResult.isInvalid()
+      ? emailResult
+      : success(new Customer(this.uid, this.name, this.birthDate, emailResult.value, this.cpf, this.studentCard))
   }
 
   /**
@@ -169,20 +125,10 @@ export class Customer {
    * @returns Um `Result` contendo a nova instância de `Customer` ou uma lista de falhas.
    */
   public assignCPF(cpf: string): Result<Customer> {
-    const cpfResult = CPF.create(cpf);
-    if (cpfResult.isInvalid()) {
-      return failure(cpfResult.failures);
-    }
-    return success(
-      new Customer(
-        this.uid,
-        this.name,
-        this.birthDate,
-        this.email,
-        cpfResult.value,
-        this.studentCard,
-      ),
-    );
+    const cpfResult = CPF.create(cpf)
+    return cpfResult.isInvalid()
+      ? failure(cpfResult.failures)
+      : success(new Customer(this.uid, this.name, this.birthDate, this.email, cpfResult.value, this.studentCard))
   }
 
   /**
@@ -191,16 +137,7 @@ export class Customer {
    * @returns Um `Result` contendo a nova instância de `Customer`.
    */
   public removeCPF(): Result<Customer> {
-    return success(
-      new Customer(
-        this.uid,
-        this.name,
-        this.birthDate,
-        this.email,
-        null,
-        this.studentCard,
-      ),
-    );
+    return success(new Customer(this.uid, this.name, this.birthDate, this.email, null, this.studentCard))
   }
 
   /**
@@ -211,20 +148,10 @@ export class Customer {
    * @returns Um `Result` contendo a nova instância de `Customer` ou uma lista de falhas.
    */
   public assignStudentCard(id: string, validity: Date): Result<Customer> {
-    const studentCardResult = StudentCard.create(id, validity);
-    if (studentCardResult.isInvalid()) {
-      return failure(studentCardResult.failures);
-    }
-    return success(
-      new Customer(
-        this.uid,
-        this.name,
-        this.birthDate,
-        this.email,
-        this.cpf,
-        studentCardResult.value,
-      ),
-    );
+    const studentCardResult = StudentCard.create(id, validity)
+    return studentCardResult.isInvalid()
+      ? failure(studentCardResult.failures)
+      : success(new Customer(this.uid, this.name, this.birthDate, this.email, this.cpf, studentCardResult.value))
   }
 
   /**
@@ -233,15 +160,6 @@ export class Customer {
    * @returns Um `Result` contendo a nova instância de `Customer`.
    */
   public removeStudentCard(): Result<Customer> {
-    return success(
-      new Customer(
-        this.uid,
-        this.name,
-        this.birthDate,
-        this.email,
-        this.cpf,
-        null,
-      ),
-    );
+    return success(new Customer(this.uid, this.name, this.birthDate, this.email, this.cpf, null))
   }
 }
