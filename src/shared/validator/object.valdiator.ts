@@ -1,16 +1,14 @@
-import { BaseValidator } from "./base.validator.ts";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { isNull } from "./validator";
-import { SimpleFailure } from "../failure/simple.failure.type";
+import { BaseValidator } from './base.validator.ts'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { isNull } from './validator'
+import { SimpleFailure } from '../failure/simple.failure.type'
 
 /**
  * Validador para objetos
  */
-export class ObjectValidator<T extends object> extends BaseValidator<
-  ObjectValidator<T>
-> {
+export class ObjectValidator<T extends object> extends BaseValidator<ObjectValidator<T>> {
   constructor(value: Record<string, T>, failures: SimpleFailure[]) {
-    super(value, failures);
+    super(value, failures)
   }
 
   /**
@@ -22,12 +20,12 @@ export class ObjectValidator<T extends object> extends BaseValidator<
   public hasProperty(
     prop: keyof T,
     code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): ObjectValidator<T> {
     return this.validate(() => !(prop in this._value), {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -37,12 +35,12 @@ export class ObjectValidator<T extends object> extends BaseValidator<
    */
   public isNotEmpty(
     code: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
-    details: Record<string, any> = {},
+    details: Record<string, any> = {}
   ): ObjectValidator<T> {
     return this.validate(() => !(Object.keys(this._value).length > 0), {
       code,
       details,
-    });
+    })
   }
 
   /**
@@ -56,9 +54,9 @@ export class ObjectValidator<T extends object> extends BaseValidator<
    */
   public optionalProperty(propertyName: string, validator: () => void): this {
     if (this._value && propertyName in this._value) {
-      validator();
+      validator()
     }
-    return this;
+    return this
   }
 
   /**
@@ -75,11 +73,11 @@ export class ObjectValidator<T extends object> extends BaseValidator<
       this._failures.push({
         code: FailureCode.MISSING_REQUIRED_DATA,
         details: { property_name: propertyName },
-      });
-      return this;
+      })
+      return this
     }
 
-    validator();
-    return this;
+    validator()
+    return this
   }
 }
