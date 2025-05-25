@@ -1,9 +1,8 @@
-import { failure, Result, success } from "../result/result";
-import { SimpleFailure } from "../failure/simple.failure.type";
-import { TechnicalError } from "../error/technical.error";
-import { isNull } from "../validator/validator";
-import { FailureCode } from "../failure/failure.codes.enum";
-import { Validate } from "../validator/validate";
+import { failure, Result, success } from '../result/result'
+import { SimpleFailure } from '../failure/simple.failure.type'
+import { TechnicalError } from '../error/technical.error'
+import { isNull } from '../validator/validator'
+import { Validate } from '../validator/validate'
 
 /**
  * Representa uma data de nascimento válida com regras de negócio aplicadas.
@@ -13,21 +12,13 @@ import { Validate } from "../validator/validate";
  * - A data não seja irrealisticamente antiga (ex: antes de 1900)
  */
 export class BirthDate {
+  private static MIN_BIRTH_DATE = new Date(new Date().getFullYear() - 18, 0, 0, 0, 0, 0)
+  private static MAX_BIRTH_DATE = new Date(1900, 0, 0, 0, 0, 0, 0)
+
   private constructor(private readonly _value: Date) {}
 
-  private static MIN_BIRTH_DATE = new Date(
-    new Date().getFullYear() - 18,
-    0,
-    0,
-    0,
-    0,
-    0,
-  );
-
-  private static MAX_BIRTH_DATE = new Date(1900, 0, 0, 0, 0, 0, 0);
-
   public get value(): Date {
-    return new Date(this._value);
+    return new Date(this._value)
   }
 
   /**
@@ -39,16 +30,14 @@ export class BirthDate {
    * - `FailureCode.INVALID_BIRTH_DATE_TOO_OLD`: Se a data for anterior a 01/01/1900
    */
   public static create(birthDate: Date): Result<BirthDate> {
-    const failures: SimpleFailure[] = [];
+    const failures: SimpleFailure[] = []
 
     Validate.date({ birthDate }, failures)
       .isRequired()
       .isAfter(BirthDate.MAX_BIRTH_DATE)
-      .isBefore(BirthDate.MIN_BIRTH_DATE);
+      .isBefore(BirthDate.MIN_BIRTH_DATE)
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(new BirthDate(birthDate));
+    return failures.length > 0 ? failure(failures) : success(new BirthDate(birthDate))
   }
 
   /**
@@ -58,8 +47,8 @@ export class BirthDate {
    * @throws TechnicalError se a data for nula ou undefined
    */
   public static hydrate(birthDate: Date): BirthDate {
-    TechnicalError.if(isNull(birthDate), FailureCode.MISSING_REQUIRED_DATA);
-    return new BirthDate(birthDate);
+    TechnicalError.validateRequiredFields({ birthDate })
+    return new BirthDate(birthDate)
   }
 
   /**
@@ -69,10 +58,8 @@ export class BirthDate {
    * @returns true se as datas forem idênticas, false caso contrário
    */
   public equal(other: BirthDate): boolean {
-    if (isNull(other)) return false;
-    return (
-      other instanceof BirthDate &&
-      other.value.toISOString() === this.value.toISOString()
-    );
+    if (isNull(other)) return false
+    if (!(other instanceof BirthDate)) return false
+    return other.value.toISOString() === this.value.toISOString()
   }
 }
