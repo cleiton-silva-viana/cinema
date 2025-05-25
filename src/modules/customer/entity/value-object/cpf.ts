@@ -1,22 +1,22 @@
-import { failure, Result, success } from "../../../../shared/result/result";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { TechnicalError } from "../../../../shared/error/technical.error";
-import { isNull } from "../../../../shared/validator/validator";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
-import { Validate } from "../../../../shared/validator/validate";
+import { failure, Result, success } from '@shared/result/result'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { TechnicalError } from '@shared/error/technical.error'
+import { isNull } from '@shared/validator/validator'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { Validate } from '@shared/validator/validate'
 
 /**
  * Representa um CPF (Cadastro de Pessoas Físicas) brasileiro.
  * Este Value Object garante que o CPF esteja em um formato válido.
  */
 export class CPF {
+  private static readonly FORMAT_REGEX = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/
+
   /**
    * Construtor privado para garantir a criação através dos métodos estáticos.
    * @param value O valor do CPF.
    */
   private constructor(public readonly value: string) {}
-
-  private static readonly FORMAT_REGEX = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
 
   /**
    * Cria uma instância de CPF a partir de uma string.
@@ -25,14 +25,14 @@ export class CPF {
    * @returns Um `Result` contendo a instância de `CPF` em caso de sucesso, ou um array de `SimpleFailure` em caso de falha.
    */
   public static create(cpf: string): Result<CPF> {
-    const failures: SimpleFailure[] = [];
+    const failures: SimpleFailure[] = []
 
     Validate.string({ cpf }, failures)
       .isRequired()
       .isNotEmpty(FailureCode.MISSING_REQUIRED_DATA)
-      .matchesPattern(CPF.FORMAT_REGEX, FailureCode.CPF_WITH_INVALID_FORMAT);
+      .matchesPattern(CPF.FORMAT_REGEX, FailureCode.CPF_WITH_INVALID_FORMAT)
 
-    return failures.length > 0 ? failure(failures) : success(new CPF(cpf));
+    return failures.length > 0 ? failure(failures) : success(new CPF(cpf))
   }
 
   /**
@@ -44,8 +44,8 @@ export class CPF {
    * @throws {TechnicalError} Se o CPF for nulo.
    */
   public static hydrate(cpf: string): CPF {
-    TechnicalError.if(isNull(cpf), FailureCode.MISSING_REQUIRED_DATA);
-    return new CPF(cpf);
+    TechnicalError.if(isNull(cpf), FailureCode.MISSING_REQUIRED_DATA)
+    return new CPF(cpf)
   }
 
   /**
@@ -55,7 +55,8 @@ export class CPF {
    * @returns `true` se os CPFs forem iguais, `false` caso contrário.
    */
   public equal(other: CPF): boolean {
-    if (isNull(other)) return false;
-    return other instanceof CPF && other.value === this.value;
+    if (isNull(other)) return false
+    if (!(other instanceof CPF)) return false
+    return other.value === this.value
   }
 }
