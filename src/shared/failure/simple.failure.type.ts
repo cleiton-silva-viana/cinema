@@ -1,4 +1,4 @@
-import { FailureCode } from "./failure.codes.enum";
+import {FailureCode} from './failure.codes.enum'
 
 /**
  * Detalhes contextuais de uma falha.
@@ -6,8 +6,8 @@ import { FailureCode } from "./failure.codes.enum";
  * permitindo mensagens de erro mais precisas e úteis.
  */
 export type FailureDetails = {
- [key: string]: any;
-};
+  [key: string]: any
+}
 
 /**
  * Representa uma estrutura padronizada para um erro simples ou falha de validação.
@@ -28,7 +28,7 @@ export type SimpleFailure = {
    * Recomenda-se usar códigos descritivos em maiúsculas com underscores.
    * Exemplo: "INVALID_EMAIL_FORMAT", "MISSING_REQUIRED_DATA", "DUPLICATE_ENTRY"
    */
-  readonly code: FailureCode;
+  readonly code: FailureCode
 
   /**
    * Objeto contendo informações contextuais adicionais sobre a falha.
@@ -38,5 +38,5 @@ export type SimpleFailure = {
    *
    * @see FailureDetails para os campos disponíveis
    */
-  readonly details?: FailureDetails;
-};
+  readonly details?: FailureDetails
+}
