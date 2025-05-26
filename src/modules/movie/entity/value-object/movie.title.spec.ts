@@ -1,106 +1,112 @@
-import { MovieTitle } from "./movie.title";
-import { faker } from "@faker-js/faker/.";
-import { codes } from "../../../../shared/value-object/multilingual-content";
+import { MovieTitle } from './movie.title'
+import { faker } from '@faker-js/faker/.'
+import { validateAndCollect } from '@shared/validator/common.validators'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
 
-describe("MovieTitle", () => {
-  const validPtTitle = "Título do Filme com tamanho válido";
-  const validEnTitle = "Valid movie title with proper length";
-  const tooShortTitle = "Short";
-  const tooLongTitle = "T".repeat(125);
-  const titleWithValidCharacters = ".,!?-_+-";
-  const titleWithInvalidCharacters = "Título com caracter inválido ¥";
+describe('MovieTitle', () => {
+  const validPtTitle = 'Título do Filme com tamanho válido'
+  const validEnTitle = 'Valid movie title with proper length'
+  const tooShortTitle = 'Short'
+  const tooLongTitle = 'T'.repeat(125)
+  const titleWithValidCharacters = '.,!?-_+-'
+  const titleWithInvalidCharacters = 'Título com caracter inválido ¥'
 
-  describe("create", () => {
-    describe("deve retornar uma instância de MovieTitle com sucesso", () => {
+  describe('create', () => {
+    let failures: SimpleFailure[]
+
+    beforeEach(() => (failures = []))
+
+    describe('deve retornar uma instância de MovieTitle com sucesso', () => {
       const successCases = [
         {
           contents: [
-            { language: "pt", text: faker.string.alphanumeric(8) },
-            { language: "en", text: validEnTitle },
+            { language: 'pt', text: faker.string.alphanumeric(8) },
+            { language: 'en', text: validEnTitle },
           ],
-          scenario: "com o tamanho mínimo exato",
+          scenario: 'com o tamanho mínimo exato',
         },
         {
           contents: [
-            { language: "pt", text: validPtTitle },
-            { language: "en", text: faker.string.alphanumeric(124) },
+            { language: 'pt', text: validPtTitle },
+            { language: 'en', text: faker.string.alphanumeric(124) },
           ],
-          scenario: "com o tamanho máximo exato",
+          scenario: 'com o tamanho máximo exato',
         },
         {
           contents: [
-            { language: "pt", text: titleWithValidCharacters },
-            { language: "en", text: titleWithValidCharacters },
+            { language: 'pt', text: titleWithValidCharacters },
+            { language: 'en', text: titleWithValidCharacters },
           ],
-          scenario: "com caracteres especiais permitidos",
+          scenario: 'com caracteres especiais permitidos',
         },
-      ];
+      ]
 
       successCases.forEach(({ contents, scenario }) => {
         it(`deve aceitar um título ${scenario}`, () => {
           // Act
-          const result = MovieTitle.create(contents);
+          const result = validateAndCollect(MovieTitle.create(contents), failures)
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value).toBeInstanceOf(MovieTitle);
-        });
-      });
-    });
+          expect(result).toBeDefined()
+          expect(result).toBeInstanceOf(MovieTitle)
+        })
+      })
+    })
 
-    describe("deve retornar um erro quando o título é inválido", () => {
+    describe('deve retornar um erro quando o título é inválido', () => {
       const failureCases = [
         {
           contents: [
-            { language: "pt", text: tooShortTitle },
-            { language: "en", text: validEnTitle },
+            { language: 'pt', text: tooShortTitle },
+            { language: 'en', text: validEnTitle },
           ],
-          scenario: "com menos que o tamanho mínimo",
-          errorCode: codes.contentLengthOutOfRange,
+          scenario: 'com menos que o tamanho mínimo',
+          errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
         },
         {
           contents: [
-            { language: "pt", text: validPtTitle },
-            { language: "en", text: tooLongTitle },
+            { language: 'pt', text: validPtTitle },
+            { language: 'en', text: tooLongTitle },
           ],
-          scenario: "com mais que o tamanho máximo",
-          errorCode: codes.contentLengthOutOfRange,
+          scenario: 'com mais que o tamanho máximo',
+          errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
         },
         {
           contents: [
-            { language: "pt", text: titleWithInvalidCharacters },
-            { language: "en", text: titleWithValidCharacters },
+            { language: 'pt', text: titleWithInvalidCharacters },
+            { language: 'en', text: titleWithValidCharacters },
           ],
-          scenario: "com caracteres inválidos no título",
-          errorCode: codes.contentInvalidFormat,
+          scenario: 'com caracteres inválidos no título',
+          errorCode: FailureCode.STRING_INVALID_FORMAT,
         },
         {
           contents: null as any,
-          scenario: "quando o conteúdo é nulo",
-          errorCode: codes.contentNullOrEmpty,
+          scenario: 'quando o conteúdo é nulo',
+          errorCode: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
           contents: undefined as any,
-          scenario: "quando o conteúdo é indefinido",
-          errorCode: codes.contentNullOrEmpty,
+          scenario: 'quando o conteúdo é indefinido',
+          errorCode: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
           contents: [],
-          scenario: "quando o conteúdo está vazio",
-          errorCode: codes.contentNullOrEmpty,
+          scenario: 'quando o conteúdo está vazio',
+          errorCode: FailureCode.MISSING_REQUIRED_DATA,
         },
-      ];
+      ]
 
       failureCases.forEach(({ contents, scenario, errorCode }) => {
         it(`deve rejeitar um título ${scenario}`, () => {
           // Act
-          const result = MovieTitle.create(contents);
+          const result = validateAndCollect(MovieTitle.create(contents), failures)
 
           // Assert
-          expect(result.invalid).toBe(true);
-          expect(result.failures[0].code).toBe(errorCode);
-        });
-      });
-    });
-  });
-});
+          expect(result).toBeNull()
+          expect(failures[0].code).toBe(errorCode)
+        })
+      })
+    })
+  })
+})
