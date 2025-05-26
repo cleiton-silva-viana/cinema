@@ -1,11 +1,9 @@
-import { Result, failure, success } from "../../../../shared/result/result";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { TechnicalError } from "../../../../shared/error/technical.error";
-import { isNull } from "../../../../shared/validator/validator";
-import { Assert } from "../../../../shared/assert/assert";
-import { not } from "../../../../shared/assert/not";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
-import { Validate } from "../../../../shared/validator/validate";
+import { failure, Result, success } from '@shared/result/result'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { TechnicalError } from '@shared/error/technical.error'
+import { isNull } from '@shared/validator/validator'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { Validate } from '@shared/validator/validate'
 
 /**
  * Enum que representa os possíveis estados de exibição de um filme
@@ -14,22 +12,22 @@ export enum ScreeningStatus {
   /**
    * Filme em pré-venda, ainda não começou a ser exibido
    */
-  PRESALE = "presale",
+  PRESALE = 'PRESALE',
 
   /**
    * Filme em exibição atualmente
    */
-  SHOWING = "showing",
+  SHOWING = 'SHOWING',
 
   /**
    * Filme com exibição encerrada
    */
-  ENDED = "ended",
+  ENDED = 'ENDED',
 }
 
 export interface ICreateMovieDisplayPeriodInput {
-  startDate: Date;
-  endDate: Date;
+  startDate: Date
+  endDate: Date
 }
 
 /**
@@ -42,22 +40,22 @@ export interface ICreateMovieDisplayPeriodInput {
  * - A data de término não pode ser mais de 30 dias após a data de início
  */
 export class MovieDisplayPeriod {
-  private static readonly MIN_DATE_FOR_DISPLAY_PERIOD: Date = new Date();
+  private static readonly MIN_DATE_FOR_DISPLAY_PERIOD: Date = new Date()
 
   /**
    * Número máximo de meses no futuro para a data de início
    */
-  private static readonly MAX_START_DATE_MONTHS_AHEAD: number = 2;
+  private static readonly MAX_START_DATE_MONTHS_AHEAD: number = 2
 
   /**
    * Número mínimo de dias entre a data de início e a data de término
    */
-  private static readonly MIN_DISPLAY_PERIOD_DAYS: number = 14;
+  private static readonly MIN_DISPLAY_PERIOD_DAYS: number = 14
 
   /**
    * Número máximo de dias entre a data de início e a data de término
    */
-  private static readonly MAX_DISPLAY_PERIOD_DAYS: number = 30;
+  private static readonly MAX_DISPLAY_PERIOD_DAYS: number = 30
 
   /**
    * Construtor privado. Use os métodos estáticos `create` ou `hydrate` para instanciar.
@@ -66,8 +64,51 @@ export class MovieDisplayPeriod {
    */
   private constructor(
     public readonly startDate: Date,
-    public readonly endDate: Date,
+    public readonly endDate: Date
   ) {}
+
+  /**
+   * Determina o status de exibição com base nas datas
+   * @returns ScreeningStatus
+   */
+  get screeningStatus(): ScreeningStatus {
+    const now = new Date()
+
+    if (now < this.startDate) {
+      return ScreeningStatus.PRESALE
+    }
+
+    if (now > this.endDate) {
+      return ScreeningStatus.ENDED
+    }
+
+    return ScreeningStatus.SHOWING
+  }
+
+  /**
+   * Verifica se o período está ativo atualmente
+   * @returns boolean
+   */
+  get isActive(): boolean {
+    const now = new Date()
+    return now >= this.startDate && now <= this.endDate
+  }
+
+  /**
+   * Verifica se o período já terminou
+   * @returns boolean
+   */
+  get hasEnded(): boolean {
+    return new Date() > this.endDate
+  }
+
+  /**
+   * Verifica se o período ainda não começou
+   * @returns boolean
+   */
+  get hasNotStarted(): boolean {
+    return new Date() < this.startDate
+  }
 
   /**
    * Cria uma instância de MovieDisplayPeriod com validação
@@ -85,44 +126,29 @@ export class MovieDisplayPeriod {
    * @returns Result<MovieDisplayPeriod> com sucesso ou falhas de validação
    */
   public static create(startDate: Date, endDate: Date): Result<MovieDisplayPeriod> {
-    const failures: SimpleFailure[] = [];
+    const failures: SimpleFailure[] = []
 
-    const maxStartDate = new Date();
-    maxStartDate.setMonth(
-      maxStartDate.getMonth() + MovieDisplayPeriod.MAX_START_DATE_MONTHS_AHEAD,
-    ); // máximo de 2 meses
+    const maxStartDate = new Date()
+    maxStartDate.setMonth(maxStartDate.getMonth() + MovieDisplayPeriod.MAX_START_DATE_MONTHS_AHEAD)
 
-    Validate.date(startDate)
-      .field("startDate")
-      .failures(failures)
+    Validate.date({ startDate }, failures)
       .isRequired()
-      .isAfter(
-        MovieDisplayPeriod.MIN_DATE_FOR_DISPLAY_PERIOD,
-        FailureCode.DATE_CANNOT_BE_PAST,
-      )
-      .isBefore(maxStartDate, FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT)
+      .isAfter(MovieDisplayPeriod.MIN_DATE_FOR_DISPLAY_PERIOD, FailureCode.DATE_CANNOT_BE_PAST)
+      .isBefore(maxStartDate)
       .then(() => {
-        const minEndDate = new Date(startDate.getTime());
-        minEndDate.setDate(
-          minEndDate.getDate() + MovieDisplayPeriod.MIN_DISPLAY_PERIOD_DAYS,
-        );
+        const minEndDate = new Date(startDate.getTime())
+        minEndDate.setDate(minEndDate.getDate() + MovieDisplayPeriod.MIN_DISPLAY_PERIOD_DAYS)
 
-        const maxEndDate = new Date(startDate.getTime());
-        maxEndDate.setDate(
-          maxEndDate.getDate() + MovieDisplayPeriod.MAX_DISPLAY_PERIOD_DAYS,
-        );
+        const maxEndDate = new Date(startDate.getTime())
+        maxEndDate.setDate(maxEndDate.getDate() + MovieDisplayPeriod.MAX_DISPLAY_PERIOD_DAYS)
 
-        Validate.date(endDate)
-          .field("endDate")
-          .failures(failures)
+        Validate.date({ endDate }, failures)
           .isRequired()
           .isAfter(minEndDate, FailureCode.DATE_WITH_INVALID_SEQUENCE)
-          .isBefore(maxEndDate, FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT);
-      });
+          .isBefore(maxEndDate)
+      })
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(new MovieDisplayPeriod(startDate, endDate));
+    return failures.length > 0 ? failure(failures) : success(new MovieDisplayPeriod(startDate, endDate))
   }
 
   /**
@@ -132,54 +158,8 @@ export class MovieDisplayPeriod {
    * @returns MovieDisplayPeriod
    */
   public static hydrate(startDate: Date, endDate: Date): MovieDisplayPeriod {
-    TechnicalError.if(
-      isNull(startDate) || isNull(endDate),
-      FailureCode.MISSING_REQUIRED_DATA,
-    );
-    return new MovieDisplayPeriod(startDate, endDate);
-  }
-
-  /**
-   * Determina o status de exibição com base nas datas
-   * @returns ScreeningStatus
-   */
-  get screeningStatus(): ScreeningStatus {
-    const now = new Date();
-
-    if (now < this.startDate) {
-      return ScreeningStatus.PRESALE;
-    }
-
-    if (now > this.endDate) {
-      return ScreeningStatus.ENDED;
-    }
-
-    return ScreeningStatus.SHOWING;
-  }
-
-  /**
-   * Verifica se o período está ativo atualmente
-   * @returns boolean
-   */
-  get isActive(): boolean {
-    const now = new Date();
-    return now >= this.startDate && now <= this.endDate;
-  }
-
-  /**
-   * Verifica se o período já terminou
-   * @returns boolean
-   */
-  get hasEnded(): boolean {
-    return new Date() > this.endDate;
-  }
-
-  /**
-   * Verifica se o período ainda não começou
-   * @returns boolean
-   */
-  get hasNotStarted(): boolean {
-    return new Date() < this.startDate;
+    TechnicalError.if(isNull(startDate) || isNull(endDate), FailureCode.MISSING_REQUIRED_DATA)
+    return new MovieDisplayPeriod(startDate, endDate)
   }
 
   /**
@@ -189,8 +169,6 @@ export class MovieDisplayPeriod {
    * @returns boolean indicando se está disponível no intervalo
    */
   public isAvailableInRange(rangeStart: Date, rangeEnd: Date): boolean {
-    return isNull(rangeStart) || isNull(rangeEnd)
-      ? false
-      : rangeStart <= this.endDate && rangeEnd >= this.startDate;
+    return isNull(rangeStart) || isNull(rangeEnd) ? false : rangeStart <= this.endDate && rangeEnd >= this.startDate
   }
 }
