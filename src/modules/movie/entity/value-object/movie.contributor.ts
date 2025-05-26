@@ -1,20 +1,19 @@
-import { PersonUID } from "../../../person/entity/value-object/person.uid";
-import { failure, Result, success } from "../../../../shared/result/result";
-import { isNull } from "../../../../shared/validator/validator";
-import { TechnicalError } from "../../../../shared/error/technical.error";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { PersonUID } from '@modules/person/entity/value-object/person.uid'
+import { failure, Result, success } from '@shared/result/result'
+import { isNull } from '@shared/validator/validator'
+import { TechnicalError } from '@shared/error/technical.error'
+import { ensureNotNull, hydrateEnum, parseToEnum, validateAndCollect } from '@shared/validator/common.validators'
 
 /**
  * Enum que define os possíveis papéis que uma pessoa pode ter em um filme.
  */
 export enum PersonRole {
-  ACTOR = "actor", // Ator
-  DIRECTOR = "director", // Diretor
-  WRITER = "writer", // Roteirista
-  PRODUCER = "producer", // Produtor
-  ACTRESS = "actress", // Atriz
-  CINEMATOGRAPHER = "cinematographer", // Diretor de fotografia
+  ACTOR = 'ACTOR',
+  DIRECTOR = 'DIRECTOR',
+  WRITER = 'WRITER',
+  PRODUCER = 'PRODUCER',
+  ACTRESS = 'ACTRESS',
+  CINEMATOGRAPHER = 'CINEMATOGRAPHER',
 }
 
 /**
@@ -26,8 +25,8 @@ export enum PersonRole {
  * @property role - Papel da pessoa no filme (deve ser um dos valores definidos em PersonRole)
  */
 export interface IMovieContributorInput {
-  personUid: string;
-  role: string;
+  personUID: string
+  role: string
 }
 
 /**
@@ -47,13 +46,13 @@ export interface IMovieContributorInput {
 export class MovieContributor {
   /**
    * Construtor privado. Use os métodos estáticos `create` ou `hydrate` para instanciar.
-   * @param personUid - Identificador único da pessoa associada ao filme
+   * @param personUID - Identificador único da pessoa associada ao filme
    * @param role - Papel desempenhado pela pessoa no filme
    * @private
    */
   private constructor(
-    public readonly personUid: PersonUID,
-    public readonly role: PersonRole,
+    public readonly personUID: PersonUID,
+    public readonly role: PersonRole
   ) {}
 
   /**
@@ -70,30 +69,14 @@ export class MovieContributor {
    * @param input - Objeto contendo os dados necessários para criar um contribuidor
    * @returns Result<MovieContributor> - Objeto Result contendo a instância ou falhas
    */
-  public static create(
-    input: IMovieContributorInput,
-  ): Result<MovieContributor> {
-    const failures: SimpleFailure[] = [];
+  public static create(input: IMovieContributorInput): Result<MovieContributor> {
+    const failures = ensureNotNull({ input })
+    if (failures.length !== 0) return failure(failures)
 
-    const personUidResult = PersonUID.parse(input.personUid);
-    if (personUidResult.invalid) failures.push(...personUidResult.failures);
+    const personUID = validateAndCollect(PersonUID.parse(input.personUID), failures)
+    const role = validateAndCollect(parseToEnum('person_role', input.role, PersonRole), failures)
 
-    const hasRole = Object.values(PersonRole).includes(
-      input.role as PersonRole,
-    );
-    if (!hasRole)
-      failures.push({
-        code: FailureCode.INVALID_ENUM_VALUE,
-        details: {
-          validValues: Object.values(PersonRole),
-        },
-      });
-
-    return failures.length > 0
-      ? failure(failures)
-      : success(
-          new MovieContributor(personUidResult.value, input.role as PersonRole),
-        );
+    return failures.length > 0 ? failure(failures) : success(new MovieContributor(personUID, role))
   }
 
   /**
@@ -107,27 +90,12 @@ export class MovieContributor {
    * @throws TechnicalError com código NULL_ARGUMENT se role for nulo
    */
   public static hydrate(input: IMovieContributorInput) {
-    TechnicalError.if(isNull(input), FailureCode.MISSING_REQUIRED_DATA, {
-      object: "input",
-    });
-
-    TechnicalError.if(
-      isNull(input.personUid),
-      FailureCode.MISSING_REQUIRED_DATA,
-      {
-        field: "personUid",
-      },
-    );
-
-    TechnicalError.if(isNull(input.role), FailureCode.MISSING_REQUIRED_DATA, {
-      field: "role",
-    });
-
-    return new MovieContributor(
-      PersonUID.hydrate(input.personUid),
-      input.role as PersonRole,
-    );
+    TechnicalError.validateRequiredFields({ input })
+    const { personUID, role } = input
+    TechnicalError.validateRequiredFields({ personUID, role })
+    return new MovieContributor(PersonUID.hydrate(personUID), hydrateEnum('person_role', role, PersonRole))
   }
+
   /**
    * Verifica se este MovieContributor é igual a outro.
    * Dois MovieContributor são considerados iguais se tiverem o mesmo personUid e role.
@@ -136,7 +104,8 @@ export class MovieContributor {
    * @returns boolean - true se forem iguais, false caso contrário
    */
   public equal(other: MovieContributor): boolean {
-    if (!other) return false;
-    return this.personUid.equal(other.personUid) && this.role === other.role;
+    if (isNull(other)) return false
+    if (!(other instanceof MovieContributor)) return false
+    return this.role === other.role
   }
 }
