@@ -1,22 +1,22 @@
-import { ScreeningUID } from "../../../screening/aggregate/value-object/screening.uid";
-import { failure, Result, success } from "../../../../shared/result/result";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { Validate } from "../../../../shared/validator/validate";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
-import { isNull } from "../../../../shared/validator/validator";
-import { TechnicalError } from "../../../../shared/error/technical.error";
-import { v4 } from "uuid";
-import { collectNullFields } from "../../../../shared/validator/common.validators";
+import { v4 } from 'uuid'
+import { ScreeningUID } from '../../../screening/aggregate/value-object/screening.uid'
+import { failure, Result, success } from '@shared/result/result'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { Validate } from '@shared/validator/validate'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { isNull } from '@shared/validator/validator'
+import { TechnicalError } from '@shared/error/technical.error'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 /**
  * Define os tipos de agendamento possíveis para uma sala de cinema.
  */
 export enum BookingType {
-  SCREENING = "SCREENING",
-  CLEANING = "CLEANING",
-  MAINTENANCE = "MAINTENANCE",
-  EXIT_TIME = "EXIT_TIME",
-  ENTRY_TIME = "ENTRY_TIME",
+  SCREENING = 'SCREENING',
+  CLEANING = 'CLEANING',
+  MAINTENANCE = 'MAINTENANCE',
+  EXIT_TIME = 'EXIT_TIME',
+  ENTRY_TIME = 'ENTRY_TIME',
 }
 
 /**
@@ -29,7 +29,7 @@ export const BookingDurationConfig = {
   [BookingType.MAINTENANCE]: { min: 0, max: 3 * 24 * 60 }, // Máximo de 3 dias para manutenção
   [BookingType.EXIT_TIME]: { min: 15, max: 30 }, // Máximo de 30 minutos para saída dos clientes
   [BookingType.ENTRY_TIME]: { min: 15, max: 20 }, // Máximo de 20 minutos para saída dos clientes
-};
+}
 
 /**
  * Representa um período de tempo reservado para uma atividade em uma sala de cinema.
@@ -52,8 +52,16 @@ export class BookingSlot {
     public readonly screeningUID: ScreeningUID | null,
     public readonly startTime: Date,
     public readonly endTime: Date,
-    public readonly type: BookingType,
+    public readonly type: BookingType
   ) {}
+
+  /**
+   * Calcula a duração do agendamento em minutos.
+   * @returns number - Duração em minutos
+   */
+  public get durationInMinutes(): number {
+    return (this.endTime.getTime() - this.startTime.getTime()) / (1000 * 60)
+  }
 
   /**
    * Cria uma nova instância de BookingSlot com validação completa.
@@ -70,27 +78,16 @@ export class BookingSlot {
     screeningUID: ScreeningUID | null,
     startTime: Date,
     endTime: Date,
-    type: BookingType,
+    type: BookingType
   ): Result<BookingSlot> {
-    const failures: SimpleFailure[] = [];
+    const failures: SimpleFailure[] = []
 
-    if (
-      !BookingSlot.validateBasicRequirements(
-        screeningUID,
-        startTime,
-        endTime,
-        type,
-        failures,
-      )
-    )
-      return failure(failures);
+    if (!BookingSlot.validateBasicRequirements(screeningUID, startTime, endTime, type, failures))
+      return failure(failures)
 
-    if (!BookingSlot.validateDuration(startTime, endTime, type, failures))
-      return failure(failures);
+    if (!BookingSlot.validateDuration(startTime, endTime, type, failures)) return failure(failures)
 
-    return success(
-      new BookingSlot(v4(), screeningUID, startTime, endTime, type),
-    );
+    return success(new BookingSlot(v4(), screeningUID, startTime, endTime, type))
   }
 
   /**
@@ -111,28 +108,17 @@ export class BookingSlot {
     screeningUID: string | null,
     startTime: Date,
     endTime: Date,
-    type: BookingType,
+    type: BookingType
   ): BookingSlot {
-    const fields = collectNullFields({ bookingUID, startTime, endTime, type });
-    TechnicalError.if(fields.length > 0, FailureCode.INVALID_HYDRATE_DATA, {
-      fields,
-    });
+    TechnicalError.validateRequiredFields({ bookingUID, startTime, endTime, type })
 
     return new BookingSlot(
       bookingUID,
       screeningUID ? ScreeningUID.hydrate(screeningUID) : null,
       startTime,
       endTime,
-      type,
-    );
-  }
-
-  /**
-   * Calcula a duração do agendamento em minutos.
-   * @returns number - Duração em minutos
-   */
-  public get durationInMinutes(): number {
-    return (this.endTime.getTime() - this.startTime.getTime()) / (1000 * 60);
+      type
+    )
   }
 
   /**
@@ -143,38 +129,25 @@ export class BookingSlot {
     startTime: Date,
     endTime: Date,
     type: BookingType,
-    failures: SimpleFailure[],
+    failures: SimpleFailure[]
   ): boolean {
-    const now = new Date();
+    const now = new Date()
 
     Validate.date({ startTime }, failures)
       .isRequired()
       .isAfter(now, FailureCode.DATE_CANNOT_BE_PAST)
       .then(() => {
-        Validate.date({ endTime }, failures)
-          .isRequired()
-          .isAfter(startTime, FailureCode.DATE_WITH_INVALID_SEQUENCE);
-      });
+        Validate.date({ endTime }, failures).isRequired().isAfter(startTime, FailureCode.DATE_WITH_INVALID_SEQUENCE)
+      })
 
     Validate.string({ type }, failures)
       .isRequired()
       .isInEnum(BookingType)
-      .when(
-        type === BookingType.SCREENING ||
-          type === BookingType.EXIT_TIME ||
-          type === BookingType.ENTRY_TIME,
-        () => {
-          if (isNull(screeningUID))
-            failures.push({
-              code: FailureCode.MISSING_REQUIRED_DATA,
-              details: {
-                field: "screeningUID",
-              },
-            });
-        },
-      );
+      .when(type === BookingType.SCREENING || type === BookingType.EXIT_TIME || type === BookingType.ENTRY_TIME, () => {
+        if (isNull(screeningUID)) failures.push(FailureFactory.MISSING_REQUIRED_DATA('screening'))
+      })
 
-    return failures.length === 0;
+    return failures.length === 0
   }
 
   /**
@@ -184,28 +157,22 @@ export class BookingSlot {
     startTime: Date,
     endTime: Date,
     type: BookingType,
-    failures: SimpleFailure[],
+    failures: SimpleFailure[]
   ): boolean {
-    const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
-    const config = BookingDurationConfig[type];
+    const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60)
+    const { min, max } = BookingDurationConfig[type]
 
-    if (duration < config.min || duration > config.max) {
-      failures.push({
-        code: FailureCode.INVALID_OPERATION_DURATION,
-        details: {
-          duration: duration,
-          min: config.min,
-          max: config.max,
-        },
-      });
-      return false;
+    if (duration < min || duration > max) {
+      failures.push(FailureFactory.INVALID_OPERATION_DURATION(duration, min, max))
+      return false
     }
 
-    return true;
+    return true
   }
 
   public equals(other: BookingSlot): boolean {
-    if (isNull(other) || !(other instanceof BookingSlot)) return false;
-    return other.bookingUID === this.bookingUID;
+    if (isNull(other)) return false
+    if (!(other instanceof BookingSlot)) return false
+    return other.bookingUID === this.bookingUID
   }
 }
