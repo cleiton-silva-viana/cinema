@@ -72,13 +72,6 @@ export abstract class MultilingualContent {
    * Cria uma instância válida de conteúdo multilíngue com validações completas.
    * @param contents Array de objetos com texto e idioma
    * @returns Result<T> com falha nos seguintes casos:
-   * - `FailureCode.NULL_ARGUMENT`: Se o array for nulo
-   * - `FailureCode.EMPTY_FIELD`: Se o array estiver vazio
-   * - `FailureCode.CONTENT_INVALID_LANGUAGE`: Se o idioma não for suportado
-   * - `FailureCode.INVALID_FIELD_SIZE`: Se o texto estiver fora do limite de caracteres (1–500)
-   * - `FailureCode.CONTENT_INVALID_FORMAT`: Se o texto contiver caracteres inválidos
-   * - `FailureCode.CONTENT_DUPLICATE_LANGUAGE`: Se houver idiomas duplicados
-   * - `FailureCode.CONTENT_MISSING_REQUIRED_LANGUAGE`: Se faltar algum idioma obrigatório
    */
   public static create<T extends MultilingualContent>(contents: IMultilingualInput[]): Result<T> {
     const failures: SimpleFailure[] = []
@@ -88,8 +81,9 @@ export abstract class MultilingualContent {
 
     const contentsParsed: ILanguageContent[] = []
     contents.forEach((content) => {
-      const parsedContent = this.toLanguageContent(content, failures)
-      if (parsedContent) contentsParsed.push(parsedContent)
+      const result = parseToEnum('language', content.language, SupportedLanguage)
+      if (result.isInvalid()) failures.push(...result.failures)
+      else contentsParsed.push({ language: result.value, text: content.text })
     })
     if (failures.length > 0) return failure(failures)
 
@@ -125,37 +119,6 @@ export abstract class MultilingualContent {
     else contentMap.set(langEnumResult.value, value)
 
     return new (this as any)(contentMap)
-  }
-
-  /**
-   * Converte uma string para o enum SupportedLanguage (case-insensitive).
-   * Exemplo: "PT" → SupportedLanguage.PT
-   * @param language Idioma a ser convertido
-   * @returns O enum SupportedLanguage correspondente ou undefined se inválido
-   */
-  private static toSupportedLanguage(language: string): SupportedLanguage | undefined {
-    return Object.values(SupportedLanguage).find((lang) => lang === language.toLowerCase())
-  }
-
-  /**
-   * Converte um MultilingualInput para LanguageContent
-   * @param content Conteúdo a ser convertido
-   * @param failures Array para armazenar os erros encontrados
-   * @returns LanguageContent válido ou undefined se inválido
-   */
-  private static toLanguageContent(
-    content: IMultilingualInput,
-    failures: SimpleFailure[]
-  ): ILanguageContent | undefined {
-    const languageEnum = MultilingualContent.toSupportedLanguage(content.language)
-    if (!languageEnum) {
-      failures.push(FailureFactory.CONTENT_WITH_INVALID_LANGUAGE(content.language))
-      return
-    }
-    return {
-      language: languageEnum,
-      text: content.text,
-    }
   }
 
   /**

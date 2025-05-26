@@ -86,7 +86,7 @@ describe('MultilingualContent', () => {
           {
             contents: [fr],
             scenario: 'quando o idioma é inválido',
-            errorCode: FailureCode.CONTENT_WITH_INVALID_LANGUAGE,
+            errorCode: FailureCode.INVALID_ENUM_VALUE,
           },
         ]
 
