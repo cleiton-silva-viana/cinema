@@ -1,5 +1,5 @@
-import { Image } from "../entity/image";
-import { ImageUID } from "../entity/value-object/image.uid";
+import { Image } from '../entity/image'
+import { ImageUID } from '../entity/value-object/image.uid'
 
 /**
  * Interface para o repositório de imagens.
@@ -12,7 +12,7 @@ export interface IImageRepository {
    * @param image - Entidade Image a ser persistida
    * @returns Promise com a entidade Image persistida ou null em caso de falha
    */
-  create(image: Image): Promise<Image | null>;
+  create(image: Image): Promise<Image>
 
   /**
    * Busca uma imagem pelo seu identificador único.
@@ -20,7 +20,7 @@ export interface IImageRepository {
    * @param uid - Identificador único da imagem
    * @returns Promise com a entidade Image encontrada ou null se não existir
    */
-  findById(uid: ImageUID): Promise<Image | null>;
+  findById(uid: ImageUID): Promise<Image | null>
 
   /**
    * Remove uma imagem do repositório.
@@ -28,7 +28,7 @@ export interface IImageRepository {
    * @param uid - Identificador único da imagem
    * @returns Promise<void>
    */
-  delete(uid: ImageUID): Promise<void>;
+  delete(uid: ImageUID): Promise<void>
 
   /**
    * Atualiza uma imagem existente no repositório.
@@ -36,5 +36,5 @@ export interface IImageRepository {
    * @param image - Entidade Image atualizada a ser persistida
    * @returns Promise com a entidade Image atualizada ou null em caso de falha
    */
-  update(image: Image): Promise<Image | null>;
+  update(image: Image): Promise<Image>
 }
