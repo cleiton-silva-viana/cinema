@@ -1,6 +1,6 @@
-import { Movie } from "../entity/movie";
-import { MovieUID } from "../entity/value-object/movie.uid";
-import { MovieFilter } from "../entity/value-object/movie.filter";
+import { Movie } from '../entity/movie'
+import { MovieUID } from '../entity/value-object/movie.uid'
+import { MovieFilter } from '../entity/value-object/movie.filter'
 
 /**
  * Interface para o repositório de filmes.
@@ -14,7 +14,7 @@ export interface IMovieRepository {
    * @param uid - Identificador único do filme.
    * @returns {Promise<Movie | null>} Uma Promise que resolve com o filme, ou null se não for encontrado.
    */
-  findById(uid: MovieUID): Promise<Movie | null>;
+  findById(uid: MovieUID): Promise<Movie | null>
 
   /**
    * Busca filmes com base em um filtro opcional.
@@ -24,7 +24,7 @@ export interface IMovieRepository {
    * @param filter - (Opcional) Objeto com critérios para filtrar a busca.
    * @returns {Promise<Movie[]>} Uma Promise que resolve com um array de filmes que atendem aos critérios.
    */
-  find(filter: MovieFilter): Promise<Movie[]>;
+  find(filter: MovieFilter): Promise<Movie[]>
 
   /**
    * Persiste um filme, criando ou atualizando conforme necessário.
@@ -32,7 +32,7 @@ export interface IMovieRepository {
    * @param movie - Objeto Movie a ser salvo.
    * @returns {Promise<Movie>} Uma Promise que resolve com o filme persistido.
    */
-  save(movie: Movie): Promise<Movie>;
+  save(movie: Movie): Promise<Movie>
 
   /**
    * Atualiza um filme existente.
@@ -43,7 +43,7 @@ export interface IMovieRepository {
    * @param movie - Objeto Movie com os dados atualizados.
    * @returns {Promise<Movie>} Uma Promise que resolve com o filme atualizado.
    */
-  update(movie: Movie): Promise<Movie>;
+  update(movie: Movie): Promise<Movie>
 
   /**
    * Realiza a exclusão definitiva (hard delete) de um filme.
@@ -51,5 +51,5 @@ export interface IMovieRepository {
    * @param uid - Identificador único do filme a ser excluído.
    * @returns {Promise<boolean>} Uma Promise que resolve com true se a exclusão for bem-sucedida, false caso contrário.
    */
-  delete(uid: MovieUID): Promise<boolean>;
+  delete(uid: MovieUID): Promise<boolean>
 }
