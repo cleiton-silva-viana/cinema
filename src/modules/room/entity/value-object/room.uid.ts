@@ -1,5 +1,5 @@
-import { UID } from "../../../../shared/value-object/uid";
+import { UID } from '@shared/value-object/uid'
 
 export class RoomUID extends UID {
-  protected static readonly PREFIX: string = "ROOM";
+  protected static readonly PREFIX: string = 'ROOM'
 }
