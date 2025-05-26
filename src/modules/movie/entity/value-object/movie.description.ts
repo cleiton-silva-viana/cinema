@@ -1,4 +1,4 @@
-import { MultilingualContent } from "../../../../shared/value-object/multilingual-content";
+import { MultilingualContent } from '../../../../shared/value-object/multilingual-content'
 
 /**
  * Representa a descrição de um filme em múltiplos idiomas.
@@ -19,17 +19,16 @@ export class MovieDescription extends MultilingualContent {
   /**
    * Comprimento mínimo permitido para a descrição do filme (48 caracteres).
    */
-  protected static readonly MIN_LENGTH: number = 48;
+  protected static readonly MIN_LENGTH: number = 48
 
   /**
    * Comprimento máximo permitido para a descrição do filme (1024 caracteres).
    */
-  protected static readonly MAX_LENGTH: number = 1024;
+  protected static readonly MAX_LENGTH: number = 1024
 
   /**
    * Expressão regular que define o formato válido para a descrição do filme.
    * Permite letras (com acentos), números, espaços e símbolos comuns.
    */
-  protected static readonly FORMAT_REGEX =
-    /^[A-Za-zÀ-ÖØ-öø-ÿ\d\s\-_.,?!@#$%&+\/]+$/;
+  protected static readonly FORMAT_REGEX = /^[A-Za-zÀ-ÖØ-öø-ÿ\d\s\-_.,?!@#$%&+\/]+$/
 }
