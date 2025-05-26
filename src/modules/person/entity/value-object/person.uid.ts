@@ -1,4 +1,4 @@
-import { UID } from "../../../../shared/value-object/uid";
+import { UID } from '@shared/value-object/uid'
 
 /**
  * Representa o identificador único de uma pessoa no sistema.
@@ -11,5 +11,5 @@ import { UID } from "../../../../shared/value-object/uid";
  * tipos de identificadores no sistema.
  */
 export class PersonUID extends UID {
-  protected static readonly PREFIX: string = "PRSN";
+  protected static readonly PREFIX: string = 'PRSN'
 }
