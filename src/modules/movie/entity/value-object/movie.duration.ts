@@ -1,12 +1,9 @@
-import { Result, failure, success } from "../../../../shared/result/result";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { TechnicalError } from "../../../../shared/error/technical.error";
-import { isNull } from "../../../../shared/validator/validator";
-import { Assert } from "../../../../shared/assert/assert";
-import { not } from "../../../../shared/assert/not";
-import { is } from "../../../../shared/assert/is";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
-import { Validate } from "../../../../shared/validator/validate";
+import { failure, Result, success } from '@shared/result/result'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { TechnicalError } from '@shared/error/technical.error'
+import { isNull } from '@shared/validator/validator'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { Validate } from '@shared/validator/validate'
 
 /**
  * Value Object que representa a duração de um filme em minutos.
@@ -24,12 +21,12 @@ export class MovieDuration {
   /**
    * Duração mínima permitida para um filme em minutos (1 hora)
    */
-  public static readonly MIN_DURATION = 60;
+  public static readonly MIN_DURATION = 60
 
   /**
    * Duração máxima permitida para um filme em minutos (5 horas)
    */
-  public static readonly MAX_DURATION = 300;
+  public static readonly MAX_DURATION = 300
 
   /**
    * Construtor privado. Use os métodos estáticos `create` ou `hydrate` para instanciar.
@@ -50,25 +47,15 @@ export class MovieDuration {
    * @returns Result<MovieDuration> contendo a instância criada ou falhas de validação
    */
   public static create(minutes: number): Result<MovieDuration> {
-    const failures: SimpleFailure[] = [];
+    const failures: SimpleFailure[] = []
 
-    Validate.number(minutes)
-      .field("minutes")
-      .failures(failures)
+    Validate.number({ minutes }, failures)
       .isRequired()
       .isInteger()
-      .isAtLeast(
-        MovieDuration.MIN_DURATION,
-        FailureCode.MOVIE_DURATION_TOO_SHORT,
-      )
-      .isAtMost(
-        MovieDuration.MAX_DURATION,
-        FailureCode.MOVIE_DURATION_TOO_LONG,
-      );
+      .isAtLeast(MovieDuration.MIN_DURATION, FailureCode.MOVIE_WITH_DURATION_TOO_SHORT) // verificar
+      .isAtMost(MovieDuration.MAX_DURATION, FailureCode.MOVIE_WITH_DURATION_TOO_LONG) // verificar
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(new MovieDuration(minutes));
+    return failures.length > 0 ? failure(failures) : success(new MovieDuration(minutes))
   }
 
   /**
@@ -80,8 +67,8 @@ export class MovieDuration {
    * @throws TechnicalError com código NULL_ARGUMENT se minutes for nulo
    */
   public static hydrate(minutes: number): MovieDuration {
-    TechnicalError.if(isNull(minutes), FailureCode.MISSING_REQUIRED_DATA);
-    return new MovieDuration(minutes);
+    TechnicalError.if(isNull(minutes), FailureCode.MISSING_REQUIRED_DATA)
+    return new MovieDuration(minutes)
   }
 
   /**
@@ -95,17 +82,17 @@ export class MovieDuration {
    * @returns String formatada representando a duração
    */
   public format(): string {
-    const hours = Math.floor(this.minutes / 60);
-    const minutes = this.minutes % 60;
+    const hours = Math.floor(this.minutes / 60)
+    const minutes = this.minutes % 60
 
     if (hours === 0) {
-      return `${minutes}min`;
+      return `${minutes}min`
     }
 
     if (minutes === 0) {
-      return `${hours}h`;
+      return `${hours}h`
     }
 
-    return `${hours}h ${minutes}min`;
+    return `${hours}h ${minutes}min`
   }
 }

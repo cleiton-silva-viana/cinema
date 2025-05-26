@@ -1,153 +1,155 @@
-import { MovieDuration } from "./movie.duration";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { MovieDuration } from './movie.duration'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { validateAndCollect } from '@shared/validator/common.validators'
 
-describe("MovieDuration", () => {
-  describe("Static Methods", () => {
-    describe("create", () => {
-      it("deve criar uma instância válida com duração dentro dos limites", () => {
+describe('MovieDuration', () => {
+  describe('Static Methods', () => {
+    describe('create', () => {
+      let failures: SimpleFailure[]
+
+      beforeEach(() => (failures = []))
+
+      it('deve criar uma instância válida com duração dentro dos limites', () => {
         // Arrange
-        const minutes = 120; // 2 horas
+        const minutes = 120 // 2 horas
 
         // Act
-        const result = MovieDuration.create(minutes);
+        const result = validateAndCollect(MovieDuration.create(minutes), failures)
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value.minutes).toBe(minutes);
-      });
+        expect(result).toBeDefined()
+        expect(result.minutes).toBe(minutes)
+      })
 
-      it("deve criar uma instância válida com duração mínima permitida", () => {
+      it('deve criar uma instância válida com duração mínima permitida', () => {
         // Arrange
-        const minutes = MovieDuration.MIN_DURATION;
+        const minutes = MovieDuration.MIN_DURATION
 
         // Act
-        const result = MovieDuration.create(minutes);
+        const result = validateAndCollect(MovieDuration.create(minutes), failures)
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value?.minutes).toBe(minutes);
-      });
+        expect(result).toBeDefined()
+        expect(result.minutes).toBe(minutes)
+      })
 
-      it("deve criar uma instância válida com duração máxima permitida", () => {
+      it('deve criar uma instância válida com duração máxima permitida', () => {
         // Arrange
-        const minutes = MovieDuration.MAX_DURATION;
+        const minutes = MovieDuration.MAX_DURATION
 
         // Act
-        const result = MovieDuration.create(minutes);
+        const result = validateAndCollect(MovieDuration.create(minutes), failures)
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value?.minutes).toBe(minutes);
-      });
+        expect(result).toBeDefined()
+        expect(result.minutes).toBe(minutes)
+      })
 
-      it("deve falhar ao criar com duração nula", () => {
+      it('deve falhar ao criar com duração nula', () => {
         // Arrange
-        const minutes = null as unknown as number;
+        const minutes = null as unknown as number
 
         // Act
-        const result = MovieDuration.create(minutes);
+        const result = validateAndCollect(MovieDuration.create(minutes), failures)
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA);
-      });
+        expect(result).toBeNull()
+        expect(failures).toHaveLength(1)
+        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+      })
 
-      it("deve falhar ao criar com duração menor que o mínimo permitido", () => {
+      it('deve falhar ao criar com duração menor que o mínimo permitido', () => {
         // Arrange
-        const minutes = MovieDuration.MIN_DURATION - 1;
+        const minutes = MovieDuration.MIN_DURATION - 1
 
         // Act
-        const result = MovieDuration.create(minutes);
+        const result = validateAndCollect(MovieDuration.create(minutes), failures)
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(
-          FailureCode.MOVIE_DURATION_TOO_SHORT,
-        );
-      });
+        expect(result).toBeNull()
+        expect(failures).toHaveLength(1)
+        expect(failures[0].code).toBe(FailureCode.MOVIE_WITH_DURATION_TOO_SHORT)
+      })
 
-      it("deve falhar ao criar com duração maior que o máximo permitido", () => {
+      it('deve falhar ao criar com duração maior que o máximo permitido', () => {
         // Arrange
-        const minutes = MovieDuration.MAX_DURATION + 1;
+        const minutes = MovieDuration.MAX_DURATION + 1
 
         // Act
-        const result = MovieDuration.create(minutes);
+        const result = validateAndCollect(MovieDuration.create(minutes), failures)
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures).toHaveLength(1);
-        expect(result.failures[0].code).toBe(
-          FailureCode.MOVIE_DURATION_TOO_LONG,
-        );
-      });
-    });
+        expect(result).toBeNull()
+        expect(failures).toHaveLength(1)
+        expect(failures[0].code).toBe(FailureCode.MOVIE_WITH_DURATION_TOO_LONG)
+      })
+    })
 
-    describe("hydrate", () => {
-      it("deve hidratar corretamente a partir de um valor válido", () => {
+    describe('hydrate', () => {
+      it('deve hidratar corretamente a partir de um valor válido', () => {
         // Arrange
-        const minutes = 150;
+        const minutes = 150
 
         // Act
-        const duration = MovieDuration.hydrate(minutes);
+        const duration = MovieDuration.hydrate(minutes)
 
         // Assert
-        expect(duration.minutes).toBe(minutes);
-      });
+        expect(duration.minutes).toBe(minutes)
+      })
 
-      it("deve lançar erro técnico ao tentar hidratar com valor nulo", () => {
+      it('deve lançar erro técnico ao tentar hidratar com valor nulo', () => {
         // Arrange
-        const minutes = null as unknown as number;
+        const minutes = null as unknown as number
 
         // Act & Assert
         expect(() => {
-          MovieDuration.hydrate(minutes);
-        }).toThrow(FailureCode.MISSING_REQUIRED_DATA);
-      });
-    });
-  });
+          MovieDuration.hydrate(minutes)
+        }).toThrow(FailureCode.MISSING_REQUIRED_DATA)
+      })
+    })
+  })
 
-  describe("Instance Methods", () => {
-    describe("format", () => {
-      it("deve formatar corretamente quando há apenas horas", () => {
+  describe('Instance Methods', () => {
+    describe('format', () => {
+      it('deve formatar corretamente quando há apenas horas', () => {
         // Arrange
-        const hours = 2;
-        const minutes = hours * 60;
-        const duration = MovieDuration.hydrate(minutes);
+        const hours = 2
+        const minutes = hours * 60
+        const duration = MovieDuration.hydrate(minutes)
 
         // Act
-        const formatted = duration.format();
+        const formatted = duration.format()
 
         // Assert
-        expect(formatted).toBe("2h");
-      });
+        expect(formatted).toBe('2h')
+      })
 
-      it("deve formatar corretamente quando há apenas minutos", () => {
+      it('deve formatar corretamente quando há apenas minutos', () => {
         // Arrange
-        const minutes = 45;
-        const duration = MovieDuration.hydrate(minutes);
+        const minutes = 45
+        const duration = MovieDuration.hydrate(minutes)
 
         // Act
-        const formatted = duration.format();
+        const formatted = duration.format()
 
         // Assert
-        expect(formatted).toBe("45min");
-      });
+        expect(formatted).toBe('45min')
+      })
 
-      it("deve formatar corretamente quando há horas e minutos", () => {
+      it('deve formatar corretamente quando há horas e minutos', () => {
         // Arrange
-        const hours = 2;
-        const mins = 15;
-        const totalMinutes = hours * 60 + mins;
-        const duration = MovieDuration.hydrate(totalMinutes);
+        const hours = 2
+        const mins = 15
+        const totalMinutes = hours * 60 + mins
+        const duration = MovieDuration.hydrate(totalMinutes)
 
         // Act
-        const formatted = duration.format();
+        const formatted = duration.format()
 
         // Assert
-        expect(formatted).toBe("2h 15min");
-      });
-    });
-  });
-});
+        expect(formatted).toBe('2h 15min')
+      })
+    })
+  })
+})
