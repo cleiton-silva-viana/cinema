@@ -1,4 +1,4 @@
-import { UID } from "../../../../shared/value-object/uid";
+import { UID } from '@shared/value-object/uid'
 
 /**
  * Representa um identificador único para entidades de Filme.
@@ -19,5 +19,5 @@ export class MovieUID extends UID {
    * Prefixo usado para identificar UIDs de filmes.
    * Este prefixo é concatenado com um UUID para formar o identificador completo.
    */
-  protected static readonly PREFIX: string = "MOVIE";
+  protected static readonly PREFIX: string = 'MOVIE'
 }
