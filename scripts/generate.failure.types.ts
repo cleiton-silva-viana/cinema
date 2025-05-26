@@ -1,4 +1,4 @@
-import {FailureTemplate} from 'src/shared/failure/failure.template'
+import { FailureTemplate } from 'src/shared/failure/failure.template'
 
 type Failures = Record<string, FailureTemplate>
 type TemplateVariable = { field: string; type: string }
@@ -8,89 +8,89 @@ type TemplateVariable = { field: string; type: string }
  * @Example "O campo '{field:string}' deve ter entre {min:number} e {max:number}" -> [ {field: 'field', type: 'string'} ]
  * */
 export function extractTemplateVariables(template: string): Array<TemplateVariable> {
-    const regexp = /\{(\w+)(?::(\w+))?\}/g
-    const variables: Array<{ field: string; type: string }> = []
-    let match
+  const regexp = /\{(\w+)(?::(\w+))?\}/g
+  const variables: Array<{ field: string; type: string }> = []
+  let match
 
-    while ((match = regexp.exec(template)) !== null) {
-        const field = match[1]
-        let type = match[2] || 'any'
+  while ((match = regexp.exec(template)) !== null) {
+    const field = match[1]
+    let type = match[2] || 'any'
 
-        if (!['string', 'number', 'Date'].includes(type)) type = 'any'
+    if (!['string', 'number', 'Date'].includes(type)) type = 'any'
 
-        if (!variables.some((v) => v.field === field)) {
-            variables.push({field, type})
-        }
+    if (!variables.some((v) => v.field === field)) {
+      variables.push({ field, type })
     }
+  }
 
-    return variables
+  return variables
 }
 
 /**
  * Analisa um erro e retorna todas as variáveis necessárias
  * */
 export function analyzeFailureTemplate(err: FailureTemplate): Array<TemplateVariable> {
-    const ptVar = extractTemplateVariables(err.template.pt)
-    const enVar = extractTemplateVariables(err.template.en)
+  const ptVar = extractTemplateVariables(err.template.pt)
+  const enVar = extractTemplateVariables(err.template.en)
 
-    const uniqueVars = new Map<string, TemplateVariable>()
+  const uniqueVars = new Map<string, TemplateVariable>()
 
-    ptVar.forEach((variable) => {
-        uniqueVars.set(variable.field, variable)
-    })
+  ptVar.forEach((variable) => {
+    uniqueVars.set(variable.field, variable)
+  })
 
-    enVar.forEach((variable) => {
-        uniqueVars.set(variable.field, variable)
-    })
+  enVar.forEach((variable) => {
+    uniqueVars.set(variable.field, variable)
+  })
 
-    return Array.from(uniqueVars.values())
+  return Array.from(uniqueVars.values())
 }
 
 /**
  * Gera uma string de enum contendo todos os códigos de erro contídos no objeto passado por parâmetro
  * */
 export function generateFailureCodes(failures: Failures): string {
-    const codes = Object.keys(failures)
-        .sort()
-        .map((code) => `  ${code} = '${code}'`)
-        .join(',\n')
+  const codes = Object.keys(failures)
+    .sort()
+    .map((code) => `  ${code} = '${code}'`)
+    .join(',\n')
 
-    return `export enum FailureCode {\n${codes}\n}\n// Este arquivo é gerado automaticamente. NÃO EDITE MANUALMENTE!`
+  return `export enum FailureCode {\n${codes}\n}\n// Este arquivo é gerado automaticamente. NÃO EDITE MANUALMENTE!`
 }
 
 /**
  * Gera uma constante contendo as funções de criação de simpleFailure
  * */
 export function generateCodeConstant(failures: Failures): string {
-    const entries = Object.entries(failures)
+  const entries = Object.entries(failures)
 
-    let codes: string = ''
+  let codes: string = ''
 
-    entries.forEach(([code, template]) => {
-        let params = analyzeFailureTemplate(template)
-        if (params.length === 0) {
-            codes += `${code}: (): SimpleFailure => ({ 
+  entries.forEach(([code, template]) => {
+    let params = analyzeFailureTemplate(template)
+    if (params.length === 0) {
+      codes += `${code}: (): SimpleFailure => ({ 
         code: FailureCode.${code}, 
         details: {} 
       }),\n`
-            return
-        }
+      return
+    }
 
-        let functionArguments: string = ''
-        let detailsKey: string = ''
-        params.forEach((p) => {
-            const variable = `${p.field}: ${p.type}`
-            functionArguments += functionArguments.length === 0 ? variable : `, ${variable}`
-            detailsKey += detailsKey === '' ? p.field : `, ${p.field}`
-        })
+    let functionArguments: string = ''
+    let detailsKey: string = ''
+    params.forEach((p) => {
+      const variable = `${p.field}: ${p.type}`
+      functionArguments += functionArguments.length === 0 ? variable : `, ${variable}`
+      detailsKey += detailsKey === '' ? p.field : `, ${p.field}`
+    })
 
-        codes += `${code}: (${functionArguments}): SimpleFailure => ({ 
+    codes += `${code}: (${functionArguments}): SimpleFailure => ({ 
       code: FailureCode.${code}, 
       details: { ${detailsKey} }
     }),\n`
-    })
+  })
 
-    return `
+  return `
   import { FailureCode } from './failure.codes.enum'
   import { SimpleFailure } from './simple.failure.type'
   
