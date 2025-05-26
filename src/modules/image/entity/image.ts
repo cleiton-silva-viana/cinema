@@ -1,17 +1,10 @@
-import { failure, Result, success } from "../../../shared/result/result";
-import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
-import { ImageUID } from "./value-object/image.uid";
-import { ImageTitle } from "./value-object/image.title";
-import { ImageDescription } from "./value-object/image.description";
-import { ImageSizes } from "./value-object/image.sizes";
-import { Validate } from "../../../shared/validator/validate";
-import { isNull } from "../../../shared/validator/validator";
-import { TechnicalError } from "../../../shared/error/technical.error";
-import { FailureCode } from "../../../shared/failure/failure.codes.enum";
-import {
-  ensureNotNull,
-  validateAndCollect,
-} from "../../../shared/validator/common.validators";
+import { ImageUID } from './value-object/image.uid'
+import { ImageTitle } from './value-object/image.title'
+import { ImageDescription } from './value-object/image.description'
+import { ImageSizes } from './value-object/image.sizes'
+import { TechnicalError } from '@shared/error/technical.error'
+import { failure, Result, success } from '@shared/result/result'
+import { ensureNotNull, validateAndCollect } from '@shared/validator/common.validators'
 
 /**
  * Interface que define o conteúdo textual em um idioma específico.
@@ -21,8 +14,8 @@ import {
  * @property text - Texto no idioma especificado
  */
 export interface ItextContent {
-  language: string;
-  text: string;
+  language: string
+  text: string
 }
 
 /**
@@ -34,9 +27,9 @@ export interface ItextContent {
  * @property large - URL da imagem em tamanho grande
  */
 export interface ISizes {
-  small: string;
-  normal: string;
-  large: string;
+  small: string
+  normal: string
+  large: string
 }
 
 /**
@@ -49,10 +42,10 @@ export interface ISizes {
  * @property sizes - Objeto contendo as URLs para os diferentes tamanhos da imagem
  */
 export interface ICreateImageParams {
-  uid: string;
-  title: ItextContent[];
-  description: ItextContent[];
-  sizes: ISizes;
+  uid: string
+  title: ItextContent[]
+  description: ItextContent[]
+  sizes: ISizes
 }
 
 /**
@@ -65,10 +58,10 @@ export interface ICreateImageParams {
  * @property sizes - Objeto contendo as URLs para os diferentes tamanhos da imagem
  */
 export interface IHydrateImageParams {
-  uid: string;
-  title: ItextContent;
-  description: ItextContent;
-  sizes: ISizes;
+  uid: string
+  title: ItextContent
+  description: ItextContent
+  sizes: ISizes
 }
 
 /**
@@ -80,9 +73,9 @@ export interface IHydrateImageParams {
  * @property sizes - Objeto contendo as URLs para os diferentes tamanhos da imagem
  */
 export interface IUpdateImageParams {
-  title?: ItextContent[];
-  description?: ItextContent[];
-  sizes?: ISizes;
+  title?: ItextContent[]
+  description?: ItextContent[]
+  sizes?: ISizes
 }
 
 /**
@@ -109,7 +102,7 @@ export class Image {
     public readonly uid: ImageUID,
     public readonly title: ImageTitle,
     public readonly description: ImageDescription,
-    public readonly sizes: ImageSizes,
+    public readonly sizes: ImageSizes
   ) {}
 
   /**
@@ -129,20 +122,15 @@ export class Image {
    * um array de falhas (SimpleFailure) caso a validação falhe.
    */
   public static create(params: ICreateImageParams): Result<Image> {
-    const failures = ensureNotNull({ params });
-    if (failures.length > 0) return failure(failures);
+    const failures = ensureNotNull({ params })
+    if (failures.length > 0) return failure(failures)
 
-    const uid = validateAndCollect(ImageUID.parse(params.uid), failures);
-    const title = validateAndCollect(ImageTitle.create(params.title), failures);
-    const description = validateAndCollect(
-      ImageDescription.create(params.description),
-      failures,
-    );
-    const sizes = validateAndCollect(ImageSizes.create(params.sizes), failures);
+    const uid = validateAndCollect(ImageUID.parse(params.uid), failures)
+    const title = validateAndCollect(ImageTitle.create(params.title), failures)
+    const description = validateAndCollect(ImageDescription.create(params.description), failures)
+    const sizes = validateAndCollect(ImageSizes.create(params.sizes), failures)
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(new Image(uid, title, description, sizes));
+    return failures.length > 0 ? failure(failures) : success(new Image(uid, title, description, sizes))
   }
 
   /**
@@ -156,21 +144,18 @@ export class Image {
    * @throws TechnicalError com código MISSING_REQUIRED_DATA se params for nulo
    */
   public static hydrate(params: IHydrateImageParams): Image {
-    TechnicalError.validateRequiredFields({ params });
-    TechnicalError.validateRequiredFields({
-      title: params.title,
-      description: params.description,
-    });
+    TechnicalError.validateRequiredFields({ params })
+
+    const { uid, title, description, sizes } = params
+
+    TechnicalError.validateRequiredFields({ uid, title, description, sizes })
 
     return new Image(
-      ImageUID.hydrate(params.uid),
-      ImageTitle.hydrate(params.title.language, params.title.text),
-      ImageDescription.hydrate(
-        params.description.language,
-        params.description.text,
-      ),
-      ImageSizes.hydrate(params.sizes),
-    );
+      ImageUID.hydrate(uid),
+      ImageTitle.hydrate(title.language, title.text),
+      ImageDescription.hydrate(description.language, description.text),
+      ImageSizes.hydrate(sizes)
+    )
   }
 
   /**
@@ -190,25 +175,15 @@ export class Image {
    * ou um array de falhas (SimpleFailure) caso a validação falhe.
    */
   public update(params: IUpdateImageParams): Result<Image> {
-    const failures = ensureNotNull({ params });
-    if (failures.length > 0) return failure(failures);
+    const failures = ensureNotNull({ params })
+    if (failures.length > 0) return failure(failures)
 
-    let title = this.title;
-    let description = this.description;
-    let sizes = this.sizes;
+    let { title, description, sizes } = this
 
-    if (params.title)
-      title = validateAndCollect(ImageTitle.create(params.title), failures);
-    if (params.description)
-      description = validateAndCollect(
-        ImageDescription.create(params.description),
-        failures,
-      );
-    if (params.sizes)
-      sizes = validateAndCollect(ImageSizes.create(params.sizes), failures);
+    if (params.title) title = validateAndCollect(ImageTitle.create(params.title), failures)
+    if (params.description) description = validateAndCollect(ImageDescription.create(params.description), failures)
+    if (params.sizes) sizes = validateAndCollect(ImageSizes.create(params.sizes), failures)
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(new Image(this.uid, title, description, sizes));
+    return failures.length > 0 ? failure(failures) : success(new Image(this.uid, title, description, sizes))
   }
 }
