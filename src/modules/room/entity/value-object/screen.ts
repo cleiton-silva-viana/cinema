@@ -1,12 +1,8 @@
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
-import { TechnicalError } from "../../../../shared/error/technical.error";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { Result, failure, success } from "../../../../shared/result/result";
-import { Validate } from "../../../../shared/validator/validate";
-import {
-  collectNullFields,
-  ensureNotNull,
-} from "../../../../shared/validator/common.validators";
+import { TechnicalError } from '@shared//error/technical.error'
+import { failure, Result, success } from '@shared//result/result'
+import { Validate } from '@shared//validator/validate'
+import { ensureNotNull, parseToEnum, validateAndCollect } from '@shared//validator/common.validators'
+import { isNull } from '@shared/validator/validator'
 
 /**
  * Tipos de tela suportados pelo cinema
@@ -16,9 +12,9 @@ import {
  * - 2D_3D: Tela que suporta ambos os tipos de projeção
  */
 export enum ScreenType {
-  "2D" = "2D",
-  "3D" = "3D",
-  "2D_3D" = "2D_3D",
+  '2D' = '2D',
+  '3D' = '3D',
+  '2D_3D' = '2D_3D',
 }
 
 /**
@@ -40,13 +36,13 @@ export class Screen {
    * Tamanho mínimo permitido para uma tela de cinema em metros.
    * Telas menores que este valor não são consideradas adequadas para exibição comercial.
    */
-  private static readonly MIN_SIZE_IN_METERS = 10;
+  private static readonly MIN_SIZE_IN_METERS = 10
 
   /**
    * Tamanho máximo permitido para uma tela de cinema em metros.
    * Telas maiores que este valor são consideradas impraticáveis ou não realistas.
    */
-  private static readonly MAX_SIZE_IN_METERS = 50;
+  private static readonly MAX_SIZE_IN_METERS = 50
 
   /**
    * Construtor privado para garantir que instâncias sejam criadas apenas através do método factory.
@@ -56,7 +52,7 @@ export class Screen {
    */
   private constructor(
     public readonly size: number,
-    public readonly type: ScreenType,
+    public readonly type: ScreenType
   ) {}
 
   /**
@@ -71,23 +67,17 @@ export class Screen {
    * @returns Result<Screen> contendo a Tela ou uma lista de falhas de validação
    */
   public static create(size: number, type: string): Result<Screen> {
-    const failures = ensureNotNull({ size, type });
-    if (failures.length > 0) return failure(failures);
+    const failures = ensureNotNull({ size, type })
+    if (failures.length > 0) return failure(failures)
 
     Validate.number({ size }, failures)
       .isRequired()
       .isInteger()
-      .isInRange(Screen.MIN_SIZE_IN_METERS, Screen.MAX_SIZE_IN_METERS);
+      .isInRange(Screen.MIN_SIZE_IN_METERS, Screen.MAX_SIZE_IN_METERS)
 
-    const upperType = type?.trim().toUpperCase();
+    const typeParsed = validateAndCollect(parseToEnum('screen_type', type.trim(), ScreenType), failures)
 
-    Validate.string({ type: upperType }, failures)
-      .isRequired()
-      .isInEnum(ScreenType);
-
-    return failures.length > 0
-      ? failure(failures)
-      : success(new Screen(size, type as ScreenType));
+    return failures.length > 0 ? failure(failures) : success(new Screen(size, typeParsed))
   }
 
   /**
@@ -102,13 +92,8 @@ export class Screen {
    * @returns Nova instância de Screen com os dados fornecidos
    */
   public static hydrate(size: number, type: string): Screen {
-    const fields = collectNullFields({ size, type });
-
-    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
-      fields,
-    });
-
-    return new Screen(size, type.trim().toUpperCase() as ScreenType);
+    TechnicalError.validateRequiredFields({ size, type })
+    return new Screen(size, type.trim().toUpperCase() as ScreenType)
   }
 
   /**
@@ -121,7 +106,8 @@ export class Screen {
    * @returns true se as telas forem iguais em valor, false caso contrário
    */
   public equals(other: Screen): boolean {
-    if (!other || !(other instanceof Screen)) return false;
-    return this.size === other.size && this.type === other.type;
+    if (isNull(other)) return false
+    if (!other || !(other instanceof Screen)) return false
+    return this.size === other.size && this.type === other.type
   }
 }
