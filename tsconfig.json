@@ -11,7 +11,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@scripts/*": ["scripts/*"],
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["src/shared/*"],
+      "@modules/*": ["src/modules/*"]
     },
     "outDir": "./dist",
     "rootDir": "./",
