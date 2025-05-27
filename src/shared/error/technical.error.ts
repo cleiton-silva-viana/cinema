@@ -3,6 +3,7 @@ import { FailureCode } from '../failure/failure.codes.enum'
 import { FailureMapper } from '../failure/failure.mapper'
 import { collectNullFields } from '../validator/common.validators'
 import { RichFailure } from '@/shared/failure/rich.failure.type'
+import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 
 /**
  * Representa um erro técnico inesperado na aplicação.
@@ -18,7 +19,7 @@ export class TechnicalError extends Error {
   constructor(failure: SimpleFailure) {
     const failureMapper: FailureMapper = FailureMapper.getInstance()
 
-    const richFailure: RichFailure = failureMapper.toRichFailure(failure, 'pt')
+    const richFailure: RichFailure = failureMapper.toRichFailure(failure, SupportedLanguage.PT)
 
     const detailsString: string = failure.details ? '\n' + JSON.stringify(failure.details, null, 2) : ''
 

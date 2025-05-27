@@ -2,6 +2,7 @@ import { TechnicalError } from './technical.error'
 import { FailureCode } from '../failure/failure.codes.enum'
 import { FailureMapper } from '../failure/failure.mapper'
 import { RichFailure } from '../failure/rich.failure.type'
+import {SupportedLanguage} from "@shared/value-object/multilingual-content";
 
 jest.mock('../failure/failure.mapper')
 
@@ -80,7 +81,7 @@ describe('TechnicalError', () => {
       } catch (error) {
         const techError = error as TechnicalError
         expect(FailureMapper.getInstance).toHaveBeenCalled()
-        expect(mockToRichFailure).toHaveBeenCalledWith({ code: testCode, details: testDetails }, 'pt')
+        expect(mockToRichFailure).toHaveBeenCalledWith({ code: testCode, details: testDetails }, SupportedLanguage.PT)
         expect(techError.message).toContain(mockRichFailure.code)
         expect(techError.message).toContain(mockRichFailure.message)
         expect(techError.message).toContain(mockRichFailure.title)
