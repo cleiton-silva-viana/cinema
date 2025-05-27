@@ -1,28 +1,10 @@
 import { IFailureMessageProvider } from './failure.message.provider.interface'
 import { FailureCode } from './failure.codes.enum'
+import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { RichFailure } from '@shared/failure/rich.failure.type'
+import { FailureTemplate } from '@shared/failure/failure.template.type'
 
 const fails = require('../../i18n/failure.messages.json')
-
-/**
- * Interface que representa a estrutura de uma mensagem de erro no arquivo failure.messages.json
- */
-export interface FailureMessageConfig {
-  title: {
-    pt: string
-    en: string
-  }
-  statusCode: number
-  /**
-   * Template opcional para formatação de mensagens de erro.
-   * Contém placeholders no formato {placeholder} que serão substituídos
-   * pelos valores correspondentes nos detalhes do erro.
-   * Exemplo: "O campo {field} não está definido"
-   */
-  template?: {
-    pt?: string
-    en?: string
-  }
-}
 
 /**
  * Provedor de mensagens de erro que carrega e armazena as configurações de mensagens
@@ -30,7 +12,7 @@ export interface FailureMessageConfig {
  */
 export class FailureMessageProvider implements IFailureMessageProvider {
   private static instance: FailureMessageProvider
-  private messagesMap: Map<string, FailureMessageConfig>
+  private messagesMap: Map<string, FailureTemplate>
 
   private constructor() {
     this.messagesMap = new Map()
@@ -48,11 +30,20 @@ export class FailureMessageProvider implements IFailureMessageProvider {
   /**
    * Obtém a configuração de mensagem para um código de erro específico
    * @param code Código do erro
+   * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Configuração da mensagem ou uma mensagem de erro genérica caso o código não seja categoriazado no arquivo json correspondente
    */
-  public getMessageConfig(code: FailureCode): FailureMessageConfig {
-    const failure = this.messagesMap.get(code)
-    return failure === undefined ? this.messagesMap.get(FailureCode.UNCATALOGUED_ERROR)! : failure
+  public getMessageConfig(code: FailureCode, language: SupportedLanguage = SupportedLanguage.PT): RichFailure {
+    const failure = this.messagesMap.get(code) || this.messagesMap.get(FailureCode.UNCATALOGUED_ERROR)!
+
+    const lang = language === SupportedLanguage.PT ? 'pt' : 'en'
+
+    return {
+      code: code,
+      status: failure.status,
+      title: failure.title[lang],
+      message: failure.template[lang] || failure.template?.en,
+    }
   }
 
   /**
@@ -60,7 +51,7 @@ export class FailureMessageProvider implements IFailureMessageProvider {
    */
   private loadMessages(): void {
     for (const [code, config] of Object.entries(fails)) {
-      this.messagesMap.set(code, config as FailureMessageConfig)
+      this.messagesMap.set(code, config as FailureTemplate)
     }
   }
 }
