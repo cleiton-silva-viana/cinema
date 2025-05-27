@@ -1,17 +1,14 @@
-import { Result, success, failure } from "../../../shared/result/result";
-import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
-import { Person } from "../entity/person";
-import { IPersonRepository } from "../repository/person.repository.interface";
-import { PersonUID } from "../entity/value-object/person.uid";
-import { Inject, Injectable } from "@nestjs/common";
-import { FailureCode } from "../../../shared/failure/failure.codes.enum";
-import { PERSON_REPOSITORY } from "../constant/person.constant";
-import { ResourceTypes } from "../../../shared/constant/resource.types";
-import { IPersonDomainService } from "./person.domain.service.interface";
-import {
-  ensureNotNull,
-  validateAndCollect,
-} from "../../../shared/validator/common.validators";
+import { Person } from '../entity/person'
+import { IPersonRepository } from '../repository/person.repository.interface'
+import { PersonUID } from '../entity/value-object/person.uid'
+import { Inject, Injectable } from '@nestjs/common'
+import { PERSON_REPOSITORY } from '../constant/person.constant'
+import { failure, Result, success } from '@shared/result/result'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { ResourceTypes } from '@shared/constant/resource.types'
+import { ensureNotNull, validateAndCollect } from '@shared/validator/common.validators'
+import { IPersonApplicationService } from '@modules/person/service/person.application.service.interface'
+import { name } from 'ts-jest/dist/transformers/hoist-jest'
 
 /**
  * Serviço de Domínio responsável por operações relacionadas a pessoas no sistema.
@@ -24,10 +21,8 @@ import {
  * de entidades para que o serviço de aplicação possa persistir essas mudanças.
  */
 @Injectable()
-export class PersonDomainService implements IPersonDomainService {
-  constructor(
-    @Inject(PERSON_REPOSITORY) private readonly repository: IPersonRepository,
-  ) {}
+export class PersonApplicationService implements IPersonApplicationService {
+  constructor(@Inject(PERSON_REPOSITORY) private readonly repository: IPersonRepository) {}
 
   /**
    * Busca uma pessoa pelo seu identificador único.
@@ -38,16 +33,16 @@ export class PersonDomainService implements IPersonDomainService {
    * @returns Result contendo a pessoa encontrada ou erro
    */
   public async findById(uid: string): Promise<Result<Person>> {
-    const personUidResult = PersonUID.parse(uid);
-    if (personUidResult.isInvalid()) return personUidResult;
+    const personUidResult = PersonUID.parse(uid)
+    if (personUidResult.isInvalid()) return personUidResult
 
-    const person = await this.repository.findById(personUidResult.value);
+    const person = await this.repository.findById(personUidResult.value)
     return !person
       ? failure({
           code: FailureCode.RESOURCE_NOT_FOUND,
           details: { resource: ResourceTypes.PERSON },
         })
-      : success(person);
+      : success(person)
   }
 
   /**
@@ -62,7 +57,7 @@ export class PersonDomainService implements IPersonDomainService {
    * @returns Result contendo a instância de pessoa criada ou erros de validação
    */
   public async create(name: string, birthDate: Date): Promise<Result<Person>> {
-    return Person.create(name, birthDate);
+    return Person.create(name, birthDate)
   }
 
   /**
@@ -77,21 +72,26 @@ export class PersonDomainService implements IPersonDomainService {
    * @param birthDate Nova data de nascimento (opcional)
    * @returns Result contendo a instância de pessoa atualizada ou falhas de validação
    */
-  public async update(
-    uid: string,
-    name?: string,
-    birthDate?: Date,
-  ): Promise<Result<Person>> {
-    const failures = ensureNotNull({ uid });
-    if (failures.length > 0) return failure(failures);
+  public async update(uid: string, name?: string, birthDate?: Date): Promise<Result<Person>> {
+    const failures = ensureNotNull({ uid })
+    if (failures.length > 0) return failure(failures)
 
-    const person = validateAndCollect(await this.findById(uid), failures);
-    if (failures.length > 0) return failure(failures);
+    const person = validateAndCollect(await this.findById(uid), failures)
+    if (failures.length > 0) return failure(failures)
 
-    const props: Parameters<typeof person.update>[0] = {};
-    if (name !== undefined) props["name"] = name;
-    if (birthDate !== undefined) props["birthDate"] = birthDate;
+    const props: Parameters<typeof person.update>[0] = {}
+    if (name !== undefined) props['name'] = name
+    if (birthDate !== undefined) props['birthDate'] = birthDate
 
-    return person.update(props);
+    return person.update(props)
+  }
+
+  public async delete(uid: string): Promise<Result<null>> {
+    const findResult = await this.findById(uid)
+    if (findResult.isInvalid()) return findResult
+
+    await this.repository.delete(findResult.value.uid)
+
+    return success(null)
   }
 }
