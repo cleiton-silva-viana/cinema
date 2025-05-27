@@ -83,6 +83,7 @@ describe('PersonService', () => {
       expect(result).toBeDefined()
       expect(result.name.value).toBe(name)
       expect(result.birthDate.value).toEqual(birthDate)
+      expect(repository.save).toHaveBeenCalledTimes(1)
     })
 
     it('deve retornar falha se dados inválidos', async () => {
@@ -92,6 +93,7 @@ describe('PersonService', () => {
       // Assert
       expect(result).toBeNull()
       expect(failures.length).toBeGreaterThan(0)
+      expect(repository.save).not.toHaveBeenCalled()
     })
   })
 
@@ -114,6 +116,8 @@ describe('PersonService', () => {
       expect(result).toBeDefined()
       expect(result.name.value).toBe(newName)
       expect(result.birthDate.value).toEqual(newBirth)
+      expect(repository.findById).toHaveBeenCalledTimes(1)
+      expect(repository.update).toHaveBeenCalledTimes(1)
     })
 
     it('deve retornar falha se uid inválido', async () => {
@@ -123,6 +127,7 @@ describe('PersonService', () => {
       // Assert
       expect(result).toBeNull()
       expect(failures.length).toBeGreaterThan(0)
+      expect(repository.update).not.toHaveBeenCalled()
     })
 
     it('deve retornar falha se pessoa não encontrada', async () => {
@@ -136,30 +141,35 @@ describe('PersonService', () => {
       // Assert
       expect(result).toBeNull()
       expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
+      expect(repository.findById).toHaveBeenCalledTimes(1)
+      expect(repository.update).not.toHaveBeenCalled()
     })
 
     it('deve retornar falha se atualização inválida', async () => {
       // Arrange
       repository.findById.mockResolvedValue(validPerson)
+      const uid = PersonUID.create().value
 
       // Act
-      const result = validateAndCollect(await service.update(validPerson.uid.value, '3#@$#@vd', new Date()), failures)
+      const result = await service.update(uid, '3#@$#@vd', new Date())
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures.length).toBeGreaterThan(0)
+      expect(result.isInvalid()).toBeTruthy()
+      expect(repository.findById).toHaveBeenCalledTimes(1)
+      expect(repository.update).not.toHaveBeenCalled()
     })
 
     it('deve retornar falha se não for fornecido nenhuma propriedade para atualização', async () => {
       // Arrange
       repository.findById.mockResolvedValue(validPerson)
+      const uid = PersonUID.create().value
 
       // Act
-      const result = validateAndCollect(await service.update(validPerson.uid.value, null as any, null as any), failures)
+      const result = await service.update(uid, null as any, null as any)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+      expect(result.isInvalid()).toBeTruthy()
+      expect(repository.update).not.toHaveBeenCalled()
     })
   })
 
@@ -167,12 +177,15 @@ describe('PersonService', () => {
     it('deve deletar com sucesso o recurso', async () => {
       // Arrange
       repository.findById.mockResolvedValue(validPerson)
+      repository.delete.mockResolvedValue(null)
 
       // Act
       const result = await service.delete(validPerson.uid.value)
 
       // Assert
       expect(result.isValid()).toBeTruthy()
+      expect(repository.findById).toHaveBeenCalledTimes(1)
+      expect(repository.delete).toHaveBeenCalledTimes(1)
     })
 
     it('deve retornar falha se recurso não encontrado', async () => {
@@ -184,6 +197,7 @@ describe('PersonService', () => {
 
       // Assert
       expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
+      expect(repository.delete).not.toHaveBeenCalled()
     })
   })
 })

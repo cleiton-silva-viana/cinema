@@ -57,7 +57,11 @@ export class PersonApplicationService implements IPersonApplicationService {
    * @returns Result contendo a instância de pessoa criada ou erros de validação
    */
   public async create(name: string, birthDate: Date): Promise<Result<Person>> {
-    return Person.create(name, birthDate)
+    const createResult = Person.create(name, birthDate)
+    if (createResult.isInvalid()) return createResult
+
+    const personSaved = await this.repository.save(createResult.value)
+    return success(personSaved)
   }
 
   /**
@@ -76,14 +80,15 @@ export class PersonApplicationService implements IPersonApplicationService {
     const failures = ensureNotNull({ uid })
     if (failures.length > 0) return failure(failures)
 
-    const person = validateAndCollect(await this.findById(uid), failures)
-    if (failures.length > 0) return failure(failures)
+    const findResult = await this.findById(uid)
+    if (findResult.isInvalid()) return findResult
+    const person = findResult.value
 
-    const props: Parameters<typeof person.update>[0] = {}
-    if (name !== undefined) props['name'] = name
-    if (birthDate !== undefined) props['birthDate'] = birthDate
+    const updateResult = person.update({ name, birthDate })
+    if (updateResult.isInvalid()) return updateResult
 
-    return person.update(props)
+    const personSaved = await this.repository.update(person.uid, updateResult.value)
+    return success(personSaved)
   }
 
   public async delete(uid: string): Promise<Result<null>> {
