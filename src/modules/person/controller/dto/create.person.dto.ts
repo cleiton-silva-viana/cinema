@@ -1,7 +1,7 @@
 /**
  * DTO para criação de pessoa
  */
-export class CreatePersonDTO {
-  public readonly name: string;
-  public readonly birthDate: string;
+export type CreatePersonDTO = {
+  readonly name: string
+  readonly birthDate: string
 }

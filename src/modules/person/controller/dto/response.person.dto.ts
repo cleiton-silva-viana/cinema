@@ -1,5 +1,5 @@
-import { ResourceTypes } from "../../../../shared/constant/resource.types";
-import { Person } from "../../entity/person";
+import { ResourceTypes } from '@shared/constant/resource.types'
+import { Person } from '../../entity/person'
 
 /**
  * DTO para formatação da resposta de pessoa no padrão JSON:API
@@ -16,12 +16,12 @@ export class PersonResponseDTO {
     public readonly id: string,
     public readonly type: string,
     public readonly attributes: {
-      readonly name: string;
-      readonly birthDate: string;
+      readonly name: string
+      readonly birthDate: string
     },
     public readonly links: {
-      readonly self: string;
-    },
+      readonly self: string
+    }
   ) {}
 
   /**
@@ -35,11 +35,11 @@ export class PersonResponseDTO {
       ResourceTypes.PERSON,
       {
         name: person.name.value,
-        birthDate: person.birthDate.value.toISOString().split("T")[0],
+        birthDate: person.birthDate.value.toISOString().split('T')[0],
       },
       {
         self: `/persons/${person.uid.value}`,
-      },
-    );
+      }
+    )
   }
 }

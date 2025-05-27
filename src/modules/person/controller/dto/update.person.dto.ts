@@ -1,7 +1,7 @@
 /**
  * DTO para atualização de pessoa
  */
-export class UpdatePersonDTO {
-  public readonly name?: string;
-  public readonly birthDate?: string;
+export type UpdatePersonDTO = {
+  readonly name?: string
+  readonly birthDate?: Date
 }
