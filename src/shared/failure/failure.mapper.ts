@@ -1,9 +1,9 @@
-import { HttpStatus } from '@nestjs/common'
 import { SimpleFailure } from './simple.failure.type'
 import { RichFailure } from './rich.failure.type'
 import { IFailureMessageProvider } from './failure.message.provider.interface'
 import { IFailureMapper } from './failure.mapper.interface'
 import { FailureMessageProvider } from './failure.message.provider'
+import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 
 /**
  * Classe responsável por mapear SimpleFailure para RichFailureType,
@@ -43,23 +43,15 @@ export class FailureMapper implements IFailureMapper {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Um objeto RichFailureType com informações completas sobre o erro
    */
-  public toRichFailure(failure: SimpleFailure, language: 'pt' | 'en' = 'pt'): RichFailure {
-    const messageConfig = this.messageProvider.getMessageConfig(failure.code)
+  public toRichFailure(failure: SimpleFailure, language: SupportedLanguage): RichFailure {
+    const messageConfig = this.messageProvider.getMessageConfig(failure.code, language)
 
-    const messageTemplate = messageConfig.template?.[language] || messageConfig.template?.en
-    const title = messageConfig.title[language] || messageConfig.title?.en
-
-    const status = messageConfig.statusCode as HttpStatus
-
-    let formattedMessage = title
-    if (messageTemplate) {
-      formattedMessage = this.formatMessageWithTemplate(messageTemplate, failure.details || {})
-    }
+    const formattedMessage = this.formatMessageWithTemplate(messageConfig.message, failure.details || {})
 
     return {
       code: failure.code,
-      status,
-      title,
+      title: messageConfig.title,
+      status: messageConfig.status,
       message: formattedMessage,
     }
   }
@@ -71,23 +63,23 @@ export class FailureMapper implements IFailureMapper {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Array de objetos RichFailureType
    */
-  public toRichFailures(failures: SimpleFailure[], language: 'pt' | 'en' = 'pt'): RichFailure[] {
+  public toRichFailures(failures: SimpleFailure[], language: SupportedLanguage): RichFailure[] {
     return failures.map((failure) => this.toRichFailure(failure, language))
   }
 
   /**
    * Formata uma mensagem substituindo os placeholders pelos valores dos detalhes
    *
-   * @param template Template da mensagem com placeholders no formato {placeholder}
+   * @param template Template da mensagem com placeholders nos formatos {placeholder} ou {placeholder:tipo}
    * @param details Objeto com os valores para substituir os placeholders
    * @returns Mensagem formatada com os valores substituídos
    */
   private formatMessageWithTemplate(template: string, details: Record<string, any>): string {
-    return template.replace(/{(\w+)}/g, (match, placeholder) => {
+    return template.replace(/{(\w+)(?::(\w+))?}/g, (match, placeholder, type) => {
       if (details && details[placeholder] !== undefined) {
         return String(details[placeholder])
       }
-      return match // Mantém o placeholder se não houver valor correspondente
+      return match
     })
   }
 }
