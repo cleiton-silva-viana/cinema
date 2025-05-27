@@ -2,17 +2,32 @@ import { JsonApiResponse } from './json.api.response'
 import { SimpleFailure } from '../failure/simple.failure.type'
 import { IFailureMapper } from '../failure/failure.mapper.interface'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { JsonApiResponseLogMessage } from './json.api.response.log.messages.enum'
+
+const mockLoggerWarn = jest.fn()
+const mockLoggerError = jest.fn()
 
 jest.mock('@nestjs/common', () => ({
   Logger: jest.fn().mockImplementation(() => ({
-    warn: jest.fn(),
-    error: jest.fn(),
+    warn: mockLoggerWarn,
+    error: mockLoggerError,
   })),
+  HttpStatus: {
+    OK: 200,
+    CREATED: 201,
+    NO_CONTENT: 204,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    INTERNAL_SERVER_ERROR: 500,
+  },
 }))
 
 describe('JsonApiResponse', () => {
   const mockFailureMapper: IFailureMapper = {
-    toRichFailures: jest.fn().mockImplementation((failures: SimpleFailure[]) => {
+    toRichFailures: jest.fn().mockImplementation((failures: SimpleFailure[], language = SupportedLanguage.PT) => {
       return failures.map((failure) => ({
         code: failure.code,
         status: 400,
@@ -20,7 +35,7 @@ describe('JsonApiResponse', () => {
         details: failure.details || {},
       }))
     }),
-    toRichFailure: jest.fn().mockImplementation((failure: SimpleFailure) => {
+    toRichFailure: jest.fn().mockImplementation((failure: SimpleFailure, language = SupportedLanguage.PT) => {
       return {
         code: failure.code,
         status: 400,
@@ -65,15 +80,21 @@ describe('JsonApiResponse', () => {
 
     it('deve ignorar status HTTP inválidos', () => {
       // Arrange
-      const status = [100, 199, 601, 700, 999]
+      const status = [0, 99, 600, 700, 999]
 
       // Act
       status.forEach((s) => {
         response.HttpStatus(s) // Inválido
 
         // Assert
-        expect(response.toJSON().status).not.toBe(s)
+        expect(response.status).not.toBe(s)
+        expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.INVALID_HTTP_STATUS, 'JSON_API_RESPONSE')
       })
+    })
+
+    it('deve construir a resposta com valor padrão para o status', () => {
+      // Assert
+      expect(response.status).toBe(200)
     })
   })
 
@@ -93,7 +114,7 @@ describe('JsonApiResponse', () => {
       expect(response.toJSON().data).toEqual(resource)
     })
 
-    it('deve ignorar recurso sem id', () => {
+    it('deve ignorar recurso sem id e registrar erro', () => {
       // Arrange
       const resource = {
         id: '',
@@ -105,9 +126,10 @@ describe('JsonApiResponse', () => {
 
       // Assert
       expect(response.toJSON().data).toBeNull()
+      expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.RESOURCE_ID_EMPTY, 'JSON_API_RESPONSE')
     })
 
-    it('deve ignorar recurso sem type', () => {
+    it('deve ignorar recurso sem type e registrar erro', () => {
       // Arrange
       const resource = {
         id: '1',
@@ -119,6 +141,19 @@ describe('JsonApiResponse', () => {
 
       // Assert
       expect(response.toJSON().data).toBeNull()
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        JsonApiResponseLogMessage.RESOURCE_TYPE_REQUIRED,
+        'JSON_API_RESPONSE'
+      )
+    })
+
+    it('deve ignorar resource nulo e registrar erro', () => {
+      // Act
+      response.data(null as any)
+
+      // Assert
+      expect(response.toJSON().data).toBeNull()
+      expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.RESOURCE_NULL_SINGLE, 'JSON_API_RESPONSE')
     })
   })
 
@@ -137,7 +172,19 @@ describe('JsonApiResponse', () => {
       expect(response.toJSON().data).toEqual(resources)
     })
 
-    it('deve ignorar recursos duplicados em datas', () => {
+    it('deve adicionar um único recurso como array quando usando datas', () => {
+      // Arrange
+      const resource = { id: '1', type: 'users', attributes: { name: 'John' } }
+
+      // Act
+      response.datas(resource)
+
+      // Assert
+      expect(Array.isArray(response.toJSON().data)).toBe(true)
+      expect((response.toJSON().data as any[])[0]).toEqual(resource)
+    })
+
+    it('deve ignorar recursos duplicados em datas e registrar aviso', () => {
       // Arrange
       const resources = [
         { id: '1', type: 'users', attributes: { name: 'John' } },
@@ -150,9 +197,13 @@ describe('JsonApiResponse', () => {
       // Assert
       expect((response.toJSON().data as any[]).length).toBe(1)
       expect((response.toJSON().data as any[])[0].attributes.name).toBe('John')
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        JsonApiResponseLogMessage.RESOURCE_DUPLICATE.replace('{id}', resources[0].id),
+        'JSON_API_RESPONSE'
+      )
     })
 
-    it('deve ignorar recursos inválidos em datas', () => {
+    it('deve ignorar recursos inválidos em datas e registrar aviso', () => {
       // Arrange
       const resources = [
         { id: '1', type: 'users' },
@@ -167,6 +218,47 @@ describe('JsonApiResponse', () => {
       // Assert
       expect((response.toJSON().data as any[]).length).toBe(1)
       expect((response.toJSON().data as any[])[0].id).toBe('1')
+      expect(mockLoggerWarn).toHaveBeenCalledWith(JsonApiResponseLogMessage.RESOURCE_INVALID, 'JSON_API_RESPONSE')
+    })
+
+    it('deve ignorar resource nulo e registrar erro', () => {
+      // Act
+      response.datas(null as any)
+
+      // Assert
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        JsonApiResponseLogMessage.RESOURCE_NULL_MULTIPLE,
+        'JSON_API_RESPONSE'
+      )
+    })
+
+    it('deve não adicionar data quando já existem erros', () => {
+      // Arrange
+      const failure: SimpleFailure = { code: FailureCode.MISSING_REQUIRED_DATA }
+      const resource = { id: '1', type: 'users' }
+
+      // Act
+      response.errors(failure)
+      response.datas(resource)
+
+      // Assert
+      expect(response.toJSON().data).toBeUndefined()
+      expect(mockLoggerWarn).toHaveBeenCalledWith(JsonApiResponseLogMessage.ERRORS_ALREADY_PRESENT, 'JSON_API_RESPONSE')
+    })
+
+    it('deve não converter data single para array', () => {
+      // Arrange
+      const singleResource = { id: '1', type: 'users' }
+      const arrayResource = [{ id: '2', type: 'users' }]
+
+      // Act
+      response.data(singleResource)
+      response.datas(arrayResource)
+
+      // Assert
+      expect(Array.isArray(response.toJSON().data)).toBe(false)
+      expect(response.toJSON().data).toEqual(singleResource)
+      expect(mockLoggerWarn).toHaveBeenCalledWith(JsonApiResponseLogMessage.DATA_ALREADY_SINGLE, 'JSON_API_RESPONSE')
     })
   })
 
@@ -183,7 +275,7 @@ describe('JsonApiResponse', () => {
       const json = response.toJSON()
 
       // Assert
-      expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith([failure])
+      expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith([failure], SupportedLanguage.PT)
       expect(json.errors.length).toBe(1)
       expect(json.errors[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
     })
@@ -200,10 +292,10 @@ describe('JsonApiResponse', () => {
       const json = response.toJSON()
 
       // Assert
-      expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith(failures)
+      expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith(failures, SupportedLanguage.PT)
       expect(json.errors.length).toBe(2)
-      expect(json.errors[0].code).toBe('ERR-001')
-      expect(json.errors[1].code).toBe('ERR-002')
+      expect(json.errors[0].code).toBe(FailureCode.DATE_CANNOT_BE_PAST)
+      expect(json.errors[1].code).toBe(FailureCode.DATE_NOT_AFTER_LIMIT)
     })
 
     it('não deve chamar o mapper quando failure é null', () => {
@@ -212,6 +304,18 @@ describe('JsonApiResponse', () => {
 
       // Assert
       expect(mockFailureMapper.toRichFailures).not.toHaveBeenCalled()
+      expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.FAILURE_NULL, 'JSON_API_RESPONSE')
+    })
+
+    it('deve atualizar o status HTTP com base no primeiro erro', () => {
+      // Arrange
+      const failure: SimpleFailure = { code: FailureCode.DATE_CANNOT_BE_PAST }
+
+      // Act
+      response.errors(failure)
+
+      // Assert
+      expect(response.status).toBe(400) // Status do mockFailureMapper
     })
   })
 
@@ -254,6 +358,10 @@ describe('JsonApiResponse', () => {
       // Assert
       expect(json.included.length).toBe(1)
       expect(json.included[0]).toEqual(includedResource)
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        JsonApiResponseLogMessage.RESOURCE_DUPLICATE.replace('{id}', '101'),
+        'JSON_API_RESPONSE'
+      )
     })
 
     it('deve ignorar recursos incluídos inválidos', () => {
@@ -270,6 +378,36 @@ describe('JsonApiResponse', () => {
       // Assert
       expect(json.included.length).toBe(1)
       expect(json.included[0]).toEqual(validResource)
+      expect(mockLoggerWarn).toHaveBeenCalledWith(JsonApiResponseLogMessage.RESOURCE_INVALID, 'JSON_API_RESPONSE')
+    })
+
+    it('não deve incluir recursos já presentes no data', () => {
+      // Arrange
+      const mainResource = { id: '1', type: 'articles' }
+
+      // Act
+      response.data(mainResource).included(mainResource)
+
+      // Assert
+      expect(response.toJSON().included).toBeUndefined()
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        JsonApiResponseLogMessage.RESOURCE_ALREADY_IN_DATA.replace(
+          '{type}:{id}',
+          `${mainResource.type}:${mainResource.id}`
+        ),
+        'JSON_API_RESPONSE'
+      )
+    })
+
+    it('deve ignorar resource nulo e registrar erro', () => {
+      // Act
+      response.included(null as any)
+
+      // Assert
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        JsonApiResponseLogMessage.RESOURCE_NULL_INCLUDED,
+        'JSON_API_RESPONSE'
+      )
     })
   })
 
@@ -294,16 +432,26 @@ describe('JsonApiResponse', () => {
       expect(response.toJSON().meta).toEqual({ count: 100, page: 1 })
     })
 
-    it('deve ignorar metadados inválidos', () => {
+    it('deve ignorar metadados inválidos e registrar erro', () => {
       // Act
       response.meta(null as any)
 
       // Assert
       expect(response.toJSON().meta).toBeUndefined()
+      expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.METADATA_NULL, 'JSON_API_RESPONSE')
+    })
+
+    it('deve validar que metadados são um objeto', () => {
+      // Act
+      response.meta([] as any) // Array não é um objeto válido
+
+      // Assert
+      expect(response.toJSON().meta).toBeUndefined()
+      expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.METADATA_INVALID_TYPE, 'JSON_API_RESPONSE')
     })
   })
 
-  describe('link', () => {
+  describe('links', () => {
     it('deve adicionar links', () => {
       // Arrange
       const links = { self: 'https://api.example.com/articles/1' }
@@ -316,12 +464,33 @@ describe('JsonApiResponse', () => {
       expect(json.links).toEqual(links)
     })
 
-    it('deve ignorar links inválidos', () => {
+    it('deve mesclar links quando chamado múltiplas vezes', () => {
+      // Act
+      response.links({ self: '/users/1' }).links({ related: '/users/1/posts' })
+
+      // Assert
+      expect(response.toJSON().links).toEqual({
+        self: '/users/1',
+        related: '/users/1/posts',
+      })
+    })
+
+    it('deve ignorar links nulos e registrar erro', () => {
       // Act
       response.links(null as any)
 
       // Assert
       expect(response.toJSON().links).toBeUndefined()
+      expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.LINKS_NULL, 'JSON_API_RESPONSE')
+    })
+
+    it('deve validar que links é um objeto', () => {
+      // Act
+      response.links('invalid' as any)
+
+      // Assert
+      expect(response.toJSON().links).toBeUndefined()
+      expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.LINKS_INVALID_TYPE, 'JSON_API_RESPONSE')
     })
   })
 
@@ -338,6 +507,7 @@ describe('JsonApiResponse', () => {
       // Assert
       expect(json.errors).toBeDefined()
       expect(json.data).toBeUndefined()
+      expect(mockLoggerError).toHaveBeenCalledWith(JsonApiResponseLogMessage.DATA_ERROR_CONFLICT, 'JSON_API_RESPONSE')
     })
 
     it('deve impedir a adição de data quando errors já existe', () => {
@@ -347,10 +517,11 @@ describe('JsonApiResponse', () => {
 
       // Act
       response.errors(failure)
-      response.datas(resource)
+      response.data(resource)
 
       // Assert
-      expect((response as any)._data).toBeNull()
+      expect(response.toJSON().data).toBeUndefined()
+      expect(response.toJSON().errors).toBeDefined()
     })
   })
 
@@ -376,6 +547,103 @@ describe('JsonApiResponse', () => {
 
       // Assert
       expect(Object.keys(json).sort()).toEqual(['jsonapi', 'data', 'included', 'meta', 'links'].sort())
+    })
+  })
+
+  describe('getAllDatas', () => {
+    it('deve retornar todos os dados internos', () => {
+      // Arrange
+      const resource = { id: '1', type: 'users' }
+      const includedResource = { id: '2', type: 'profiles' }
+      const meta = { count: 1 }
+      const links = { self: '/users/1' }
+
+      // Act
+      response.data(resource).included(includedResource).meta(meta).links(links).HttpStatus(201)
+
+      const allData = response.getAllDatas()
+
+      // Assert
+      expect(allData.data).toEqual(resource)
+      expect(allData.included).toEqual([includedResource])
+      expect(allData.meta).toEqual(meta)
+      expect(allData.links).toEqual(links)
+      expect(allData.status).toBe(201)
+      expect(allData.jsonapi).toEqual({ version: '1.1' })
+      expect(allData.errors).toEqual([])
+      expect(allData.records).toBeInstanceOf(Map)
+    })
+  })
+
+  describe('Cenários complexos', () => {
+    it('deve construir uma resposta completa com todas as seções', () => {
+      // Arrange
+      const mainResource = {
+        id: '1',
+        type: 'articles',
+        attributes: { title: 'Hello World', body: 'Lorem ipsum' },
+        relationships: {
+          author: {
+            data: { id: '101', type: 'people' },
+          },
+          comments: {
+            data: [
+              { id: '5', type: 'comments' },
+              { id: '6', type: 'comments' },
+            ],
+          },
+        },
+      }
+
+      const includedResources = [
+        { id: '101', type: 'people', attributes: { name: 'John Doe' } },
+        { id: '5', type: 'comments', attributes: { body: 'Great article!' } },
+        { id: '6', type: 'comments', attributes: { body: 'Thanks for sharing' } },
+      ]
+
+      const metadata = { totalComments: 2, publishedAt: '2023-06-12' }
+      const links = { self: '/articles/1', next: '/articles/2', prev: '/articles/0' }
+
+      // Act
+      response.data(mainResource).included(includedResources).meta(metadata).links(links).HttpStatus(200)
+
+      const json = response.toJSON()
+
+      // Assert
+      expect(json.data).toEqual(mainResource)
+      expect(json.included).toEqual(includedResources)
+      expect(json.meta).toEqual(metadata)
+      expect(json.links).toEqual(links)
+      expect(json.jsonapi).toEqual({ version: '1.1' })
+      expect(response.status).toBe(200)
+    })
+
+    it('deve construir uma resposta de erro completa', () => {
+      // Arrange
+      const failures: SimpleFailure[] = [
+        {
+          code: FailureCode.VALIDATION_ERROR,
+          details: { field: 'email', message: 'Invalid email format' },
+        },
+        {
+          code: FailureCode.MISSING_REQUIRED_DATA,
+          details: { field: 'name', message: 'Name is required' },
+        },
+      ]
+
+      const metadata = { requestId: '123456', timestamp: '2023-06-12T10:00:00Z' }
+
+      // Act
+      response.errors(failures).meta(metadata).HttpStatus(422)
+
+      const json = response.toJSON()
+
+      // Assert
+      expect(json.errors.length).toBe(2)
+      expect(json.meta).toBeFalsy() // metadados não podem ser anexados a erros
+      expect(json.data).toBeUndefined() // deve ter dados nulos, não deve ser possível reotrnar um erro + dados
+      expect(json.jsonapi).toEqual({ version: '1.1' })
+      expect(response.status).toBe(422) // Status definido pelo mockFailureMapper
     })
   })
 })
