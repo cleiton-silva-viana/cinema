@@ -25,6 +25,8 @@ export class Password {
       .matchesPattern(/[0-9]/, FailureCode.PASSWORD_MISSING_DIGIT)
       .matchesPattern(/[^a-zA-Z0-9]/, FailureCode.PASSWORD_MISSING_SPECIAL_CHARACTER)
 
+    if (failures.length > 0) return failure(failures)
+
     const passwordHash = await hash(password)
 
     return failures.length > 0 ? failure(failures) : success(new Password(passwordHash))
