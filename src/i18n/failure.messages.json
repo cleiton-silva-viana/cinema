@@ -545,8 +545,8 @@
       "en": "Invalid Value"
     },
     "template": {
-      "pt": "O valor '{value:string}' fornecido para '{field:string}' é inválido. Valores permitidos: {allowed_values:string}.",
-      "en": "The value '{value:string}' provided for '{field:string}' is invalid. Allowed values: {allowed_values:string}."
+      "pt": "O valor '{value:string}' fornecido para '{field:string}' é inválido. Valores permitidos: {allowed_values:string[]}.",
+      "en": "The value '{value:string}' provided for '{field:string}' is invalid. Allowed values: {allowed_values:string[]}."
     }
   },
   "MOVIE_MISSING_CONTRIBUTORS": {
@@ -897,8 +897,8 @@
       "en": "Invalid Booking Time Interval"
     },
     "template": {
-      "pt": "O horário de início do agendamento ('{start_time:string}') deve estar em intervalos específicos de minutos ({interval:number} minutos).",
-      "en": "The booking start time ('{start_time:string}') must be at specific minute intervals ({interval:number} minutes)."
+      "pt": "O horário de início do agendamento ('{start_time:string}') deve estar em intervalos específicos de minutos ({interval:number[]} minutos).",
+      "en": "The booking start time ('{start_time:string}') must be at specific minute intervals ({interval:number[]} minutes)."
     }
   },
   "BOOKING_NOT_FOUND_IN_FUTURE_SCHEDULE": {
@@ -1361,6 +1361,17 @@
     "template": {
       "pt": "A carteirinha de estudante '{value:string}' já está em uso.",
       "en": "The student card '{value:string}' is already in use."
+    }
+  },
+  "MOVIE_DIRECTOR_REQUIRED": {
+    "status": 400,
+    "title": {
+      "pt": "Diretor do Filme é Necessário",
+      "en": "Movie Director Required"
+    },
+    "template": {
+      "pt": "O recurso filme requer um contribuidor do tipo autor.",
+      "en": "The movie resource requires a contributor of type director."
     }
   }
 }
