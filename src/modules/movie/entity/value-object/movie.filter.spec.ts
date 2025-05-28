@@ -1,237 +1,230 @@
-import { IMovieFilterInput, MovieFilter } from "./movie.filter";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { IMovieFilterInput, MovieFilter } from './movie.filter'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { validateAndCollect } from '@shared/validator/common.validators'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
 
-describe("MovieFilter", () => {
-  describe("create", () => {
+describe('MovieFilter', () => {
+  describe('create', () => {
+    let failures: SimpleFailure[]
+
+    beforeEach(() => (failures = []))
+
     const date = (days: number = 10) => {
-      const date = new Date();
-      date.setHours(0, 0, 0, 0);
-      date.setDate(date.getDate() + days);
-      return date;
-    };
+      const date = new Date()
+      date.setHours(0, 0, 0, 0)
+      date.setDate(date.getDate() + days)
+      return date
+    }
 
-    describe("filtros padrão", () => {
+    describe('filtros padrão', () => {
       const defaultFilterCases = [
-        { description: "input nulo", input: null },
-        { description: "input undefined", input: undefined },
-        { description: "objeto vazio", input: {} },
-      ];
+        { scenario: 'input nulo', input: null },
+        { scenario: 'input undefined', input: undefined },
+        { scenario: 'objeto vazio', input: {} },
+      ]
 
-      defaultFilterCases.forEach((testCase) => {
-        it(`deve criar um filtro padrão quando ${testCase.description}`, () => {
+      defaultFilterCases.forEach(({ scenario, input }) => {
+        it(`deve criar um filtro padrão quando ${scenario}`, () => {
           // Act
-          const result = MovieFilter.create(testCase.input);
+          const result = validateAndCollect(MovieFilter.create(input as IMovieFilterInput), failures)
 
           // Assert
-          expect(result.invalid).toBe(false);
-          expect(result.value.dateRange).toBeDefined();
-          expect(result.value.ageRating).toBeNull();
-          expect(result.value.genres).toBeNull();
-        });
-      });
-    });
+          expect(result).toBeDefined()
+          expect(result.dateRange).toBeDefined()
+          expect(result.ageRating).toBeUndefined()
+          expect(result.genres).toBeUndefined()
+        })
+      })
+    })
 
-    describe("validação de dateRange", () => {
-      it("deve criar um filtro com dateRange válido", () => {
+    describe('validação de dateRange', () => {
+      it('deve criar um filtro com dateRange válido', () => {
         // Arrange
         const input: IMovieFilterInput = {
-          dateRange: { startDate: date(10), endDate: date(10) },
-        };
+          dateRange: { startDate: date(10), endDate: date(11) },
+        }
 
         // Act
-        const result = MovieFilter.create(input);
+        const result = validateAndCollect(MovieFilter.create(input), failures)
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value.dateRange).toEqual(input.dateRange);
-      });
+        expect(result).toBeDefined()
+        expect(result.dateRange).toEqual(input.dateRange)
+      })
 
-      const invalidCases = [
-        {
-          scenario: "startDate é nulo",
-          input: {
-            dateRange: {
-              startDate: null,
-              endDate: date(),
+      describe('deve falhar quando valores fornecidos forem inválidos', () => {
+        const invalidCases = [
+          {
+            scenario: 'startDate é nulo',
+            input: {
+              dateRange: {
+                startDate: null,
+                endDate: date(),
+              },
             },
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
-          field: "start_date",
-          code: FailureCode.NULL_ARGUMENT,
-        },
-        {
-          scenario: "endDate é nulo",
-          input: {
-            dateRange: {
-              startDate: date(),
-              endDate: null as Date,
+          {
+            scenario: 'endDate é nulo',
+            input: {
+              dateRange: {
+                startDate: date(),
+                endDate: null as unknown as Date,
+              },
             },
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
-          field: "end_date",
-          code: FailureCode.NULL_ARGUMENT,
-        },
-        {
-          scenario: "startDate é anterior à data atual",
-          input: {
-            dateRange: {
-              startDate: date(-10),
-              endDate: date(5),
+          {
+            scenario: 'startDate é anterior à data atual',
+            input: {
+              dateRange: {
+                startDate: date(-10),
+                endDate: date(5),
+              },
             },
+            code: FailureCode.DATE_CANNOT_BE_PAST,
           },
-          code: FailureCode.DATE_PAST_NOT_ALLOWED,
-          field: "start_date",
-        },
-        {
-          scenario: "startDate é posterior ao limite máximo de 30 dias",
-          input: {
-            dateRange: {
-              startDate: date(31),
-              endDate: date(20),
+          {
+            scenario: 'startDate é posterior ao limite máximo de 30 dias',
+            input: {
+              dateRange: {
+                startDate: date(31),
+                endDate: date(20),
+              },
             },
+            code: FailureCode.DATE_NOT_BEFORE_LIMIT,
           },
-          code: FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
-          field: "start_date",
-        },
-        {
-          scenario: "startDate é posterior a endDate",
-          input: {
-            dateRange: {
-              startDate: date(10),
-              endDate: date(5),
+          {
+            scenario: 'startDate é posterior a endDate',
+            input: {
+              dateRange: {
+                startDate: date(10),
+                endDate: date(5),
+              },
             },
+            code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
           },
-          code: FailureCode.INVALID_DATE_SEQUENCE,
-          field: "end_date",
-        },
-        {
-          scenario:
-            "endDate é posterior ao limite máximo de 14 dias após startDate",
-          input: {
-            dateRange: {
-              startDate: date(10),
-              endDate: date(25),
+          {
+            scenario: 'endDate é posterior ao limite máximo de 14 dias após startDate',
+            input: {
+              dateRange: {
+                startDate: date(10),
+                endDate: date(25),
+              },
             },
+            code: FailureCode.DATE_NOT_BEFORE_LIMIT,
           },
-          code: FailureCode.DATE_RANGE_TOO_LARGE,
-          field: "end_date",
-        },
-      ];
+        ]
 
-      invalidCases.forEach((testCase) => {
-        it(`deve falhar quando ${testCase.scenario}`, () => {
-          // Act
-          const result = MovieFilter.create(testCase.input);
+        invalidCases.forEach(({ scenario, input, code }) => {
+          it(`deve falhar quando ${scenario}`, () => {
+            // Act
+            const result = validateAndCollect(MovieFilter.create(input as IMovieFilterInput), failures)
 
-          // Assert
-          expect(result.invalid).toBe(true);
-          const failures = result.failures;
-          expect(failures.length).toBe(1);
-          expect(failures[0].code).toBe(testCase.code);
-          expect(failures[0].details).toEqual(
-            expect.objectContaining({ field: testCase.field }),
-          );
-        });
-      });
-    });
+            // Assert
+            expect(result).toBeNull()
+            expect(failures.length).toBe(1)
+            expect(failures[0].code).toBe(code)
+          })
+        })
+      })
+    })
 
-    describe("validação de ageRating", () => {
-      it("deve criar um filtro com ageRating válido", () => {
+    describe('validação de ageRating', () => {
+      it('deve criar um filtro com ageRating válido', () => {
         // Arrange
-        const input: IMovieFilterInput = { ageRating: "10" };
+        const input: IMovieFilterInput = { ageRating: '10' }
 
         // Act
-        const result = MovieFilter.create(input);
+        const result = validateAndCollect(MovieFilter.create(input), failures)
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value.ageRating.value).toBe(input.ageRating);
-      });
+        expect(result).toBeDefined()
+        expect(result.ageRating?.value).toBe(input.ageRating)
+      })
 
-      it("deve falhar quando ageRating é inválido", () => {
+      it('deve falhar quando ageRating é inválido', () => {
         // Arrange
         const input: IMovieFilterInput = {
-          ageRating: "INVALID",
-        };
+          ageRating: 'INVALID',
+        }
 
         // Act
-        const result = MovieFilter.create(input);
+        const result = validateAndCollect(MovieFilter.create(input), failures)
 
         // Assert
-        expect(result.invalid).toBe(true);
-      });
-    });
+        expect(result).toBeNull()
+      })
+    })
 
-    describe("validação de genres", () => {
-      it("deve criar um filtro com genres válido", () => {
+    describe('validação de genres', () => {
+      it('deve criar um filtro com genres válido', () => {
         // Arrange
         const input: IMovieFilterInput = {
-          genres: ["ACTION", "COMEDY"],
-        };
+          genres: ['ACTION', 'COMEDY'],
+        }
 
         // Act
-        const result = MovieFilter.create(input);
+        const result = validateAndCollect(MovieFilter.create(input), failures)
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value.genres.count).toBe(input.genres.length);
-        expect(
-          result.value.genres
-            .getGenres()
-            .every((genre) => input.genres.includes(genre)),
-        ).toBeTruthy();
-      });
+        expect(result).toBeDefined()
+        expect(result.genres?.count).toBe(input.genres?.length)
+        expect(result.genres?.getGenres().every((g) => input.genres?.includes(g))).toBeTruthy()
+      })
 
-      it("deve falhar quando genres é inválido", () => {
+      it('deve falhar quando genres é inválido', () => {
         // Arrange
         const input: IMovieFilterInput = {
-          genres: ["INVALID_GENRE"],
-        };
+          genres: ['INVALID_GENRE'],
+        }
 
         // Act
-        const result = MovieFilter.create(input);
+        const result = validateAndCollect(MovieFilter.create(input), failures)
 
         // Assert
-        expect(result.invalid).toBe(true);
-      });
-    });
+        expect(result).toBeNull()
+      })
+    })
 
-    describe("múltiplos critérios", () => {
-      it("deve criar um filtro com múltiplos critérios válidos", () => {
+    describe('múltiplos critérios', () => {
+      it('deve criar um filtro com múltiplos critérios válidos', () => {
         // Arrange
         const input: IMovieFilterInput = {
           dateRange: { startDate: date(2), endDate: date(7) },
-          ageRating: "16",
-          genres: ["ACTION"],
-        };
+          ageRating: '16',
+          genres: ['ACTION'],
+        }
 
         // Act
-        const result = MovieFilter.create(input);
+        const result = validateAndCollect(MovieFilter.create(input), failures)
 
         // Assert
-        expect(result.invalid).toBe(false);
-        expect(result.value.genres.getGenres()).toEqual(input.genres);
-        expect(result.value.ageRating.value).toBe(input.ageRating);
-      });
+        expect(result).toBeDefined()
+        expect(result.genres?.getGenres()).toEqual(input.genres)
+        expect(result.ageRating?.value).toBe(input.ageRating)
+      })
 
-      it("deve acumular múltiplas falhas de validação", () => {
+      it('deve acumular múltiplas falhas de validação', () => {
         // Arrange
-        const now = new Date();
-        const startDate = new Date(now.getDate() - 10); // data no passado
+        const now = new Date()
+        const startDate = new Date(now.getDate() - 10) // data no passado
         const input: IMovieFilterInput = {
           dateRange: {
             startDate: startDate,
-            endDate: null,
+            endDate: null as unknown as Date,
           },
-          ageRating: "INVALID",
-          genres: ["INVALID_GENRE"],
-        };
+          ageRating: 'INVALID',
+          genres: ['INVALID_GENRE'],
+        }
 
         // Act
-        const result = MovieFilter.create(input);
+        const result = validateAndCollect(MovieFilter.create(input), failures)
 
         // Assert
-        expect(result.invalid).toBe(true);
-        expect(result.failures.length).toBe(3);
-      });
-    });
-  });
-});
+        expect(result).toBeNull()
+        expect(failures.length).toBe(3)
+      })
+    })
+  })
+})

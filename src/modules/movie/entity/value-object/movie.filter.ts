@@ -1,11 +1,10 @@
-import { Result, success, failure } from "../../../../shared/result/result";
-import { SimpleFailure } from "../../../../shared/failure/simple.failure.type";
-import { AgeRating } from "./age.rating";
-import { MovieGenre } from "./movie.genre";
-import { Assert } from "../../../../shared/assert/assert";
-import { not } from "../../../../shared/assert/not";
-import { isNull } from "../../../../shared/validator/validator";
-import { FailureCode } from "../../../../shared/failure/failure.codes.enum";
+import { AgeRating } from './age.rating'
+import { MovieGenre } from './movie.genre'
+import { failure, Result, success } from '@shared/result/result'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { isNull } from '@shared/validator/validator'
+import { validateAndCollect } from '@shared/validator/common.validators'
+import { MovieFilterDateRange } from '@modules/movie/entity/value-object/movie.filter.date.range'
 
 /**
  * Interface que define os parâmetros de entrada para filtrar filmes.
@@ -15,12 +14,12 @@ export interface IMovieFilterInput {
   /**
    * Lista de códigos de gêneros para filtrar filmes
    */
-  genres?: string[];
+  genres?: string[]
 
   /**
    * Código de classificação etária para filtrar filmes
    */
-  ageRating?: string;
+  ageRating?: string
 
   /**
    * Intervalo de datas para filtrar filmes em exibição
@@ -29,13 +28,13 @@ export interface IMovieFilterInput {
     /**
      * Data inicial do período de exibição
      */
-    startDate: Date;
+    startDate: Date
 
     /**
      * Data final do período de exibição
      */
-    endDate: Date;
-  };
+    endDate: Date
+  }
 }
 
 /**
@@ -56,12 +55,12 @@ export class MovieFilter {
   /**
    * Número máximo de dias no futuro permitido para a data inicial do filtro (30 dias)
    */
-  public static readonly MAX_FUTURE_DAYS = 30;
+  public static readonly MAX_FUTURE_DAYS = 30
 
   /**
    * Intervalo máximo em dias entre a data inicial e final do filtro (14 dias)
    */
-  public static readonly MAX_DATE_RANGE_DAYS = 14;
+  public static readonly MAX_DATE_RANGE_DAYS = 14
 
   /**
    * Construtor privado. Use o método estático `create` para instanciar.
@@ -73,11 +72,11 @@ export class MovieFilter {
    */
   private constructor(
     public readonly dateRange?: {
-      readonly startDate: Date;
-      readonly endDate: Date;
+      readonly startDate: Date
+      readonly endDate: Date
     },
     public readonly ageRating?: AgeRating,
-    public readonly genres?: MovieGenre,
+    public readonly genres?: MovieGenre
   ) {}
 
   /**
@@ -101,97 +100,45 @@ export class MovieFilter {
    */
   public static create(input: IMovieFilterInput): Result<MovieFilter> {
     if (isNull(input)) {
-      const today = new Date();
-      const endDate = new Date(today);
-      endDate.setDate(endDate.getDate() + 7);
+      const today = new Date()
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() + 7)
 
       return success(
-        new MovieFilter(
-          {
-            startDate: today,
-            endDate: endDate,
-          },
-          null,
-          null,
-        ),
-      );
+        new MovieFilter({
+          startDate: today,
+          endDate: endDate,
+        })
+      )
     }
 
-    const failures: SimpleFailure[] = [];
-    let dateRangeValue = null;
-    let ageRatingValue = null;
-    let genresValue = null;
+    const failures: SimpleFailure[] = []
+    let dateRangeValue: { startDate: Date; endDate: Date } | undefined = undefined
+    let ageRatingValue: AgeRating | undefined = undefined
+    let genresValue: MovieGenre | undefined = undefined
 
-    if (input.dateRange) {
-      const { startDate, endDate } = input.dateRange;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const maxFutureDate = new Date(today);
-      maxFutureDate.setDate(today.getDate() + MovieFilter.MAX_FUTURE_DAYS);
+    dateRangeValue = input.dateRange
+      ? validateAndCollect(MovieFilterDateRange.create(input.dateRange.startDate, input.dateRange.endDate), failures)
+      : MovieFilterDateRange.createDefault()
 
-      Assert.untilFirstFailure(
-        failures,
-        { field: "start_date" },
-        not.null(startDate, FailureCode.NULL_ARGUMENT),
-        not.dateBefore(startDate, today, FailureCode.DATE_PAST_NOT_ALLOWED),
-        not.dateAfter(
-          startDate,
-          maxFutureDate,
-          FailureCode.DATE_EXCEEDS_MAX_FUTURE_LIMIT,
-        ),
-      );
+    if (input.ageRating) ageRatingValue = validateAndCollect(AgeRating.create(input.ageRating), failures)
+    if (input.genres) genresValue = validateAndCollect(MovieGenre.create(input.genres), failures)
 
-      if (failures.length === 0) {
-        const maxEndDate = new Date();
-        maxEndDate.setDate(
-          maxFutureDate.getDate() + MovieFilter.MAX_DATE_RANGE_DAYS,
-        );
-
-        Assert.untilFirstFailure(
-          failures,
-          { field: "end_date" },
-          not.null(endDate, FailureCode.NULL_ARGUMENT),
-          not.dateAfter(startDate, endDate, FailureCode.INVALID_DATE_SEQUENCE),
-          not.dateAfter(endDate, maxEndDate, FailureCode.DATE_RANGE_TOO_LARGE),
-        );
-
-        if (failures.length === 0) dateRangeValue = input.dateRange;
-      }
-    }
-
-    if (input.ageRating) {
-      const ageRatingResult = AgeRating.create(input.ageRating);
-      if (ageRatingResult.invalid) {
-        failures.push(...ageRatingResult.failures);
-      } else {
-        ageRatingValue = ageRatingResult.value;
-      }
-    }
-
-    if (input.genres) {
-      const genreResult = MovieGenre.create(input.genres);
-      if (genreResult.invalid) {
-        failures.push(...genreResult.failures);
-      } else {
-        genresValue = genreResult.value;
-      }
-    }
-
-    if (failures.length > 0) return failure(failures);
+    if (failures.length > 0) return failure(failures)
 
     if (!dateRangeValue && !ageRatingValue && !genresValue) {
-      const today = new Date();
-      const endDate = new Date(today);
-      endDate.setDate(endDate.getDate() + 7);
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const endDate = new Date(today)
+      endDate.setDate(endDate.getDate() + 7)
 
       dateRangeValue = {
         startDate: today,
         endDate: endDate,
-      };
+      }
     }
 
-    return success(
-      new MovieFilter(dateRangeValue, ageRatingValue, genresValue),
-    );
+    return success(new MovieFilter(dateRangeValue, ageRatingValue, genresValue))
   }
 }
