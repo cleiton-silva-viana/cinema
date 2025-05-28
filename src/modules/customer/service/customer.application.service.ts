@@ -10,21 +10,14 @@ import { ensureNotNull } from '@shared/validator/common.validators'
 import { ResourceTypes } from '@shared/constant/resource.types'
 import { isNull } from '@shared/validator/validator'
 import { FailureFactory } from '@shared/failure/failure.factory'
-
-export interface ICreateCustomerProps {
-  name: string
-  birthDate: Date
-  email: string
-  password: string
-}
-
-export interface IStudentCardInput {
-  id: string
-  validity: Date
-}
+import {
+  ICreateCustomerProps,
+  ICustomerApplicationService,
+  IStudentCardInput,
+} from '@modules/customer/service/customer.application.service.interface'
 
 @Injectable()
-export class CustomerApplicationService {
+export class CustomerApplicationService implements ICustomerApplicationService {
   constructor(@Inject(CUSTOMER_REPOSITORY) private readonly repository: ICustomerRepository) {}
 
   public async findById(uid: string | CustomerUID): Promise<Result<Customer>> {
@@ -39,7 +32,9 @@ export class CustomerApplicationService {
 
     const customer = await this.repository.findById(customerUID)
 
-    return !customer ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerUID.value)) : success(customer)
+    return !customer
+      ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerUID.value))
+      : success(customer)
   }
 
   public async findByEmail(email: string | Email): Promise<Result<Customer>> {
@@ -152,7 +147,10 @@ export class CustomerApplicationService {
     return success(await this.repository.update(customer.uid, { cpf: updatedCustomerResult.value.cpf }))
   }
 
-  public async assignCustomerStudentCard(customerUID: string, studentCard: IStudentCardInput): Promise<Result<Partial<Customer>>> {
+  public async assignCustomerStudentCard(
+    customerUID: string,
+    studentCard: IStudentCardInput
+  ): Promise<Result<Partial<Customer>>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
 
