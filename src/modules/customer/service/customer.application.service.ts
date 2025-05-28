@@ -35,9 +35,11 @@ export class CustomerApplicationService {
 
     if (parseCustomerUidResult.isInvalid()) return parseCustomerUidResult
 
-    const customer = await this.repository.findById(parseCustomerUidResult.value)
+    const customerUID = parseCustomerUidResult.value
 
-    return !customer ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, uid)) : success(customer)
+    const customer = await this.repository.findById(customerUID)
+
+    return !customer ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerUID.value)) : success(customer)
   }
 
   public async findByEmail(email: string | Email): Promise<Result<Customer>> {
@@ -48,10 +50,12 @@ export class CustomerApplicationService {
 
     if (emailCheckedResult.isInvalid()) return emailCheckedResult
 
-    const customer = await this.repository.findByEmail(emailCheckedResult.value)
+    const customerEmail = emailCheckedResult.value
+
+    const customer = await this.repository.findByEmail(customerEmail)
 
     return isNull(customer)
-      ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, email))
+      ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerEmail.value))
       : success(customer)
   }
 
@@ -148,10 +152,7 @@ export class CustomerApplicationService {
     return success(await this.repository.update(customer.uid, { cpf: updatedCustomerResult.value.cpf }))
   }
 
-  public async assignCustomerStudentCard(
-    customerUID: string,
-    studentCard: IStudentCardInput
-  ): Promise<Result<Partial<Customer>>> {
+  public async assignCustomerStudentCard(customerUID: string, studentCard: IStudentCardInput): Promise<Result<Partial<Customer>>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
 
