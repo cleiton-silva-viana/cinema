@@ -16,7 +16,7 @@ export interface ICustomerRepository {
 
   create(customer: Customer): Promise<Customer>
 
-  update(uid: CustomerUID, customer: Partial<Customer>): Promise<Partial<Customer>>
+  update(uid: CustomerUID, customer: Partial<Customer>): Promise<Customer>
 
   delete(uid: CustomerUID): Promise<null>
 }
