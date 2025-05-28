@@ -1,28 +1,35 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpStatus,
-  Param,
-  Patch,
-  Post,
-} from "@nestjs/common";
-import { PersonService } from "../service/person.service";
-import { JsonApiResponse } from "../../../shared/response/json.api.response";
-import { CreatePersonDTO } from "./dto/create.person.dto";
-import { UpdatePersonDTO } from "./dto/update.person.dto";
-import { isNull } from "../../../shared/validator/validator";
-import { FailureCode } from "../../../shared/failure/failure.codes.enum";
-import { PersonResponseDTO } from "./dto/response.person.dto";
+import { Body, Controller, Delete, Get, HttpStatus, Inject, Param, Patch, Post } from '@nestjs/common'
+import { CreatePersonDTO } from './dto/create.person.dto'
+import { UpdatePersonDTO } from './dto/update.person.dto'
+import { PersonResponseDTO } from './dto/response.person.dto'
+import { JsonApiResponse } from '@shared/response/json.api.response'
+import { IPersonApplicationService } from '@modules/person/service/person.application.service.interface'
+import { ensureNotNull } from '@shared/validator/common.validators'
+import { ResourceTypes } from '@shared/constant/resource.types'
+import { PERSON_APPLICATION_SERVICE } from '@modules/person/constant/person.constant'
 
 /**
  * Controlador para operações relacionadas a pessoas no sistema.
  * Implementa endpoints RESTful para gerenciamento de pessoas.
  */
-@Controller("persons")
+@Controller(ResourceTypes.PERSON)
 export class PersonController {
-  constructor(private readonly service: PersonService) {}
+  constructor(@Inject(PERSON_APPLICATION_SERVICE) private readonly service: IPersonApplicationService) {}
+
+  /**
+   * Busca uma pessoa pelo UID.
+   * GET /persons/:uid
+   */
+  @Get(':uid')
+  public async findById(@Param('uid') uid: string): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
+
+    const result = await this.service.findById(uid)
+
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response.data(PersonResponseDTO.fromEntity(result.value))
+  }
 
   /**
    * Cria uma nova pessoa no sistema.
@@ -30,84 +37,47 @@ export class PersonController {
    */
   @Post()
   public async create(@Body() dto: CreatePersonDTO): Promise<JsonApiResponse> {
-    const response = new JsonApiResponse();
+    const response = new JsonApiResponse()
 
-    if (!this.hasData(dto)) {
-      return response.HttpStatus(HttpStatus.BAD_REQUEST).errors({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-      });
-    }
+    const failures = ensureNotNull({ dto })
+    if (failures.length > 0) return response.errors(failures)
 
-    const result = await this.service.create(dto.name, new Date(dto.birthDate));
-    if (result.invalid) return response.errors(result.failures);
-
-    return response
-      .data(PersonResponseDTO.fromEntity(result.value))
-      .meta({ createdAt: new Date().toISOString() });
-  }
-
-  /**
-   * Busca uma pessoa pelo ID.
-   * GET /persons/:id
-   */
-  @Get(":id")
-  public async findById(@Param("id") uid: string): Promise<JsonApiResponse> {
-    const response = new JsonApiResponse();
-    const result = await this.service.findById(uid);
-
-    if (result.invalid) return response.errors(result.failures);
-
-    return response.data(PersonResponseDTO.fromEntity(result.value));
+    const result = await this.service.create(dto.name, new Date(dto.birthDate))
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response
+          .HttpStatus(HttpStatus.CREATED)
+          .data(PersonResponseDTO.fromEntity(result.value))
+          .meta({ createdAt: new Date().toISOString() })
   }
 
   /**
    * Atualiza uma pessoa existente.
-   * PATCH /persons/:id
+   * PATCH /persons/:uid
    */
-  @Patch(":id")
-  public async update(
-    @Param("id") uid: string,
-    @Body() dto: UpdatePersonDTO,
-  ): Promise<JsonApiResponse> {
-    const response = new JsonApiResponse();
+  @Patch(':uid')
+  public async update(@Param('uid') uid: string, @Body() dto: Partial<UpdatePersonDTO>): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
 
-    if (!this.hasData(dto)) {
-      return response.errors({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-      });
-    }
+    const failures = ensureNotNull({ uid, dto })
+    if (failures.length > 0) return response.errors(failures)
 
-    const birthDateObj = dto.birthDate ? new Date(dto.birthDate) : null;
-    const result = await this.service.update(uid, dto.name, birthDateObj);
+    const result = await this.service.update(uid, dto?.name, dto?.birthDate)
 
-    if (result.invalid) return response.errors(result.failures);
-
-    return response
-      .data(PersonResponseDTO.fromEntity(result.value))
-      .meta({ updatedAt: new Date().toISOString() });
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response.data(PersonResponseDTO.fromEntity(result.value)).meta({ updatedAt: new Date().toISOString() })
   }
 
   /**
    * Remove uma pessoa.
-   * DELETE /persons/:id
+   * DELETE /persons/:uid
    */
-  @Delete(":id")
-  public async delete(@Param("id") uid: string): Promise<JsonApiResponse> {
-    const response = new JsonApiResponse();
-    const result = await this.service.delete(uid);
+  @Delete(':uid')
+  public async delete(@Param('uid') uid: string): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
+    const result = await this.service.delete(uid)
 
-    return result.invalid
-      ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.NO_CONTENT);
-  }
-
-  /**
-   * Verifica se o DTO de atualização contém dados.
-   * @param dto DTO de atualização
-   * @returns true se contém dados, false caso contrário
-   */
-  private hasData(dto: UpdatePersonDTO): boolean {
-    if (isNull(dto)) return false;
-    return !!(dto.name || dto.birthDate);
+    return result.isInvalid() ? response.errors(result.failures) : response.HttpStatus(HttpStatus.NO_CONTENT)
   }
 }
