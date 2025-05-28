@@ -76,7 +76,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
     return success(await this.repository.create(customer))
   }
 
-  public async updateCustomerEmail(customerUID: string, email: string): Promise<Result<Partial<Customer>>> {
+  public async updateCustomerEmail(customerUID: string, email: string): Promise<Result<Customer>> {
     const failures = ensureNotNull({ customerUID, email })
     if (failures.length > 0) return failure(failures)
 
@@ -98,7 +98,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
     return success(await this.repository.update(customer.uid, { email: updatedCustomer.email }))
   }
 
-  public async updateCustomerName(customerUID: string, newName: string): Promise<Result<Partial<Customer>>> {
+  public async updateCustomerName(customerUID: string, newName: string): Promise<Result<Customer>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
 
@@ -109,7 +109,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
     return success(await this.repository.update(customer.uid, { name: customer.name }))
   }
 
-  public async updateCustomerBirthDate(customerUID: string, birthDate: Date): Promise<Result<Partial<Customer>>> {
+  public async updateCustomerBirthDate(customerUID: string, birthDate: Date): Promise<Result<Customer>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
     const customer = findCustomerResult.value
@@ -121,7 +121,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
     return success(await this.repository.update(customer.uid, { birthDate: updatedCustomer.birthDate }))
   }
 
-  public async assignCustomerCPF(customerUID: string, cpf: string): Promise<Result<Partial<Customer>>> {
+  public async assignCustomerCPF(customerUID: string, cpf: string): Promise<Result<Customer>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
     const customer = findCustomerResult.value
@@ -136,7 +136,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
     return success(await this.repository.update(customer.uid, { cpf: customer.cpf }))
   }
 
-  public async removeCustomerCPF(customerUID: string): Promise<Result<Partial<Customer>>> {
+  public async removeCustomerCPF(customerUID: string): Promise<Result<Customer>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
 
@@ -150,7 +150,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
   public async assignCustomerStudentCard(
     customerUID: string,
     studentCard: IStudentCardInput
-  ): Promise<Result<Partial<Customer>>> {
+  ): Promise<Result<Customer>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
 
@@ -167,7 +167,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
     return success(await this.repository.update(customer.uid, { studentCard: updatedCustomer.studentCard }))
   }
 
-  public async removeCustomerStudentCard(customerUID: string): Promise<Result<Partial<Customer>>> {
+  public async removeCustomerStudentCard(customerUID: string): Promise<Result<Customer>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
 
