@@ -1,93 +1,139 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Put,
-  Delete,
-  Inject,
-} from "@nestjs/common";
-import { ICustomerService } from "../service/customer.service.interface";
-import { UpdateCustomerDTO } from "./dto/update.customer.dto";
-import { HttpStatus } from "@nestjs/common";
-import { JsonApiResponse } from "../../../shared/response/json.api.response";
-import { CreateCustomerDTO } from "./dto/create.customer.dto";
-import { CUSTOMER_SERVICE } from "../constant/customer.constants";
-import { ResponseCustomerDTO } from "./dto/response.customer.dto";
-import { isNull } from "../../../shared/validator/validator";
-import { FailureCode } from "../../../shared/failure/failure.codes.enum";
+import { Body, Controller, Delete, Get, HttpStatus, Inject, Param, Patch, Post, Put } from '@nestjs/common'
+import { ResponseCustomerDTO } from './dto/response.customer.dto'
+import { ICreateCustomerDTO } from './dto/create.customer.dto'
+import { JsonApiResponse } from '@shared/response/json.api.response'
+import { ICustomerApplicationService } from '@modules/customer/service/customer.application.service.interface'
+import { ResourceTypes } from '@shared/constant/resource.types'
+import { IAssignCustomerStudentCardDTO } from './dto/assign.customer.studentcard.dto'
+import { IUpdateCustomerFieldsDTO } from '@modules/customer/controller/dto/update.customer.fields.dto'
+import { CUSTOMER_APPLICATION_SERVICE } from '@modules/customer/constant/customer.constants'
 
-@Controller("customers")
+@Controller(ResourceTypes.CUSTOMER)
 export class CustomerController {
-  constructor(
-    @Inject(CUSTOMER_SERVICE) private readonly service: ICustomerService,
-  ) {}
+  constructor(@Inject(CUSTOMER_APPLICATION_SERVICE) private readonly service: ICustomerApplicationService) {}
 
-  @Get(":uid")
-  public async findById(@Param("id") uid: string): Promise<JsonApiResponse> {
-    const response = new JsonApiResponse();
+  @Get(':uid')
+  public async findById(@Param('id') uid: string): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
 
-    const result = await this.service.findById(uid);
+    const result = await this.service.findById(uid)
 
-    return result.invalid
+    return result.isInvalid()
       ? response.errors(result.failures)
-      : response
-          .HttpStatus(HttpStatus.OK)
-          .data(ResponseCustomerDTO.fromEntity(result.value));
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+  }
+
+  @Get('/email/:email')
+  public async findByEmail(@Param('email') email: string): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
+
+    const result = await this.service.findByEmail(email)
+
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
   }
 
   @Post()
-  public async create(
-    @Body() dto: CreateCustomerDTO,
-  ): Promise<JsonApiResponse> {
-    const response = new JsonApiResponse();
+  public async create(@Body() dto: ICreateCustomerDTO): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
 
-    if (!dto || !dto.name || !dto.email || !dto.birthDate)
-      return response.errors({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-      });
+    const result = await this.service.create(dto)
 
-    const result = await this.service.create(dto);
-
-    return result.invalid
+    return result.isInvalid()
       ? response.errors(result.failures)
       : response
           .HttpStatus(HttpStatus.CREATED)
           .data(ResponseCustomerDTO.fromEntity(result.value))
-          .meta({ createdAt: new Date() });
+          .meta({ createdAt: new Date() })
   }
 
-  @Put(":id")
-  public async update(
-    @Param("id") uid: string,
-    @Body() dto: UpdateCustomerDTO,
+  @Patch(':uid/email')
+  public async updateCustomerEmail(@Param('uid') uid: string, @Body() dto: Pick<IUpdateCustomerFieldsDTO, 'email'>) {
+    const response = new JsonApiResponse()
+
+    const result = await this.service.updateCustomerEmail(uid, dto?.email as unknown as string)
+
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+  }
+
+  @Patch(':uid/name')
+  public async updateCustomerName(
+    @Param('uid') uid: string,
+    @Body() dto: Pick<IUpdateCustomerFieldsDTO, 'name'>
   ): Promise<JsonApiResponse> {
-    const response = new JsonApiResponse();
+    const response = new JsonApiResponse()
 
-    if (!dto || !dto.name || !dto.email || !dto.birthDate)
-      return response.errors({
-        code: FailureCode.MISSING_REQUIRED_DATA,
-      });
+    const result = await this.service.updateCustomerName(uid, dto.name as unknown as string)
 
-    const result = await this.service.update(uid, dto);
-
-    return result.invalid
+    return result.isInvalid()
       ? response.errors(result.failures)
-      : response
-          .HttpStatus(HttpStatus.OK)
-          .data(ResponseCustomerDTO.fromEntity(result.value))
-          .meta({ updatedAt: new Date() });
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
   }
 
-  @Delete(":id")
-  public async delete(@Param("id") uid: string): Promise<JsonApiResponse> {
-    const response = new JsonApiResponse();
+  @Patch(':uid/birthdate')
+  public async updateCustomerBirthDate(
+    @Param('uid') uid: string,
+    @Body() dto: Pick<IUpdateCustomerFieldsDTO, 'birthDate'>
+  ): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
 
-    const result = await this.service.delete(uid);
+    const result = await this.service.updateCustomerBirthDate(uid, dto?.birthDate as unknown as Date)
 
-    return result.invalid
+    return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.NO_CONTENT);
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+  }
+
+  @Patch(':uid/cpf')
+  public async assignCustomerCPF(
+    @Param('uid') uid: string,
+    @Body() dto: Pick<IUpdateCustomerFieldsDTO, 'cpf'>
+  ): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
+
+    const result = await this.service.assignCustomerCPF(uid, dto?.cpf as unknown as string)
+
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+  }
+
+  @Delete(':uid/cpf')
+  public async removeCustomerCPF(@Param('uid') uid: string): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
+
+    const result = await this.service.removeCustomerCPF(uid)
+
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+  }
+
+  @Patch(':uid/student-card')
+  public async assignCustomerStudentCard(
+    @Param('uid') uid: string,
+    @Body() dto: IAssignCustomerStudentCardDTO
+  ): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
+
+    const result = await this.service.assignCustomerStudentCard(uid, dto)
+
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+  }
+
+  @Delete(':uid/student-card')
+  public async removeCustomerStudentCard(@Param('uid') uid: string): Promise<JsonApiResponse> {
+    const response = new JsonApiResponse()
+
+    const result = await this.service.removeCustomerStudentCard(uid)
+
+    return result.isInvalid()
+      ? response.errors(result.failures)
+      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
   }
 }
