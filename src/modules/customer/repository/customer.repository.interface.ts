@@ -10,9 +10,9 @@ export interface ICustomerRepository {
 
   hasStudentCardID(id: string): Promise<boolean>
 
-  findById(uid: CustomerUID): Promise<Customer>
+  findById(uid: CustomerUID): Promise<Customer | null>
 
-  findByEmail(email: Email): Promise<Customer>
+  findByEmail(email: Email): Promise<Customer | null>
 
   create(customer: Customer): Promise<Customer>
 
