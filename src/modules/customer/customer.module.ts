@@ -1,25 +1,22 @@
-import { Module } from "@nestjs/common";
-import { CustomerController } from "./controller/customer.controller";
-import { CustomerDomainService } from "./service/customer.domain.service";
-import { CUSTOMER_SERVICE } from "./constant/customer.constants";
-import { CustomerRepository } from "./repository/customer.repository";
-import { CUSTOMER_REPOSITORY } from "./constant/customer.constants";
-import { CustomerMapper } from "./repository/mapper/customer.mapper";
+import { Module } from '@nestjs/common'
+import { CustomerController } from './controller/customer.controller'
+import { CustomerApplicationService } from '@modules/customer/service/customer.application.service'
+import { CUSTOMER_APPLICATION_SERVICE } from './constant/customer.constants'
 
 @Module({
   imports: [],
   controllers: [CustomerController],
   providers: [
     {
-      provide: CUSTOMER_SERVICE,
-      useClass: CustomerDomainService
+      provide: CUSTOMER_APPLICATION_SERVICE,
+      useClass: CustomerApplicationService,
     },
-    {
-      provide: CUSTOMER_REPOSITORY,
-      useClass: CustomerRepository
-    },
-    CustomerMapper
   ],
-  exports: [CUSTOMER_SERVICE, CUSTOMER_REPOSITORY],
+  exports: [
+    {
+      provide: CUSTOMER_APPLICATION_SERVICE,
+      useClass: CustomerApplicationService,
+    },
+  ],
 })
 export class CustomerModule {}
