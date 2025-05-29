@@ -1,5 +1,5 @@
-import { ResourceTypes } from "../../../../shared/constant/resource.types";
-import { Customer } from "../../entity/customer";
+import { ResourceTypes } from '@shared/constant/resource.types'
+import { Customer } from '../../entity/customer'
 
 /**
  * DTO para formatação da resposta de cliente no padrão JSON:API
@@ -16,13 +16,13 @@ export class ResponseCustomerDTO {
     public readonly id: string,
     public readonly type: string,
     public readonly attributes: {
-      readonly name: string;
-      readonly birthDate: string;
-      readonly email: string;
+      readonly name: string
+      readonly birthDate: string
+      readonly email: string
     },
     public readonly links: {
-      readonly self: string;
-    },
+      readonly self: string
+    }
   ) {}
 
   /**
@@ -36,12 +36,12 @@ export class ResponseCustomerDTO {
       ResourceTypes.CUSTOMER,
       {
         name: customer.name.value,
-        birthDate: customer.birthDate.value.toISOString().split("T")[0],
+        birthDate: customer.birthDate.value.toISOString().split('T')[0],
         email: customer.email.value,
       },
       {
-        self: `/customers/${customer.uid.value}`,
-      },
-    );
+        self: `/${ResourceTypes.CUSTOMER}/${customer.uid.value}`,
+      }
+    )
   }
 }
