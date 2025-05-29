@@ -8,7 +8,6 @@ import { Password } from '../entity/value-object/password'
 import { failure, Result, success } from '@shared/result/result'
 import { ensureNotNull } from '@shared/validator/common.validators'
 import { ResourceTypes } from '@shared/constant/resource.types'
-import { isNull } from '@shared/validator/validator'
 import { FailureFactory } from '@shared/failure/failure.factory'
 import {
   ICreateCustomerProps,
@@ -49,7 +48,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
 
     const customer = await this.repository.findByEmail(customerEmail)
 
-    return isNull(customer)
+    return !customer
       ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerEmail.value))
       : success(customer)
   }
