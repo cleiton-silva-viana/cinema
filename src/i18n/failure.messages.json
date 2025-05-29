@@ -1322,23 +1322,23 @@
   "STUDENT_CARD_ID_INVALID_FORMAT": {
     "status": 400,
     "title": {
-      "pt-BR": "Formato Inválido da Carteirinha de Estudante",
-      "en-US": "Invalid Student Card ID Format"
+      "pt": "Formato Inválido da Carteirinha de Estudante",
+      "en": "Invalid Student Card ID Format"
     },
     "template": {
-      "pt-BR": "O ID da carteirinha de estudante '{value:string}' possui um formato inválido.",
-      "en-US": "The student card ID '{value:string}' has an invalid format."
+      "pt": "O ID da carteirinha de estudante '{value:string}' possui um formato inválido.",
+      "en": "The student card ID '{value:string}' has an invalid format."
     }
   },
   "STUDENT_CARD_EXPIRED": {
     "status": 400,
     "title": {
-      "pt-BR": "Carteirinha de Estudante Expirada",
-      "en-US": "Student Card Expired"
+      "pt": "Carteirinha de Estudante Expirada",
+      "en": "Student Card Expired"
     },
     "template": {
-      "pt-BR": "A carteirinha de estudante expirou em {validity:string}. Data atual: {currentDate:string}.",
-      "en-US": "The student card expired on {validity:string}. Current date: {currentDate:string}."
+      "pt": "A carteirinha de estudante expirou em {validity:string}. Data atual: {currentDate:string}.",
+      "en": "The student card expired on {validity:string}. Current date: {currentDate:string}."
     }
   },
   "CPF_ALREADY_IN_USE": {
