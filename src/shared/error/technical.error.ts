@@ -1,7 +1,6 @@
 import { FailureDetails, SimpleFailure } from '../failure/simple.failure.type'
 import { FailureCode } from '../failure/failure.codes.enum'
 import { FailureMapper } from '../failure/failure.mapper'
-import { collectNullFields } from '../validator/common.validators'
 import { RichFailure } from '@/shared/failure/rich.failure.type'
 import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 
@@ -67,7 +66,14 @@ export class TechnicalError extends Error {
     failureCode: FailureCode = FailureCode.MISSING_REQUIRED_DATA,
     additionalDetails: Record<string, any> = {}
   ): void {
-    const nullFields: string[] = collectNullFields(fields)
+    const nullFields: string[] = []
+
+    for (const field in fields) {
+      if (fields[field] === null || fields[field] === undefined) {
+        nullFields.push(field)
+      }
+    }
+
     if (nullFields.length === 0) return
 
     const str = nullFields.reduce((field) => ` ${field}`)

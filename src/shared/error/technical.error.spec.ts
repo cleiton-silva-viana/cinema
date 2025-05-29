@@ -2,7 +2,7 @@ import { TechnicalError } from './technical.error'
 import { FailureCode } from '../failure/failure.codes.enum'
 import { FailureMapper } from '../failure/failure.mapper'
 import { RichFailure } from '../failure/rich.failure.type'
-import {SupportedLanguage} from "@shared/value-object/multilingual-content";
+import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 
 jest.mock('../failure/failure.mapper')
 
