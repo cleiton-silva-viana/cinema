@@ -11,36 +11,36 @@
  */
 export enum AgeRating {
   /** Livre para todos os públicos */
-  L = "L",
+  L = 'L',
   /** Não recomendado para menores de 10 anos */
-  Ten = "10",
+  Ten = '10',
   /** Não recomendado para menores de 12 anos */
-  Twelve = "12",
+  Twelve = '12',
   /** Não recomendado para menores de 14 anos */
-  Fourteen = "14",
+  Fourteen = '14',
   /** Não recomendado para menores de 16 anos */
-  Sixteen = "16",
+  Sixteen = '16',
   /** Não recomendado para menores de 18 anos */
-  Eighteen = "18",
+  Eighteen = '18',
 }
 
 interface AgeRange {
-  rating: AgeRating;
-  min: number;
+  rating: AgeRating
+  min: number
 }
 
 const ageRanges: AgeRange[] = [
-  { rating: AgeRating.L, min: 0, },
-  { rating: AgeRating.Ten, min: 10  },
-  { rating: AgeRating.Twelve, min: 12  },
-  { rating: AgeRating.Fourteen, min: 14  },
-  { rating: AgeRating.Sixteen, min: 16  },
+  { rating: AgeRating.L, min: 0 },
+  { rating: AgeRating.Ten, min: 10 },
+  { rating: AgeRating.Twelve, min: 12 },
+  { rating: AgeRating.Fourteen, min: 14 },
+  { rating: AgeRating.Sixteen, min: 16 },
   { rating: AgeRating.Eighteen, min: 18 },
-];
+]
 
 export function getAgeRating(age: number): AgeRating {
-  if (age < 0) return AgeRating.L;
-  const sortedRanges = [...ageRanges].sort((a, b) => b.min - a.min);
-  const range = sortedRanges.find(r => age >= r.min);
-  return range ? range.rating : AgeRating.Eighteen;
+  if (age < 0) return AgeRating.L
+  const sortedRanges = [...ageRanges].sort((a, b) => b.min - a.min)
+  const range = sortedRanges.find((r) => age >= r.min)
+  return range ? range.rating : AgeRating.Eighteen
 }
