@@ -1363,6 +1363,39 @@
       "en": "The student card '{value:string}' is already in use."
     }
   },
+  "MOVIE_IS_ARCHIVED": {
+    "status": 400,
+    "title": {
+      "pt": "Filme Arquivado",
+      "en": "Movie Archived"
+    },
+    "template": {
+      "pt": "O filme já está arquivado e não pode ter seu status alterado.",
+      "en": "The movie is already archived and cannot be changed status."
+    }
+  },
+  "MOVIE_ALREADY_APPROVED": {
+    "status": 400,
+    "title": {
+      "pt": "Filme Já Aprovado",
+      "en": "Movie Already Approved"
+    },
+    "template": {
+      "pt": "O filme já está aprovado e não pode ser alterado para o status de revisão.",
+      "en": "The movie is already approved and cannot be changed to review status."
+    }
+  },
+  "MOVIE_MISSING_DIRECTOR": {
+    "status": 400,
+    "title": {
+      "pt": "Diretor Ausente",
+      "en": "Director Missing"
+    },
+    "template": {
+      "pt": "O filme deve ter pelo menos um diretor para ser enviado para revisão.",
+      "en": "The movie must have at least one director to be sent for review."
+    }
+  },
   "MOVIE_DIRECTOR_REQUIRED": {
     "status": 400,
     "title": {
@@ -1372,6 +1405,17 @@
     "template": {
       "pt": "O recurso filme requer um contribuidor do tipo autor.",
       "en": "The movie resource requires a contributor of type director."
+    }
+  },
+  "MOVIE_NOT_IN_DRAFT": {
+    "status": 400,
+    "title": {
+      "pt": "Filme Não Está em Rascunho",
+      "en": "Movie Not in Draft"
+    },
+    "template": {
+      "pt": "O filme deve estar no status de rascunho para permitir esta operação.",
+      "en": "The movie must be in draft status to allow this operation."
     }
   }
 }
