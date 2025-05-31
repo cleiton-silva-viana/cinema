@@ -7,6 +7,7 @@ import { IPersonRepository } from '../repository/person.repository.interface'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { validateAndCollect } from '@shared/validator/common.validators'
+import {CreateTestPerson} from "@test/builder/person.builder";
 
 describe('PersonService', () => {
   let repository: jest.Mocked<IPersonRepository>
@@ -24,7 +25,7 @@ describe('PersonService', () => {
     } as unknown as jest.Mocked<IPersonRepository>
 
     service = new PersonApplicationService(repository)
-    validPerson = Person.hydrate(PersonUID.create().value, faker.person.firstName(), faker.date.birthdate())
+    validPerson = CreateTestPerson()
   })
 
   afterEach(() => {
