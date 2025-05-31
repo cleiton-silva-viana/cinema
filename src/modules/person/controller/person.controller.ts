@@ -1,12 +1,11 @@
 import { Body, Controller, Delete, Get, HttpStatus, Inject, Param, Patch, Post } from '@nestjs/common'
-import { CreatePersonDTO } from './dto/create.person.dto'
-import { UpdatePersonDTO } from './dto/update.person.dto'
 import { PersonResponseDTO } from './dto/response.person.dto'
 import { JsonApiResponse } from '@shared/response/json.api.response'
 import { IPersonApplicationService } from '@modules/person/service/person.application.service.interface'
 import { ensureNotNull } from '@shared/validator/common.validators'
 import { ResourceTypes } from '@shared/constant/resource.types'
 import { PERSON_APPLICATION_SERVICE } from '@modules/person/constant/person.constant'
+import {CreatePersonDTO, UpdatePersonDTO} from "@modules/person/controller/dto/person.dto";
 
 /**
  * Controlador para operações relacionadas a pessoas no sistema.
