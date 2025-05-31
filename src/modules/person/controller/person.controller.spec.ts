@@ -5,18 +5,16 @@ import { PersonController } from './person.controller'
 import { CreatePersonDTO } from './dto/create.person.dto'
 import { HttpStatus } from '@nestjs/common'
 import { Person } from '../entity/person'
-import { PersonUID } from '../entity/value-object/person.uid'
 import { IPersonRepository } from '../repository/person.repository.interface'
 import { UpdatePersonDTO } from './dto/update.person.dto'
 import { PERSON_APPLICATION_SERVICE, PERSON_REPOSITORY } from '../constant/person.constant'
 import { ResourceTypes } from '@shared/constant/resource.types'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { PersonApplicationService } from '@modules/person/service/person.application.service'
-import { IPersonApplicationService } from '@modules/person/service/person.application.service.interface'
+import {CreateTestPerson} from "@test/builder/person.builder";
 
 describe('PersonController', () => {
   let controller: PersonController
-  let service: IPersonApplicationService // Ajuste o tipo para a interface
   let repositoryMock: jest.Mocked<IPersonRepository>
   let person: Person
 
@@ -43,13 +41,8 @@ describe('PersonController', () => {
     }).compile()
 
     controller = module.get<PersonController>(PersonController)
-    service = module.get<IPersonApplicationService>(PERSON_APPLICATION_SERVICE) // Obtendo com o token correto
 
-    person = Person.hydrate(
-      PersonUID.create().value,
-      faker.person.firstName(),
-      faker.date.birthdate({ mode: 'age', min: 18, max: 90 })
-    )
+    person = CreateTestPerson()
   })
 
   afterEach(() => {
