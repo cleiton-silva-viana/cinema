@@ -7,7 +7,7 @@ import { IPersonRepository } from '../repository/person.repository.interface'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { validateAndCollect } from '@shared/validator/common.validators'
-import {CreateTestPerson} from "@test/builder/person.builder";
+import { CreateTestPerson } from '@test/builder/person.builder'
 
 describe('PersonService', () => {
   let repository: jest.Mocked<IPersonRepository>
