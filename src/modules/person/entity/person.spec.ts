@@ -1,8 +1,8 @@
-import { v4 } from 'uuid'
 import { faker } from '@faker-js/faker/locale/pt_PT'
 import { Person } from './person'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { validateAndCollect } from '@shared/validator/common.validators'
+import {CreateTestPerson} from "@test/builder/person.builder";
 
 describe('Person', () => {
   const fullName = faker.person.firstName()
@@ -77,7 +77,7 @@ describe('Person', () => {
 
       beforeEach(() => {
         failures = []
-        personInstance = Person.hydrate(v4(), fullName, birthDate)
+        personInstance = CreateTestPerson({ name: fullName, birthDate })
       })
 
       it('deve atualizar o nome da pessoa', () => {
