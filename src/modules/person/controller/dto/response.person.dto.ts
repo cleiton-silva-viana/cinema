@@ -38,7 +38,7 @@ export class PersonResponseDTO {
         birthDate: person.birthDate.value.toISOString().split('T')[0],
       },
       {
-        self: `/persons/${person.uid.value}`,
+        self: `/${ResourceTypes.PERSON.toLowerCase()}/${person.uid.value}`,
       }
     )
   }
