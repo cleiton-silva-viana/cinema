@@ -3,5 +3,7 @@
  */
 export type CreatePersonDTO = {
   readonly name: string
-  readonly birthDate: string
+  readonly birthDate: Date
 }
+
+export type UpdatePersonDTO = Partial<CreatePersonDTO>
