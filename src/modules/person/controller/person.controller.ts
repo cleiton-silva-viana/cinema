@@ -5,7 +5,7 @@ import { IPersonApplicationService } from '@modules/person/service/person.applic
 import { ensureNotNull } from '@shared/validator/common.validators'
 import { ResourceTypes } from '@shared/constant/resource.types'
 import { PERSON_APPLICATION_SERVICE } from '@modules/person/constant/person.constant'
-import {CreatePersonDTO, UpdatePersonDTO} from "@modules/person/controller/dto/person.dto";
+import { CreatePersonDTO, UpdatePersonDTO } from '@modules/person/controller/dto/person.dto'
 
 /**
  * Controlador para operações relacionadas a pessoas no sistema.

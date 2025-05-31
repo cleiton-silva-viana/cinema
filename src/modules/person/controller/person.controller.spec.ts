@@ -2,16 +2,15 @@ import { v4 } from 'uuid'
 import { faker } from '@faker-js/faker/.'
 import { Test, TestingModule } from '@nestjs/testing'
 import { PersonController } from './person.controller'
-import { CreatePersonDTO } from './dto/create.person.dto'
 import { HttpStatus } from '@nestjs/common'
 import { Person } from '../entity/person'
 import { IPersonRepository } from '../repository/person.repository.interface'
-import { UpdatePersonDTO } from './dto/update.person.dto'
 import { PERSON_APPLICATION_SERVICE, PERSON_REPOSITORY } from '../constant/person.constant'
 import { ResourceTypes } from '@shared/constant/resource.types'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { PersonApplicationService } from '@modules/person/service/person.application.service'
-import {CreateTestPerson} from "@test/builder/person.builder";
+import { CreateTestPerson, CreateTestPersonDTO } from '@test/builder/person.builder'
+import { CreatePersonDTO, UpdatePersonDTO } from './dto/person.dto'
 
 describe('PersonController', () => {
   let controller: PersonController
@@ -53,10 +52,7 @@ describe('PersonController', () => {
     it('deve criar uma pessoa com sucesso', async () => {
       // Arrange
       repositoryMock.save.mockResolvedValue(person)
-      const createDto: CreatePersonDTO = {
-        name: person.name.value,
-        birthDate: person.birthDate.value.toISOString(),
-      }
+      const createDto = CreateTestPersonDTO()
 
       // Act
       const result = (await controller.create(createDto)).getAllDatas()
@@ -72,7 +68,7 @@ describe('PersonController', () => {
           birthDate: person.birthDate.value.toISOString().split('T')[0],
         },
         links: {
-          self: `/persons/${person.uid.value}`,
+          self: `/${ResourceTypes.PERSON.toLowerCase()}/${person.uid.value}`,
         },
       })
       expect(result.meta).toBeDefined()
@@ -96,7 +92,7 @@ describe('PersonController', () => {
       // Arrange
       const createDto: CreatePersonDTO = {
         name: 'invalid_chars┤', // special chars
-        birthDate: new Date(new Date().setDate(+30)).toISOString(), // future birth date
+        birthDate: new Date(new Date().setDate(+30)), // future birth date
       }
 
       // Act
@@ -139,7 +135,7 @@ describe('PersonController', () => {
           birthDate: person.birthDate.value.toISOString().split('T')[0],
         },
         links: {
-          self: `/persons/${person.uid.value}`,
+          self: `/${ResourceTypes.PERSON.toLowerCase()}/${person.uid.value}`,
         },
       })
     })
