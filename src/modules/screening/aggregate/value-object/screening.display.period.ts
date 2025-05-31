@@ -1,7 +1,7 @@
 import { failure, Result, success } from '@shared/result/result'
 import { ensureNotNull } from '@shared/validator/common.validators'
 import { FailureFactory } from '@shared/failure/failure.factory'
-import {TechnicalError} from "@shared/error/technical.error";
+import { TechnicalError } from '@shared/error/technical.error'
 
 /** Define os possíveis estados de exibição baseados no tempo. */
 export enum ScreeningStatus {

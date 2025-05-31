@@ -27,7 +27,7 @@ describe('ScreeningDisplayPeriod', () => {
       const successCases = [
         {
           startsIn: new Date(2024, 0, 1, 13, 0, 0), // 1 hora no futuro
-          endsIn: new Date(2024, 0, 1, 15, 0, 0),   // 3 horas no futuro
+          endsIn: new Date(2024, 0, 1, 15, 0, 0), // 3 horas no futuro
           scenario: 'com horários futuros válidos',
         },
         {
@@ -37,12 +37,12 @@ describe('ScreeningDisplayPeriod', () => {
         },
         {
           startsIn: new Date(2024, 0, 1, 11, 56, 0), // 4 minutos atrás (dentro da margem)
-          endsIn: new Date(2024, 0, 1, 13, 56, 0),   // 2 horas de duração
+          endsIn: new Date(2024, 0, 1, 13, 56, 0), // 2 horas de duração
           scenario: 'com início dentro da margem de 5 minutos',
         },
         {
-          startsIn: new Date(2024, 0, 2, 9, 0, 0),  // amanhã
-          endsIn: new Date(2024, 0, 2, 11, 30, 0),  // amanhã + 2h30
+          startsIn: new Date(2024, 0, 2, 9, 0, 0), // amanhã
+          endsIn: new Date(2024, 0, 2, 11, 30, 0), // amanhã + 2h30
           scenario: 'com sessão para o dia seguinte',
         },
       ]
@@ -172,7 +172,7 @@ describe('ScreeningDisplayPeriod', () => {
     it('deve retornar SHOWING quando a sessão está em andamento', () => {
       // Arrange
       const startsIn = new Date(2024, 0, 1, 11, 0, 0) // 1 hora atrás
-      const endsIn = new Date(2024, 0, 1, 13, 0, 0)   // 1 hora no futuro
+      const endsIn = new Date(2024, 0, 1, 13, 0, 0) // 1 hora no futuro
       const period = ScreeningDisplayPeriod.hydrate(startsIn, endsIn)
 
       // Act
@@ -184,8 +184,8 @@ describe('ScreeningDisplayPeriod', () => {
 
     it('deve retornar ENDED quando a sessão já terminou', () => {
       // Arrange
-      const startsIn = new Date(2024, 0, 1, 9, 0, 0)  // 3 horas atrás
-      const endsIn = new Date(2024, 0, 1, 11, 0, 0)   // 1 hora atrás
+      const startsIn = new Date(2024, 0, 1, 9, 0, 0) // 3 horas atrás
+      const endsIn = new Date(2024, 0, 1, 11, 0, 0) // 1 hora atrás
       const period = ScreeningDisplayPeriod.hydrate(startsIn, endsIn)
 
       // Act
@@ -211,7 +211,7 @@ describe('ScreeningDisplayPeriod', () => {
     it('deve retornar SHOWING quando o horário atual é exatamente o de fim', () => {
       // Arrange
       const startsIn = new Date(2024, 0, 1, 10, 0, 0)
-      const endsIn = new Date(2024, 0, 1, 12, 0, 0)   // exatamente agora
+      const endsIn = new Date(2024, 0, 1, 12, 0, 0) // exatamente agora
       const period = ScreeningDisplayPeriod.hydrate(startsIn, endsIn)
 
       // Act
@@ -297,7 +297,7 @@ describe('ScreeningDisplayPeriod', () => {
     it('deve retornar false quando a sessão está em andamento', () => {
       // Arrange
       const startsIn = new Date(2024, 0, 1, 11, 0, 0) // 1 hora atrás
-      const endsIn = new Date(2024, 0, 1, 13, 0, 0)   // 1 hora no futuro
+      const endsIn = new Date(2024, 0, 1, 13, 0, 0) // 1 hora no futuro
       const period = ScreeningDisplayPeriod.hydrate(startsIn, endsIn)
 
       // Act
@@ -309,8 +309,8 @@ describe('ScreeningDisplayPeriod', () => {
 
     it('deve retornar false quando a sessão já terminou', () => {
       // Arrange
-      const startsIn = new Date(2024, 0, 1, 9, 0, 0)  // 3 horas atrás
-      const endsIn = new Date(2024, 0, 1, 11, 0, 0)   // 1 hora atrás
+      const startsIn = new Date(2024, 0, 1, 9, 0, 0) // 3 horas atrás
+      const endsIn = new Date(2024, 0, 1, 11, 0, 0) // 1 hora atrás
       const period = ScreeningDisplayPeriod.hydrate(startsIn, endsIn)
 
       // Act
