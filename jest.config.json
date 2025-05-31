@@ -1,7 +1,7 @@
 {
   "preset": "ts-jest",
   "testEnvironment": "node",
-  "roots": ["./src", "./scripts"],
+  "roots": ["./src", "./scripts", "./test"],
   "testMatch": ["**/__tests__/**/*.+(ts|tsx|js)", "**/?(*.)+(spec|test).+(ts|tsx|js)"],
   "transform": {
     "^.+\\.(ts|tsx)$": [
@@ -16,7 +16,8 @@
     "^@shared/(.*)$": "<rootDir>/src/shared/$1",
     "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^@/(.*)$": "<rootDir>/src/$1",
-    "^@scripts/(.*)$": "<rootDir>/scripts/$1"
+    "^@scripts/(.*)$": "<rootDir>/scripts/$1",
+    "^@test/(.*)$": "<rootDir>/test/$1"
   },
   "collectCoverage": true,
   "coverageDirectory": "coverage",
