@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common'
 import { LoggerService } from './logging.service'
-import { ResourceTypes } from '@shared/constant/resource.types'
+import ResourceTypesEnum from '@shared/constant/resource.types'
 
 jest.mock('@nestjs/common', () => ({
   Logger: jest.fn().mockImplementation(() => ({
@@ -16,14 +16,14 @@ describe('LoggerService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    LoggerService['instances'].clear()
+    // LoggerService.instances.clear()
   })
 
   describe('Padrão Singleton', () => {
     it('deve criar apenas uma instância por recurso', () => {
       // Arrange
-      const instance1 = LoggerService.getInstance(ResourceTypes.MOVIE)
-      const instance2 = LoggerService.getInstance(ResourceTypes.MOVIE)
+      const instance1 = LoggerService.getInstance(ResourceTypesEnum.MOVIE)
+      const instance2 = LoggerService.getInstance(ResourceTypesEnum.MOVIE)
 
       // Assert
       expect(instance1).toBe(instance2)
@@ -31,8 +31,8 @@ describe('LoggerService', () => {
 
     it('deve criar instâncias diferentes para recursos diferentes', () => {
       // Arrange
-      const movieLogger = LoggerService.getInstance(ResourceTypes.MOVIE)
-      const personLogger = LoggerService.getInstance(ResourceTypes.PERSON)
+      const movieLogger = LoggerService.getInstance(ResourceTypesEnum.MOVIE)
+      const personLogger = LoggerService.getInstance(ResourceTypesEnum.PERSON)
 
       // Assert
       expect(movieLogger).not.toBe(personLogger)
@@ -41,9 +41,9 @@ describe('LoggerService', () => {
 
   describe('Formatação de Mensagens', () => {
     beforeEach(() => {
-      loggerService = LoggerService.getInstance(ResourceTypes.MOVIE)
+      loggerService = LoggerService.getInstance(ResourceTypesEnum.MOVIE)
       // @ts-ignore - Acessando logger interno para teste
-      nestLogger = loggerService['logger']
+      nestLogger = loggerService.logger
     })
 
     it('deve manter a mensagem original quando não houver contexto', () => {
@@ -54,7 +54,7 @@ describe('LoggerService', () => {
       loggerService.info(message)
 
       // Assert
-      expect(nestLogger.log).toHaveBeenCalledWith(message, ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith(message, ResourceTypesEnum.MOVIE)
     })
 
     it('deve substituir placeholders simples no template', () => {
@@ -66,7 +66,7 @@ describe('LoggerService', () => {
       loggerService.info(template, context)
 
       // Assert
-      expect(nestLogger.log).toHaveBeenCalledWith('Filme 123 foi atualizado por admin', ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith('Filme 123 foi atualizado por admin', ResourceTypesEnum.MOVIE)
     })
 
     it('deve substituir múltiplas ocorrências do mesmo placeholder', () => {
@@ -78,7 +78,7 @@ describe('LoggerService', () => {
       loggerService.info(template, context)
 
       // Assert
-      expect(nestLogger.log).toHaveBeenCalledWith('Valor 5 + 5 = 10', ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith('Valor 5 + 5 = 10', ResourceTypesEnum.MOVIE)
     })
 
     it('deve ignorar placeholders não encontrados no contexto', () => {
@@ -90,15 +90,15 @@ describe('LoggerService', () => {
       loggerService.info(template, context)
 
       // Assert
-      expect(nestLogger.log).toHaveBeenCalledWith('Usuário admin acessou {resource}', ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith('Usuário admin acessou {resource}', ResourceTypesEnum.MOVIE)
     })
   })
 
   describe('Níveis de Log', () => {
     beforeEach(() => {
-      loggerService = LoggerService.getInstance(ResourceTypes.MOVIE)
+      loggerService = LoggerService.getInstance(ResourceTypesEnum.MOVIE)
       // @ts-ignore - Acessando logger interno para teste
-      nestLogger = loggerService['logger']
+      nestLogger = loggerService.logger
     })
 
     it('deve registrar mensagem de info com contexto correto', () => {
@@ -109,7 +109,7 @@ describe('LoggerService', () => {
       loggerService.info(message)
 
       // Assert
-      expect(nestLogger.log).toHaveBeenCalledWith(message, ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith(message, ResourceTypesEnum.MOVIE)
       expect(nestLogger.warn).not.toHaveBeenCalled()
       expect(nestLogger.error).not.toHaveBeenCalled()
     })
@@ -122,7 +122,7 @@ describe('LoggerService', () => {
       loggerService.warn(message)
 
       // Assert
-      expect(nestLogger.warn).toHaveBeenCalledWith(message, ResourceTypes.MOVIE)
+      expect(nestLogger.warn).toHaveBeenCalledWith(message, ResourceTypesEnum.MOVIE)
       expect(nestLogger.log).not.toHaveBeenCalled()
       expect(nestLogger.error).not.toHaveBeenCalled()
     })
@@ -135,7 +135,7 @@ describe('LoggerService', () => {
       loggerService.error(message)
 
       // Assert
-      expect(nestLogger.error).toHaveBeenCalledWith(message, ResourceTypes.MOVIE)
+      expect(nestLogger.error).toHaveBeenCalledWith(message, ResourceTypesEnum.MOVIE)
       expect(nestLogger.log).not.toHaveBeenCalled()
       expect(nestLogger.warn).not.toHaveBeenCalled()
     })
@@ -143,9 +143,9 @@ describe('LoggerService', () => {
 
   describe('Tratamento de Valores Especiais', () => {
     beforeEach(() => {
-      loggerService = LoggerService.getInstance(ResourceTypes.MOVIE)
+      loggerService = LoggerService.getInstance(ResourceTypesEnum.MOVIE)
       // @ts-ignore - Acessando logger interno para teste
-      nestLogger = loggerService['logger']
+      nestLogger = loggerService.logger
     })
 
     it('deve converter valores não-string no contexto para string', () => {
@@ -166,16 +166,16 @@ describe('LoggerService', () => {
       // Assert
       expect(nestLogger.log).toHaveBeenCalledWith(
         'Valores: 42, true, [object Object], 1,2,3, null, undefined',
-        ResourceTypes.MOVIE
+        ResourceTypesEnum.MOVIE
       )
     })
   })
 
   describe('Validações de Entrada', () => {
     beforeEach(() => {
-      loggerService = LoggerService.getInstance(ResourceTypes.MOVIE)
+      loggerService = LoggerService.getInstance(ResourceTypesEnum.MOVIE)
       // @ts-ignore - Acessando logger interno para teste
-      nestLogger = loggerService['logger']
+      nestLogger = loggerService.logger
     })
 
     it('deve lidar com template undefined', () => {
@@ -183,7 +183,7 @@ describe('LoggerService', () => {
       loggerService.info(undefined as unknown as string)
 
       // Act
-      expect(nestLogger.log).toHaveBeenCalledWith(undefined, ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith(undefined, ResourceTypesEnum.MOVIE)
     })
 
     it('deve lidar com template null', () => {
@@ -191,7 +191,7 @@ describe('LoggerService', () => {
       loggerService.info(null as unknown as string)
 
       // Act
-      expect(nestLogger.log).toHaveBeenCalledWith(null, ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith(null, ResourceTypesEnum.MOVIE)
     })
 
     it('deve lidar com contexto undefined', () => {
@@ -199,7 +199,7 @@ describe('LoggerService', () => {
       loggerService.info('mensagem', undefined)
 
       // Act
-      expect(nestLogger.log).toHaveBeenCalledWith('mensagem', ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith('mensagem', ResourceTypesEnum.MOVIE)
     })
 
     it('deve lidar com contexto null', () => {
@@ -207,7 +207,7 @@ describe('LoggerService', () => {
       loggerService.info('mensagem', null as unknown as Record<string, unknown>)
 
       // Act
-      expect(nestLogger.log).toHaveBeenCalledWith('mensagem', ResourceTypes.MOVIE)
+      expect(nestLogger.log).toHaveBeenCalledWith('mensagem', ResourceTypesEnum.MOVIE)
     })
   })
 })

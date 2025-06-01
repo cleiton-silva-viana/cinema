@@ -1,15 +1,16 @@
 import { Logger } from '@nestjs/common'
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 
 export class LoggerService {
   private static readonly instances = new Map<string, LoggerService>()
+
   private readonly logger: Logger
 
-  private constructor(private readonly context: ResourceTypes) {
+  private constructor(private readonly context: ResourceTypesEnum) {
     this.logger = new Logger(context)
   }
 
-  public static getInstance(resource: ResourceTypes): LoggerService {
+  public static getInstance(resource: ResourceTypesEnum): LoggerService {
     if (!this.instances.has(resource)) {
       this.instances.set(resource, new LoggerService(resource))
     }
