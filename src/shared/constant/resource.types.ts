@@ -1,4 +1,4 @@
-export enum ResourceTypes {
+enum ResourceTypesEnum {
   MOVIE = 'MOVIE',
   PERSON = 'PERSON',
   CUSTOMER = 'CUSTOMER',
@@ -8,3 +8,5 @@ export enum ResourceTypes {
 
   JSON_API_RESPONSE = 'JSON_API_RESPONSE',
 }
+
+export default ResourceTypesEnum
