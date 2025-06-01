@@ -5,7 +5,6 @@ enum ResourceTypesEnum {
   ROOM = 'ROOM',
   IMAGE = 'IMAGE',
   SCREENING = 'SCREENING',
-
   JSON_API_RESPONSE = 'JSON_API_RESPONSE',
 }
 
