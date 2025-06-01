@@ -12,6 +12,7 @@ const fails = require('../../i18n/failure.messages.json')
  */
 export class FailureMessageProvider implements IFailureMessageProvider {
   private static instance: FailureMessageProvider
+
   private messagesMap: Map<string, FailureTemplate>
 
   private constructor() {
