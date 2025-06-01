@@ -195,7 +195,7 @@ describe('JsonApiResponse', () => {
       response.datas(resources)
 
       // Assert
-      expect((response.toJSON().data as any[]).length).toBe(1)
+      expect(response.toJSON().data as any[]).toHaveLength(1)
       expect((response.toJSON().data as any[])[0].attributes.name).toBe('John')
       expect(mockLoggerWarn).toHaveBeenCalledWith(
         JsonApiResponseLogMessage.RESOURCE_DUPLICATE.replace('{id}', resources[0].id),
@@ -216,7 +216,7 @@ describe('JsonApiResponse', () => {
       response.datas(resources)
 
       // Assert
-      expect((response.toJSON().data as any[]).length).toBe(1)
+      expect(response.toJSON().data as any[]).toHaveLength(1)
       expect((response.toJSON().data as any[])[0].id).toBe('1')
       expect(mockLoggerWarn).toHaveBeenCalledWith(JsonApiResponseLogMessage.RESOURCE_INVALID, 'JSON_API_RESPONSE')
     })
@@ -276,7 +276,7 @@ describe('JsonApiResponse', () => {
 
       // Assert
       expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith([failure], SupportedLanguage.PT)
-      expect(json.errors.length).toBe(1)
+      expect(json.errors).toHaveLength(1)
       expect(json.errors[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
     })
 
@@ -293,7 +293,7 @@ describe('JsonApiResponse', () => {
 
       // Assert
       expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith(failures, SupportedLanguage.PT)
-      expect(json.errors.length).toBe(2)
+      expect(json.errors).toHaveLength(2)
       expect(json.errors[0].code).toBe(FailureCode.DATE_CANNOT_BE_PAST)
       expect(json.errors[1].code).toBe(FailureCode.DATE_NOT_AFTER_LIMIT)
     })
@@ -356,7 +356,7 @@ describe('JsonApiResponse', () => {
       const json = response.toJSON()
 
       // Assert
-      expect(json.included.length).toBe(1)
+      expect(json.included).toHaveLength(1)
       expect(json.included[0]).toEqual(includedResource)
       expect(mockLoggerWarn).toHaveBeenCalledWith(
         JsonApiResponseLogMessage.RESOURCE_DUPLICATE.replace('{id}', '101'),
@@ -376,7 +376,7 @@ describe('JsonApiResponse', () => {
       const json = response.toJSON()
 
       // Assert
-      expect(json.included.length).toBe(1)
+      expect(json.included).toHaveLength(1)
       expect(json.included[0]).toEqual(validResource)
       expect(mockLoggerWarn).toHaveBeenCalledWith(JsonApiResponseLogMessage.RESOURCE_INVALID, 'JSON_API_RESPONSE')
     })
@@ -639,7 +639,7 @@ describe('JsonApiResponse', () => {
       const json = response.toJSON()
 
       // Assert
-      expect(json.errors.length).toBe(2)
+      expect(json.errors).toHaveLength(2)
       expect(json.meta).toBeFalsy() // metadados não podem ser anexados a erros
       expect(json.data).toBeUndefined() // deve ter dados nulos, não deve ser possível reotrnar um erro + dados
       expect(json.jsonapi).toEqual({ version: '1.1' })

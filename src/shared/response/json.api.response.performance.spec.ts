@@ -26,7 +26,7 @@ describe('JsonApiResponse Performance', () => {
     expect(executionTime).toBeLessThan(500) // menos de 500ms
 
     const json = response.toJSON()
-    expect(json.included.length).toBe(1000)
+    expect(json.included).toHaveLength(1000)
   })
 
   it('deve lidar eficientemente com grandes volumes de recursos em data array', () => {
@@ -50,6 +50,6 @@ describe('JsonApiResponse Performance', () => {
     // Assert
     expect(executionTime).toBeLessThan(500) // menos de 500ms
     const json = response.toJSON()
-    expect((json.data as any[]).length).toBe(1000)
+    expect(json.data as any[]).toHaveLength(1000)
   })
 })

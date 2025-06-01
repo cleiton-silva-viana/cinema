@@ -6,9 +6,9 @@ import { FailureMapper } from '../failure/failure.mapper'
 import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 import { LoggerService } from '@shared/logging/logging.service'
 import { JsonApiResponseLogMessage } from '@shared/response/json.api.response.log.messages.enum'
-import { ResourceTypes } from '../constant/resource.types'
+import { ResourceTypesEnum } from "@shared/constant/resource.types";
 
-export interface CommonLinks {
+export interface ICommonLinks {
   self?: string
   related?: string
 
@@ -36,7 +36,7 @@ export type ResourceIdentifier = {
  */
 export type RelationshipObject = {
   data: ResourceIdentifier | ResourceIdentifier[] | null
-  links?: CommonLinks
+  links?: ICommonLinks
   meta?: Record<string, any>
 }
 
@@ -69,7 +69,7 @@ export type ResponseResource = {
   /**
    * @property O campo'links' é opcional e contém links relacionados ao recurso.
    */
-  links?: CommonLinks
+  links?: ICommonLinks
 
   /**
    * @property O campo'meta' é opcional e pode conter metadados específicos do recurso.
@@ -98,14 +98,22 @@ export type ResponseError = {
  */
 export class JsonApiResponse {
   private _data: ResponseResource | ResponseResource[] | null = null
+
   private _errors: ResponseError[] = []
+
   private _included: ResponseResource[] = []
+
   private _meta?: Record<string, any>
+
   private _links?: Record<string, string>
+
   private readonly _jsonapi = { version: '1.1' }
+
   private _httpStatus: number = HttpStatus.OK
+
   private _records: Map<string, Set<string>> = new Map()
-  private readonly logger = LoggerService.getInstance(ResourceTypes.JSON_API_REPSONSE)
+
+  private readonly logger = LoggerService.getInstance(ResourceTypesEnum.JSON_API_RESPONSE)
 
   public constructor(private readonly _failureMapper: IFailureMapper = FailureMapper.getInstance()) {}
 
@@ -192,7 +200,7 @@ export class JsonApiResponse {
       }
 
       savedResourceIds.add(r.id)
-      ;(this._data as ResponseResource[]).push(r)
+      this._data.push(r)
     }
 
     return this

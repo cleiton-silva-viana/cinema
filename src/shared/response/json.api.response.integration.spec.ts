@@ -23,7 +23,7 @@ describe('JsonApiResponse Integration', () => {
     const json = response.toJSON()
 
     // Assert
-    expect(json.errors.length).toBe(1)
+    expect(json.errors).toHaveLength(1)
     expect(json.errors[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
     expect(json.errors[0].title).toBeDefined()
     expect(response.status).toBeGreaterThan(399)
