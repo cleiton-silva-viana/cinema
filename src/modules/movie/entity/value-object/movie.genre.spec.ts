@@ -1,5 +1,5 @@
 import { Genre, MovieGenre } from './movie.genre'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum} from '@shared/value-object/multilingual-content'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { validateAndCollect } from '@shared/validator/common.validators'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
@@ -192,8 +192,8 @@ describe('MovieGenre', () => {
       const result = MovieGenre.hydrate([Genre.ACTION, Genre.COMEDY])
 
       // Act
-      const ptTranslations = result.getTranslations(SupportedLanguage.PT)
-      const enTranslations = result.getTranslations(SupportedLanguage.EN)
+      const ptTranslations = result.getTranslations(SupportedLanguageEnum.PT)
+      const enTranslations = result.getTranslations(SupportedLanguageEnum.EN)
 
       // Assert
       expect(ptTranslations).toEqual(['Ação', 'Comédia'])

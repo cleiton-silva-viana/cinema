@@ -1,8 +1,7 @@
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
 import { TechnicalError } from '@shared/error/technical.error'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { Validate } from '@shared/validator/validate'
 import { FailureFactory } from '@shared/failure/failure.factory'
 import { ensureNotNull, hydrateEnum, parseToEnum } from '@shared/validator/common.validators'
@@ -22,7 +21,7 @@ export enum Genre {
 
 // Tipo para as traduções de cada gênero
 export type GenreTranslation = {
-  [key in SupportedLanguage]: string
+  [key in SupportedLanguageEnum]: string
 }
 
 /**
@@ -38,40 +37,40 @@ export type GenreTranslation = {
  */
 export const GenreTranslations: Record<Genre, GenreTranslation> = {
   [Genre.ACTION]: {
-    [SupportedLanguage.PT]: 'Ação',
-    [SupportedLanguage.EN]: 'Action',
+    [SupportedLanguageEnum.PT]: 'Ação',
+    [SupportedLanguageEnum.EN]: 'Action',
   },
   [Genre.FANTASY]: {
-    [SupportedLanguage.PT]: 'Fantasia',
-    [SupportedLanguage.EN]: 'Fantasy',
+    [SupportedLanguageEnum.PT]: 'Fantasia',
+    [SupportedLanguageEnum.EN]: 'Fantasy',
   },
   [Genre.COMEDY]: {
-    [SupportedLanguage.PT]: 'Comédia',
-    [SupportedLanguage.EN]: 'Comedy',
+    [SupportedLanguageEnum.PT]: 'Comédia',
+    [SupportedLanguageEnum.EN]: 'Comedy',
   },
   [Genre.DRAMA]: {
-    [SupportedLanguage.PT]: 'Drama',
-    [SupportedLanguage.EN]: 'Drama',
+    [SupportedLanguageEnum.PT]: 'Drama',
+    [SupportedLanguageEnum.EN]: 'Drama',
   },
   [Genre.HORROR]: {
-    [SupportedLanguage.PT]: 'Terror',
-    [SupportedLanguage.EN]: 'Horror',
+    [SupportedLanguageEnum.PT]: 'Terror',
+    [SupportedLanguageEnum.EN]: 'Horror',
   },
   [Genre.ROMANCE]: {
-    [SupportedLanguage.PT]: 'Romance',
-    [SupportedLanguage.EN]: 'Romance',
+    [SupportedLanguageEnum.PT]: 'Romance',
+    [SupportedLanguageEnum.EN]: 'Romance',
   },
   [Genre.THRILLER]: {
-    [SupportedLanguage.PT]: 'Suspense',
-    [SupportedLanguage.EN]: 'Thriller',
+    [SupportedLanguageEnum.PT]: 'Suspense',
+    [SupportedLanguageEnum.EN]: 'Thriller',
   },
   [Genre.SCIFI]: {
-    [SupportedLanguage.PT]: 'Ficção Científica',
-    [SupportedLanguage.EN]: 'Sci-Fi',
+    [SupportedLanguageEnum.PT]: 'Ficção Científica',
+    [SupportedLanguageEnum.EN]: 'Sci-Fi',
   },
   [Genre.DOCUMENTARY]: {
-    [SupportedLanguage.PT]: 'Documentário',
-    [SupportedLanguage.EN]: 'Documentary',
+    [SupportedLanguageEnum.PT]: 'Documentário',
+    [SupportedLanguageEnum.EN]: 'Documentary',
   },
 }
 
@@ -80,6 +79,7 @@ export const GenreTranslations: Record<Genre, GenreTranslation> = {
  */
 export class MovieGenre {
   private static readonly MIN_GENRES = 1
+
   private static readonly MAX_GENRES = 5
 
   private constructor(private readonly genres: Set<Genre>) {}
@@ -155,7 +155,7 @@ export class MovieGenre {
   }
 
   private static extractUniqueGenres(genres: Genre[], failures: SimpleFailure[]): Set<Genre> {
-    let uniqueGenres: Set<Genre> = new Set()
+    const uniqueGenres: Set<Genre> = new Set()
 
     genres.forEach((g) => {
       const result = parseToEnum('genre', g, Genre)
@@ -186,9 +186,9 @@ export class MovieGenre {
    * @param language Idioma desejado
    * @returns Array de strings com as traduções
    */
-  public getTranslations(language: SupportedLanguage): string[] {
+  public getTranslations(language: SupportedLanguageEnum): string[] {
     const arr = Array.from(this.genres)
-    let languages: string[] = []
+    const languages: string[] = []
 
     arr.forEach((genre) => {
       languages.push(GenreTranslations[genre][language])
