@@ -4,7 +4,7 @@ import { CustomerUID } from './value-object/customer.uid'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { validateAndCollect } from '@shared/validator/common.validators'
-import { v4 } from 'uuid'
+import { CreateTestCustomer } from '@test/builder/customer.builder'
 
 describe('Customer', () => {
   let failures: SimpleFailure[]
@@ -177,19 +177,10 @@ describe('Customer', () => {
   })
 
   describe('Métodos de instância', () => {
-    const createBaseCustomer = async () => {
-      return Customer.hydrate({
-        uid: v4(),
-        name: validName,
-        birthDate: validBirthDate,
-        email: validEmail,
-      })
-    }
-
     describe('updateName', () => {
       it('deve atualizar o nome com sucesso', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const newName = 'Jane Doe'
 
         // Act
@@ -203,7 +194,7 @@ describe('Customer', () => {
 
       it('deve falhar ao atualizar com nome inválido', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const invalidName = 'J'
 
         // Act
@@ -218,7 +209,7 @@ describe('Customer', () => {
     describe('updateBirthDate', () => {
       it('deve atualizar a data de nascimento com sucesso', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const newBirthDate = new Date(1995, 5, 15)
 
         // Act
@@ -231,7 +222,7 @@ describe('Customer', () => {
 
       it('deve falhar ao atualizar com data de nascimento inválida', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const invalidBirthDate = new Date(2500, 0, 1) // Data no futuro
 
         // Act
@@ -246,7 +237,7 @@ describe('Customer', () => {
     describe('updateEmail', () => {
       it('deve atualizar o email com sucesso', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const newEmail = 'jane.doe@example.com'
 
         // Act
@@ -259,7 +250,7 @@ describe('Customer', () => {
 
       it('deve falhar ao atualizar com email inválido', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const invalidEmail = 'invalid-email'
 
         // Act
@@ -274,7 +265,7 @@ describe('Customer', () => {
     describe('assignCPF', () => {
       it('deve atribuir CPF com sucesso', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
 
         // Act
         const result = validateAndCollect(customer.assignCPF(validCpf), failures)
@@ -287,7 +278,7 @@ describe('Customer', () => {
 
       it('deve falhar ao atribuir CPF inválido', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const invalidCpf = '123'
 
         // Act
@@ -300,15 +291,9 @@ describe('Customer', () => {
     })
 
     describe('removeCPF', () => {
-      it('deve remover o CPF com sucesso', async () => {
+      it('deve remover o CPF com sucesso', () => {
         // Arrange
-        const customerWithCpf = Customer.hydrate({
-          uid: CustomerUID.create().value,
-          name: validName,
-          birthDate: validBirthDate,
-          email: validEmail,
-          cpf: validCpf,
-        })
+        const customerWithCpf = CreateTestCustomer({ cpf: validCpf })
 
         // Act
         const result = validateAndCollect(customerWithCpf.removeCPF(), failures)
@@ -322,7 +307,7 @@ describe('Customer', () => {
     describe('assignStudentCard', () => {
       it('deve atribuir StudentCard com sucesso', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
 
         // Act
         const result = validateAndCollect(
@@ -338,7 +323,7 @@ describe('Customer', () => {
 
       it('deve falhar ao atribuir StudentCard com ID inválido', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const invalidId = 'S1'
 
         // Act
@@ -351,7 +336,7 @@ describe('Customer', () => {
 
       it('deve falhar ao atribuir StudentCard com validade inválida (passado)', async () => {
         // Arrange
-        const customer = await createBaseCustomer()
+        const customer = CreateTestCustomer()
         const pastDate = new Date(2000, 0, 1)
 
         // Act
@@ -366,15 +351,8 @@ describe('Customer', () => {
     describe('removeStudentCard', () => {
       it('deve remover o StudentCard com sucesso', async () => {
         // Arrange
-        const customerWithCard = Customer.hydrate({
-          uid: CustomerUID.create().value,
-          name: validName,
-          birthDate: validBirthDate,
-          email: validEmail,
-          studentCard: {
-            id: validStudentCardId,
-            validity: validStudentCardValidity,
-          },
+        const customerWithCard = CreateTestCustomer({
+          studentCard: { id: validStudentCardId, validity: validStudentCardValidity },
         })
 
         // Act
