@@ -1,8 +1,9 @@
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { Person } from '../../entity/person'
 
 /**
  * DTO para formatação da resposta de pessoa no padrão JSON:API
+ * Implementa a estrutura padrão de resposta com id, type, attributes e links
  */
 export class PersonResponseDTO {
   /**
@@ -32,13 +33,13 @@ export class PersonResponseDTO {
   public static fromEntity(person: Person): PersonResponseDTO {
     return new PersonResponseDTO(
       person.uid.value,
-      ResourceTypes.PERSON,
+      ResourceTypesEnum.PERSON,
       {
         name: person.name.value,
         birthDate: person.birthDate.value.toISOString().split('T')[0],
       },
       {
-        self: `/${ResourceTypes.PERSON.toLowerCase()}/${person.uid.value}`,
+        self: `/${ResourceTypesEnum.PERSON.toLowerCase()}/${person.uid.value}`,
       }
     )
   }
