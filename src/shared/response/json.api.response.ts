@@ -6,7 +6,7 @@ import { FailureMapper } from '../failure/failure.mapper'
 import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 import { LoggerService } from '@shared/logging/logging.service'
 import { JsonApiResponseLogMessage } from '@shared/response/json.api.response.log.messages.enum'
-import { ResourceTypesEnum } from "@shared/constant/resource.types";
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 
 export interface ICommonLinks {
   self?: string
