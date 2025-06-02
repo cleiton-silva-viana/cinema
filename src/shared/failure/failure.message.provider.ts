@@ -1,6 +1,6 @@
 import { IFailureMessageProvider } from './failure.message.provider.interface'
 import { FailureCode } from './failure.codes.enum'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
 import { RichFailure } from '@shared/failure/rich.failure.type'
 import { FailureTemplate } from '@shared/failure/failure.template.type'
 
@@ -34,10 +34,10 @@ export class FailureMessageProvider implements IFailureMessageProvider {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Configuração da mensagem ou uma mensagem de erro genérica caso o código não seja categoriazado no arquivo json correspondente
    */
-  public getMessageConfig(code: FailureCode, language: SupportedLanguage = SupportedLanguage.PT): RichFailure {
+  public getMessageConfig(code: FailureCode, language: SupportedLanguageEnum = SupportedLanguageEnum.PT): RichFailure {
     const failure = this.messagesMap.get(code) || this.messagesMap.get(FailureCode.UNCATALOGUED_ERROR)!
 
-    const lang = language === SupportedLanguage.PT ? 'pt' : 'en'
+    const lang = language === SupportedLanguageEnum.PT ? 'pt' : 'en'
 
     return {
       code: code,

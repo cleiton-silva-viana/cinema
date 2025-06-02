@@ -1,6 +1,6 @@
 import { FailureMessageProvider } from './failure.message.provider'
 import { FailureCode } from './failure.codes.enum'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
 
 jest.mock(
   '../../i18n/failure.messages.json',
@@ -83,7 +83,7 @@ describe('FailureMessageProvider', () => {
 
   it('deve retornar a configuração de mensagem correta para código de erro existente em português', () => {
     // Act
-    const notFoundConfig = provider.getMessageConfig('NOT_FOUND' as FailureCode, SupportedLanguage.PT)
+    const notFoundConfig = provider.getMessageConfig('NOT_FOUND' as FailureCode, SupportedLanguageEnum.PT)
 
     // Assert
     expect(notFoundConfig).toBeDefined()
@@ -94,7 +94,7 @@ describe('FailureMessageProvider', () => {
 
   it('deve retornar a configuração de mensagem correta para código de erro existente em inglês', () => {
     // Act
-    const notFoundConfig = provider.getMessageConfig('NOT_FOUND' as FailureCode, SupportedLanguage.EN)
+    const notFoundConfig = provider.getMessageConfig('NOT_FOUND' as FailureCode, SupportedLanguageEnum.EN)
 
     // Assert
     expect(notFoundConfig).toBeDefined()
@@ -105,7 +105,7 @@ describe('FailureMessageProvider', () => {
 
   it('deve retornar um erro genérico caso o erro não seja identificado em português', () => {
     // Act
-    const genericError = provider.getMessageConfig('UNKNOWN_ERROR_CODE' as FailureCode, SupportedLanguage.PT)
+    const genericError = provider.getMessageConfig('UNKNOWN_ERROR_CODE' as FailureCode, SupportedLanguageEnum.PT)
 
     // Assert
     expect(genericError).toBeDefined()
@@ -116,7 +116,7 @@ describe('FailureMessageProvider', () => {
 
   it('deve retornar um erro genérico caso o erro não seja identificado em inglês', () => {
     // Act
-    const genericError = provider.getMessageConfig('UNKNOWN_ERROR_CODE' as FailureCode, SupportedLanguage.EN)
+    const genericError = provider.getMessageConfig('UNKNOWN_ERROR_CODE' as FailureCode, SupportedLanguageEnum.EN)
 
     // Assert
     expect(genericError).toBeDefined()
@@ -127,7 +127,7 @@ describe('FailureMessageProvider', () => {
 
   it('deve fazer fallback para o template em inglês se o template do idioma solicitado não existir', () => {
     // Act
-    const errorConfig = provider.getMessageConfig('ERROR_WITHOUT_PT_TEMPLATE' as FailureCode, SupportedLanguage.PT)
+    const errorConfig = provider.getMessageConfig('ERROR_WITHOUT_PT_TEMPLATE' as FailureCode, SupportedLanguageEnum.PT)
 
     // Assert
     expect(errorConfig).toBeDefined()
