@@ -6,11 +6,11 @@ import { HttpStatus } from '@nestjs/common'
 import { Person } from '../entity/person'
 import { IPersonRepository } from '../repository/person.repository.interface'
 import { PERSON_APPLICATION_SERVICE, PERSON_REPOSITORY } from '../constant/person.constant'
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { PersonApplicationService } from '@modules/person/service/person.application.service'
 import { CreateTestPerson, CreateTestPersonDTO } from '@test/builder/person.builder'
-import { CreatePersonDTO, UpdatePersonDTO } from './dto/person.dto'
+import { ICreatePersonDTO, IUpdatePersonDTO } from './dto/person.dto'
 
 describe('PersonController', () => {
   let controller: PersonController
@@ -61,14 +61,14 @@ describe('PersonController', () => {
       expect(result.status).toBe(HttpStatus.CREATED)
       expect(result.data).toBeDefined()
       expect(result.data).toMatchObject({
-        type: ResourceTypes.PERSON,
+        type: ResourceTypesEnum.PERSON,
         id: person.uid.value,
         attributes: {
           name: person.name.value,
           birthDate: person.birthDate.value.toISOString().split('T')[0],
         },
         links: {
-          self: `/${ResourceTypes.PERSON.toLowerCase()}/${person.uid.value}`,
+          self: `/${ResourceTypesEnum.PERSON.toLowerCase()}/${person.uid.value}`,
         },
       })
       expect(result.meta).toBeDefined()
@@ -78,7 +78,7 @@ describe('PersonController', () => {
 
     it('deve retornar erro quando dados estão ausentes', async () => {
       // Arrange
-      const createDto = {} as CreatePersonDTO
+      const createDto = {} as ICreatePersonDTO
 
       // Act
       const result = (await controller.create(createDto)).getAllDatas()
@@ -90,7 +90,7 @@ describe('PersonController', () => {
 
     it('deve retornar erro quando o serviço falha', async () => {
       // Arrange
-      const createDto: CreatePersonDTO = {
+      const createDto: ICreatePersonDTO = {
         name: 'invalid_chars┤', // special chars
         birthDate: new Date(new Date().setDate(+30)), // future birth date
       }
@@ -100,7 +100,7 @@ describe('PersonController', () => {
 
       // Assert
       expect(result.status).toBe(HttpStatus.BAD_REQUEST)
-      expect(result.errors.length).toBe(2)
+      expect(result.errors).toHaveLength(2)
     })
 
     it('deve definir o status HTTP correto para BAD_REQUEST quando DTO é null', async () => {
@@ -128,14 +128,14 @@ describe('PersonController', () => {
       // Assert
       expect(result.status).toBe(HttpStatus.OK)
       expect(result.data).toMatchObject({
-        type: ResourceTypes.PERSON,
+        type: ResourceTypesEnum.PERSON,
         id: person.uid.value,
         attributes: {
           name: person.name.value,
           birthDate: person.birthDate.value.toISOString().split('T')[0],
         },
         links: {
-          self: `/${ResourceTypes.PERSON.toLowerCase()}/${person.uid.value}`,
+          self: `/${ResourceTypesEnum.PERSON.toLowerCase()}/${person.uid.value}`,
         },
       })
     })
@@ -168,7 +168,7 @@ describe('PersonController', () => {
     it('deve atualizar uma pessoa com sucesso', async () => {
       // Arrange
       const uid = person.uid.value
-      const updateDto: UpdatePersonDTO = {
+      const updateDto: IUpdatePersonDTO = {
         name: faker.person.firstName(),
         birthDate: faker.date.birthdate({ mode: 'age', min: 18, max: 90 }),
       }
@@ -182,7 +182,7 @@ describe('PersonController', () => {
       // Assert
       expect(result.status).toBe(HttpStatus.OK)
       expect(result.data).toMatchObject({
-        type: ResourceTypes.PERSON,
+        type: ResourceTypesEnum.PERSON,
         id: person.uid.value,
         attributes: {
           name: updatedPerson.name.value,
@@ -197,7 +197,7 @@ describe('PersonController', () => {
     it('deve retornar a instância em estado inalteraod se não for passaod qualquer arugmento para atualização', async () => {
       // Arrange
       const uid = person.uid.value
-      const updateDto = {} as UpdatePersonDTO
+      const updateDto = {} as IUpdatePersonDTO
       repositoryMock.findById.mockResolvedValue(person)
       repositoryMock.update.mockResolvedValue(person)
 
@@ -217,7 +217,7 @@ describe('PersonController', () => {
     it('deve retornar erro quando o serviço falha na atualização', async () => {
       // Arrange
       const uid = person.uid.value
-      const updateDto: UpdatePersonDTO = {
+      const updateDto: IUpdatePersonDTO = {
         name: 'an',
       }
       repositoryMock.findById.mockResolvedValue(person)
@@ -234,7 +234,7 @@ describe('PersonController', () => {
     it('deve atualizar apenas o nome quando apenas o nome é fornecido', async () => {
       // Arrange
       const uid = person.uid.value
-      const updateDto: UpdatePersonDTO = {
+      const updateDto: IUpdatePersonDTO = {
         name: faker.person.firstName(),
       }
       const updatedPerson = Person.hydrate(person.uid.value, updateDto.name!, person.birthDate.value)
@@ -247,7 +247,7 @@ describe('PersonController', () => {
       // Assert
       expect(result.status).toBe(HttpStatus.OK)
       expect(result.data).toMatchObject({
-        type: ResourceTypes.PERSON,
+        type: ResourceTypesEnum.PERSON,
         id: person.uid.value,
         attributes: {
           name: updatedPerson.name.value,
@@ -264,7 +264,7 @@ describe('PersonController', () => {
         min: 18,
         max: 90,
       })
-      const updateDto: UpdatePersonDTO = {
+      const updateDto: IUpdatePersonDTO = {
         birthDate: newBirthDate,
       }
       const updatedPerson = Person.hydrate(person.uid.value, person.name.value, newBirthDate)
@@ -277,7 +277,7 @@ describe('PersonController', () => {
       // Assert
       expect(result.status).toBe(HttpStatus.OK)
       expect(result.data).toMatchObject({
-        type: ResourceTypes.PERSON,
+        type: ResourceTypesEnum.PERSON,
         id: updatedPerson.uid.value,
         attributes: {
           name: updatedPerson.name.value,
@@ -324,7 +324,7 @@ describe('PersonController', () => {
 
       // Assert
       expect(result.status).toBe(HttpStatus.NOT_FOUND)
-      expect(result.errors.length).toBe(1)
+      expect(result.errors).toHaveLength(1)
       expect(result.errors[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
     })
   })

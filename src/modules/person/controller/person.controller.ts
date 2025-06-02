@@ -3,15 +3,15 @@ import { PersonResponseDTO } from './dto/response.person.dto'
 import { JsonApiResponse } from '@shared/response/json.api.response'
 import { IPersonApplicationService } from '@modules/person/service/person.application.service.interface'
 import { ensureNotNull } from '@shared/validator/common.validators'
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { PERSON_APPLICATION_SERVICE } from '@modules/person/constant/person.constant'
-import { CreatePersonDTO, UpdatePersonDTO } from '@modules/person/controller/dto/person.dto'
+import { ICreatePersonDTO, IUpdatePersonDTO } from '@modules/person/controller/dto/person.dto'
 
 /**
  * Controlador para operações relacionadas a pessoas no sistema.
  * Implementa endpoints RESTful para gerenciamento de pessoas.
  */
-@Controller(ResourceTypes.PERSON)
+@Controller(ResourceTypesEnum.PERSON)
 export class PersonController {
   constructor(@Inject(PERSON_APPLICATION_SERVICE) private readonly service: IPersonApplicationService) {}
 
@@ -35,7 +35,7 @@ export class PersonController {
    * POST /persons
    */
   @Post()
-  public async create(@Body() dto: CreatePersonDTO): Promise<JsonApiResponse> {
+  public async create(@Body() dto: ICreatePersonDTO): Promise<JsonApiResponse> {
     const response = new JsonApiResponse()
 
     const failures = ensureNotNull({ dto })
@@ -55,7 +55,7 @@ export class PersonController {
    * PATCH /persons/:uid
    */
   @Patch(':uid')
-  public async update(@Param('uid') uid: string, @Body() dto: Partial<UpdatePersonDTO>): Promise<JsonApiResponse> {
+  public async update(@Param('uid') uid: string, @Body() dto: Partial<IUpdatePersonDTO>): Promise<JsonApiResponse> {
     const response = new JsonApiResponse()
 
     const failures = ensureNotNull({ uid, dto })
