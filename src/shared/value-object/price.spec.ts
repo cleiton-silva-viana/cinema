@@ -157,7 +157,7 @@ describe('Price', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
         expect(failures[0].code).toBe(FailureCode.PRICE_INVALID_INSTANCE)
       })
     })
@@ -196,7 +196,7 @@ describe('Price', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
         expect(failures[0].code).toBe(FailureCode.PRICE_NEGATIVE_RESULT_NOT_ALLOWED)
       })
 
@@ -206,7 +206,7 @@ describe('Price', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
         expect(failures[0].code).toBe(FailureCode.PRICE_INVALID_INSTANCE)
       })
     })
@@ -230,7 +230,7 @@ describe('Price', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
         expect(failures[0].code).toBe(FailureCode.PRICE_INVALID_MULTIPLICATION_FACTOR)
       })
 
@@ -243,7 +243,7 @@ describe('Price', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
         expect(failures[0].code).toBe(FailureCode.PRICE_NEGATIVE_FACTOR_NOT_ALLOWED)
       })
     })
@@ -279,7 +279,7 @@ describe('Price', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
         expect(failures[0].code).toBe(FailureCode.PRICE_INVALID_DIVISION_FACTOR)
       })
 
@@ -292,7 +292,7 @@ describe('Price', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
         expect(failures[0].code).toBe(FailureCode.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED)
       })
 
@@ -306,7 +306,7 @@ describe('Price', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
         expect(failures[0].code).toBe(FailureCode.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED)
       })
     })

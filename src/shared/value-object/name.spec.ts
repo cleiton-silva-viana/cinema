@@ -85,7 +85,7 @@ describe('Name', () => {
 
           // Assert
           expect(result).toBeNull()
-          expect(failures.length).toBe(1)
+          expect(failures).toHaveLength(1)
           expect(failures[0].code).toBe(errorCodeExpected)
         })
       })
@@ -111,7 +111,7 @@ describe('Name', () => {
 
       // Act
       values.forEach((value) => {
-        expect(() => Name.hydrate(value as any)).toThrow(TechnicalError)
+        expect(() => Name.hydrate(value)).toThrow(TechnicalError)
       })
     })
   })

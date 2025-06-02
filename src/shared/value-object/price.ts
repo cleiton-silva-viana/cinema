@@ -121,7 +121,7 @@ export class Price {
    */
   public multiply(factor: number): Result<Price> {
     if (typeof factor !== 'number' || isNaN(factor))
-      return failure(FailureFactory.PRICE_INVALID_MULTIPLICATION_FACTOR(factor, typeof factor))
+      return failure(FailureFactory.PRICE_INVALID_MULTIPLICATION_FACTOR(factor.toString(), typeof factor))
 
     if (factor < 0) return failure(FailureFactory.PRICE_NEGATIVE_FACTOR_NOT_ALLOWED(factor))
 
@@ -141,7 +141,7 @@ export class Price {
    */
   public divide(divisor: number): Result<Price> {
     if (typeof divisor !== 'number' || isNaN(divisor))
-      return failure(FailureFactory.PRICE_INVALID_DIVISION_FACTOR(divisor, 'number'))
+      return failure(FailureFactory.PRICE_INVALID_DIVISION_FACTOR(divisor.toString(), 'number'))
 
     if (divisor <= 0) return failure(FailureFactory.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED(divisor))
 

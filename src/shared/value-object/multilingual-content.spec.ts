@@ -57,7 +57,7 @@ describe('MultilingualContent', () => {
 
             // Assert
             expect(result).toBeDefined()
-            expect(result.languages().length).toBe(2)
+            expect(result.languages()).toHaveLength(2)
             expect(result.hasLanguage(SupportedLanguage.PT)).toBe(true)
             expect(result.hasLanguage(SupportedLanguage.EN)).toBe(true)
             expect(result.content(SupportedLanguage.PT)).toBe(pt.text)
@@ -140,7 +140,7 @@ describe('MultilingualContent', () => {
         // Assert
         expect(result.hasLanguage(lang.pt)).toBe(true)
         expect(result.content(lang.pt)).toBe(en.text)
-        expect(result.languages().length).toBe(1)
+        expect(result.languages()).toHaveLength(1)
       })
 
       it('deve falhar quando lang ou value são nulos ou indefinidos', () => {

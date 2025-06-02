@@ -11,7 +11,9 @@ import { isNull } from '../validator/validator'
  */
 export class Name {
   private static readonly MIN_NAME_LENGTH = 3
+
   private static readonly MAX_NAME_LENGTH = 50
+
   /**
    * Regex que permite letras (incluindo acentos e caracteres Unicode) e espaços.
    * Exemplos válidos: "João", "José Silva", "Élise".

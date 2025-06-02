@@ -13,6 +13,7 @@ import { Validate } from '../validator/validate'
  */
 export class BirthDate {
   private static MIN_BIRTH_DATE = new Date(new Date().getFullYear() - 18, 0, 0, 0, 0, 0)
+
   private static MAX_BIRTH_DATE = new Date(1900, 0, 0, 0, 0, 0, 0)
 
   private constructor(private readonly _value: Date) {}

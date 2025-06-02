@@ -52,6 +52,7 @@ export abstract class MultilingualContent {
    * Configurações de validação que podem ser sobrescritas pelas classes derivadas
    */
   protected static readonly MIN_LENGTH: number = 1
+
   protected static readonly MAX_LENGTH: number = 500
 
   /**

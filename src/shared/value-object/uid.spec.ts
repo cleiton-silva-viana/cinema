@@ -10,6 +10,7 @@ const SEPARATOR = '.'
 
 class TestUID extends UID {
   protected static readonly PREFIX: string = PREFIX
+
   protected static readonly SEPARATOR: string = SEPARATOR
 }
 
@@ -40,8 +41,8 @@ describe('UID', () => {
 
         // Assert
         expect(result).not.toBeNull()
-        expect(result!.value).not.toBeNull()
-        expect(result!.value).toBe(UID_STRING)
+        expect(result.value).not.toBeNull()
+        expect(result.value).toBe(UID_STRING)
       })
     })
 
@@ -64,7 +65,7 @@ describe('UID', () => {
 
           // Assert
           expect(result).toBeNull()
-          expect(failures.length).toBe(1)
+          expect(failures).toHaveLength(1)
           expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
         })
       })
@@ -102,11 +103,11 @@ describe('UID', () => {
       failureCases.forEach(({ value, scenario }) => {
         it(`objeto UID ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(TestUID.parse(value), failures)!
+          const result = validateAndCollect(TestUID.parse(value), failures)
 
           // Assert
           expect(result).toBeNull()
-          expect(failures.length).toBe(1)
+          expect(failures).toHaveLength(1)
           expect(failures[0].code).toBe(FailureCode.UID_WITH_INVALID_FORMAT)
         })
       })

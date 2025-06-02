@@ -84,7 +84,7 @@ export abstract class UID {
    */
   public static parse(uid: string): Result<UID> {
     const failures: SimpleFailure[] = []
-    const concreteClass = this as typeof UID
+    const concreteClass = this
     const prefix = concreteClass.PREFIX + concreteClass.SEPARATOR
     let uuidPart: string = UID.extractUuidPart(uid, concreteClass)
 
