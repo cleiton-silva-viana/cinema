@@ -65,7 +65,7 @@ describe('CPF', () => {
 
           // Assert
           expect(result).toBeNull()
-          expect(failures.length).toBe(1)
+          expect(failures).toHaveLength(1)
           expect(failures[0].code).toBe(FailureCode.CPF_WITH_INVALID_FORMAT)
         })
       })
@@ -90,7 +90,7 @@ describe('CPF', () => {
 
           // Assert
           expect(result).toBeNull()
-          expect(failures.length).toBe(1)
+          expect(failures).toHaveLength(1)
           expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
         })
       })

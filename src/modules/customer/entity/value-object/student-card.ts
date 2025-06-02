@@ -14,8 +14,10 @@ import { isNull } from '@shared/validator/validator'
 export class StudentCard {
   /** Comprimento mínimo para o ID da carteirinha de estudante. */
   private static MIN_ID_LENGTH = 6
+
   /** Comprimento máximo para o ID da carteirinha de estudante. */
   private static MAX_ID_LENGTH = 24
+
   /** Período máximo de validade no futuro, em dias (aproximadamente 2 anos). */
   private static MAX_VALIDITY_DAY_IN_FUTURE = 360 * 2
 

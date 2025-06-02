@@ -7,6 +7,7 @@ import { SimpleFailure } from '@shared/failure/simple.failure.type'
 
 export class Password {
   private static MIN_LENGTH = 6
+
   private static MAX_LENGTH = 24
 
   private constructor(public readonly value: string) {}
@@ -37,7 +38,7 @@ export class Password {
     return new Password(password)
   }
 
-  public static async Compare(storedHash: string, password: string): Promise<Boolean> {
+  public static async Compare(storedHash: string, password: string): Promise<boolean> {
     try {
       return await verify(storedHash, password)
     } catch (e) {

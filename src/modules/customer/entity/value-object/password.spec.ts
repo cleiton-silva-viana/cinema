@@ -31,7 +31,7 @@ describe('Password', () => {
           // Assert
           expect(result).toBeDefined()
           expect(result.value).toBeDefined() // O valor é o hash
-          expect(failures.length).toBe(0)
+          expect(failures).toHaveLength(0)
         })
       })
     })
@@ -92,7 +92,7 @@ describe('Password', () => {
 
           // Assert
           expect(result).toBeNull()
-          expect(failures.length).toBe(1)
+          expect(failures).toHaveLength(1)
           expect(failures[0].code).toBe(errorCodeExpected)
         })
       })

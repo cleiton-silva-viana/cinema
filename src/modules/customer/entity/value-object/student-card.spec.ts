@@ -66,7 +66,7 @@ describe('StudentCard', () => {
           expect(result).toBeDefined()
           expect(result?.id).toBe(id)
           expect(result?.validity.toISOString()).toBe(validity.toISOString())
-          expect(failures.length).toBe(0)
+          expect(failures).toHaveLength(0)
         })
       })
     })
@@ -132,7 +132,7 @@ describe('StudentCard', () => {
 
           // Assert
           expect(result).toBeNull()
-          expect(failures.length).toBe(1)
+          expect(failures).toHaveLength(1)
           expect(failures[0].code).toBe(errorCodeExpected)
         })
       })
