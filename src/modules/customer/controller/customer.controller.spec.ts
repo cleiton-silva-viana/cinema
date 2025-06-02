@@ -1,4 +1,4 @@
-import .{ v4 } from 'uuid'
+import { v4 } from 'uuid'
 import { HttpStatus } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { faker } from '@faker-js/faker/locale/pt_PT'
@@ -6,12 +6,12 @@ import { CustomerController } from './customer.controller'
 import { Customer } from '../entity/customer'
 import { CUSTOMER_APPLICATION_SERVICE, CUSTOMER_REPOSITORY } from '../constant/customer.constants'
 import { ICustomerRepository } from '../repository/customer.repository.interface'
-import { CustomerUID } from '../entity/value-object/customer.uid'
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { JsonApiResponse, ResponseResource } from '@/shared/response/json.api.response'
 import { ICreateCustomerDTO } from './dto/create.customer.dto'
 import { CustomerApplicationService } from '@modules/customer/service/customer.application.service'
+import { CreateTestCustomer } from '@test/builder/customer.builder'
 
 describe('CustomerController', () => {
   let controller: CustomerController
@@ -46,12 +46,7 @@ describe('CustomerController', () => {
 
     controller = module.get<CustomerController>(CustomerController)
 
-    customer = Customer.hydrate({
-      uid: CustomerUID.create().value,
-      name: faker.person.firstName(),
-      birthDate: faker.date.birthdate({ mode: 'age', min: 18, max: 90 }),
-      email: faker.internet.email(),
-    })
+    customer = CreateTestCustomer()
   })
 
   afterEach(() => {
@@ -97,7 +92,7 @@ describe('CustomerController', () => {
     expect(data.attributes?.name).toBe(customerExpected.name.value)
     expect(data.attributes?.birthDate).toBe(customerExpected.birthDate.value.toISOString().split('T')[0])
     expect(data.links).toBeDefined()
-    expect(data.links?.self).toBe(`/${ResourceTypes.CUSTOMER}/${customerExpected.uid.value}`)
+    expect(data.links?.self).toBe(`/${ResourceTypesEnum.CUSTOMER}/${customerExpected.uid.value}`)
   }
 
   describe('findById', () => {
@@ -122,7 +117,7 @@ describe('CustomerController', () => {
       // Assert
       expect(result.status).toBe(HttpStatus.NOT_FOUND)
       expect(result.errors).toBeDefined()
-      expect(result.errors.length).toBe(1)
+      expect(result.errors).toHaveLength(1)
       expect(result.errors[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
     })
 

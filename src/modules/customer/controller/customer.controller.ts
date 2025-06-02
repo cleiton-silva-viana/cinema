@@ -1,14 +1,14 @@
 import { Body, Controller, Delete, Get, HttpStatus, Inject, Param, Patch, Post, Put } from '@nestjs/common'
-import { ResponseCustomerDTO } from './dto/response.customer.dto'
+import { CustomerResponseDTO } from './dto/response.customer.dto'
 import { ICreateCustomerDTO } from './dto/create.customer.dto'
 import { JsonApiResponse } from '@shared/response/json.api.response'
 import { ICustomerApplicationService } from '@modules/customer/service/customer.application.service.interface'
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { IAssignCustomerStudentCardDTO } from './dto/assign.customer.studentcard.dto'
 import { IUpdateCustomerFieldsDTO } from '@modules/customer/controller/dto/update.customer.fields.dto'
 import { CUSTOMER_APPLICATION_SERVICE } from '@modules/customer/constant/customer.constants'
 
-@Controller(ResourceTypes.CUSTOMER)
+@Controller(ResourceTypesEnum.CUSTOMER)
 export class CustomerController {
   constructor(@Inject(CUSTOMER_APPLICATION_SERVICE) private readonly service: ICustomerApplicationService) {}
 
@@ -20,7 +20,7 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 
   @Get('/email/:email')
@@ -31,7 +31,7 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 
   @Post()
@@ -44,7 +44,7 @@ export class CustomerController {
       ? response.errors(result.failures)
       : response
           .HttpStatus(HttpStatus.CREATED)
-          .data(ResponseCustomerDTO.fromEntity(result.value))
+          .data(CustomerResponseDTO.fromEntity(result.value))
           .meta({ createdAt: new Date() })
   }
 
@@ -56,7 +56,7 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 
   @Patch(':uid/name')
@@ -70,7 +70,7 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 
   @Patch(':uid/birthdate')
@@ -84,7 +84,7 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 
   @Patch(':uid/cpf')
@@ -98,7 +98,7 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 
   @Delete(':uid/cpf')
@@ -109,7 +109,7 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 
   @Patch(':uid/student-card')
@@ -123,7 +123,7 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 
   @Delete(':uid/student-card')
@@ -134,6 +134,6 @@ export class CustomerController {
 
     return result.isInvalid()
       ? response.errors(result.failures)
-      : response.HttpStatus(HttpStatus.OK).data(ResponseCustomerDTO.fromEntity(result.value))
+      : response.HttpStatus(HttpStatus.OK).data(CustomerResponseDTO.fromEntity(result.value))
   }
 }
