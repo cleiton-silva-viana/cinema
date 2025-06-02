@@ -181,7 +181,7 @@ describe('CustomerApplicationService', () => {
 
       // Assert
       expect(result.isValid()).toBeTruthy()
-      expect(mockRepository.update).toBeCalledTimes(1)
+      expect(mockRepository.update).toHaveBeenCalledTimes(1)
     })
 
     it('deve retornar erro quando o novo email já estiver em uso', async () => {
@@ -212,7 +212,7 @@ describe('CustomerApplicationService', () => {
       // Assert
       expect(result).toBeDefined()
       expect(result).toEqual(updatedCustomer)
-      expect(mockRepository.update).toBeCalledTimes(1)
+      expect(mockRepository.update).toHaveBeenCalledTimes(1)
     })
 
     it('deve retornar erro quando o novo nome for inválido', async () => {
@@ -242,7 +242,7 @@ describe('CustomerApplicationService', () => {
       // Assert
       expect(result).toBeDefined()
       expect(result).toEqual(updatedCustomer)
-      expect(mockRepository.update).toBeCalledTimes(1)
+      expect(mockRepository.update).toHaveBeenCalledTimes(1)
     })
 
     it('deve retornar erro quando a nova data for inválida', async () => {

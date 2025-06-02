@@ -7,7 +7,7 @@ import { Email } from '../entity/value-object/email'
 import { Password } from '../entity/value-object/password'
 import { failure, Result, success } from '@shared/result/result'
 import { ensureNotNull } from '@shared/validator/common.validators'
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum as ResourceTypes } from '@shared/constant/resource.types'
 import { FailureFactory } from '@shared/failure/failure.factory'
 import {
   ICreateCustomerProps,
