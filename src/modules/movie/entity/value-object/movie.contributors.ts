@@ -110,7 +110,7 @@ export class MovieContributors {
 
     const processedContributors: MovieContributor[] = []
 
-    for (const contributor of contributors as IMovieContributorInput[]) {
+    for (const contributor of contributors) {
       const result = MovieContributor.create(contributor)
       if (result.isInvalid()) console.log(result.failures)
       else processedContributors.push(result.value)

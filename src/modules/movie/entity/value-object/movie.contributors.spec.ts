@@ -138,7 +138,7 @@ describe('MovieContributors', () => {
         const allContributors = contributors.getAll()
 
         // Assert
-        expect(allContributors.length).toBe(3)
+        expect(allContributors).toHaveLength(3)
       })
     })
 
@@ -148,7 +148,7 @@ describe('MovieContributors', () => {
         const directors = contributors.getDirectors()
 
         // Assert
-        expect(directors.length).toBe(1)
+        expect(directors).toHaveLength(1)
         expect(directors[0].role).toBe(PersonRole.DIRECTOR)
       })
 
@@ -170,7 +170,7 @@ describe('MovieContributors', () => {
         const actors = contributors.getActors()
 
         // Assert
-        expect(actors.length).toBe(2)
+        expect(actors).toHaveLength(2)
         expect(actors.some((a) => a.role === PersonRole.ACTOR)).toBe(true)
         expect(actors.some((a) => a.role === PersonRole.ACTRESS)).toBe(true)
       })
@@ -193,7 +193,7 @@ describe('MovieContributors', () => {
         const actresses = contributors.getByRole(PersonRole.ACTRESS)
 
         // Assert
-        expect(actresses.length).toBe(1)
+        expect(actresses).toHaveLength(1)
         expect(actresses[0].role).toBe(PersonRole.ACTRESS)
       })
 
@@ -233,7 +233,7 @@ describe('MovieContributors', () => {
         const roles = contributors.roles
 
         // Assert
-        expect(roles.length).toBe(3)
+        expect(roles).toHaveLength(3)
         expect(roles).toContain(PersonRole.DIRECTOR)
         expect(roles).toContain(PersonRole.ACTOR)
         expect(roles).toContain(PersonRole.ACTRESS)
@@ -247,7 +247,7 @@ describe('MovieContributors', () => {
         const roles = limitedContributors.roles
 
         // Assert
-        expect(roles.length).toBe(1)
+        expect(roles).toHaveLength(1)
         expect(roles).toContain(PersonRole.DIRECTOR)
         expect(roles).not.toContain(PersonRole.ACTOR)
         expect(roles).not.toContain(PersonRole.ACTRESS)
