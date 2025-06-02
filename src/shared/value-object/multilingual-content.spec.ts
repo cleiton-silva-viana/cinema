@@ -1,4 +1,4 @@
-import { MultilingualContent, SupportedLanguage } from './multilingual-content'
+import { MultilingualContent, SupportedLanguageEnum } from './multilingual-content'
 import { FailureCode } from '../failure/failure.codes.enum'
 import { validateAndCollect } from '../validator/common.validators'
 import { SimpleFailure } from '../failure/simple.failure.type'
@@ -20,8 +20,8 @@ describe('MultilingualContent', () => {
   }
 
   const lang = {
-    en: SupportedLanguage.EN,
-    pt: SupportedLanguage.PT,
+    en: SupportedLanguageEnum.EN,
+    pt: SupportedLanguageEnum.PT,
   }
 
   describe('static methods', () => {
@@ -58,10 +58,10 @@ describe('MultilingualContent', () => {
             // Assert
             expect(result).toBeDefined()
             expect(result.languages()).toHaveLength(2)
-            expect(result.hasLanguage(SupportedLanguage.PT)).toBe(true)
-            expect(result.hasLanguage(SupportedLanguage.EN)).toBe(true)
-            expect(result.content(SupportedLanguage.PT)).toBe(pt.text)
-            expect(result.content(SupportedLanguage.EN)).toBe(en.text)
+            expect(result.hasLanguage(SupportedLanguageEnum.PT)).toBe(true)
+            expect(result.hasLanguage(SupportedLanguageEnum.EN)).toBe(true)
+            expect(result.content(SupportedLanguageEnum.PT)).toBe(pt.text)
+            expect(result.content(SupportedLanguageEnum.EN)).toBe(en.text)
           })
         })
       })
@@ -146,10 +146,10 @@ describe('MultilingualContent', () => {
       it('deve falhar quando lang ou value são nulos ou indefinidos', () => {
         // Arrange
         const cases = [
-          { lang: null as unknown as SupportedLanguage, value: 'Oi' },
+          { lang: null as unknown as SupportedLanguageEnum, value: 'Oi' },
           { lang: undefined, value: 'Oi' },
-          { lang: SupportedLanguage.PT, value: null },
-          { lang: SupportedLanguage.PT, value: undefined },
+          { lang: SupportedLanguageEnum.PT, value: null },
+          { lang: SupportedLanguageEnum.PT, value: undefined },
         ]
 
         // Act & Assert
