@@ -5,10 +5,9 @@ import { Inject, Injectable } from '@nestjs/common'
 import { PERSON_REPOSITORY } from '../constant/person.constant'
 import { failure, Result, success } from '@shared/result/result'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { ResourceTypes } from '@shared/constant/resource.types'
-import { ensureNotNull, validateAndCollect } from '@shared/validator/common.validators'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
+import { ensureNotNull } from '@shared/validator/common.validators'
 import { IPersonApplicationService } from '@modules/person/service/person.application.service.interface'
-import { name } from 'ts-jest/dist/transformers/hoist-jest'
 
 /**
  * Serviço de Domínio responsável por operações relacionadas a pessoas no sistema.
@@ -40,7 +39,7 @@ export class PersonApplicationService implements IPersonApplicationService {
     return !person
       ? failure({
           code: FailureCode.RESOURCE_NOT_FOUND,
-          details: { resource: ResourceTypes.PERSON },
+          details: { resource: ResourceTypesEnum.PERSON },
         })
       : success(person)
   }
