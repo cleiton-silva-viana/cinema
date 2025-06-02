@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker/locale/pt_PT'
-import { ICreateImageParams, IHydrateImageParams, Image, ISizes, ItextContent, IUpdateImageParams } from './image'
+import { ICreateImageParams, IHydrateImageParams, Image, ISizes, ITextContent, IUpdateImageParams } from './image'
 import { ImageUID } from './value-object/image.uid'
 import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 import { TechnicalError } from '@shared/error/technical.error'
@@ -8,11 +8,11 @@ import { validateAndCollect } from '@shared/validator/common.validators'
 
 describe('Image', () => {
   const UID = ImageUID.create().value
-  const VALID_TITLE: ItextContent[] = [
+  const VALID_TITLE: ITextContent[] = [
     { language: 'pt', text: 'Título de teste em português' },
     { language: 'en', text: 'Test title in English' },
   ]
-  const VALID_DESCRIPTION: ItextContent[] = [
+  const VALID_DESCRIPTION: ITextContent[] = [
     {
       language: 'pt',
       text: 'Descrição de teste com tamanho válido em português',
@@ -217,7 +217,7 @@ describe('Image', () => {
           }
 
           // Act
-          const result = validateAndCollect(instance.update(params as IUpdateImageParams), failures)
+          const result = validateAndCollect(instance.update(params), failures)
 
           // Assert
           expect(result).toBeDefined()
@@ -239,7 +239,7 @@ describe('Image', () => {
           }
 
           // Act
-          const result = validateAndCollect(instance.update(params as IUpdateImageParams), failures)
+          const result = validateAndCollect(instance.update(params), failures)
 
           // Assert
           expect(result).toBeDefined()
@@ -262,7 +262,7 @@ describe('Image', () => {
           }
 
           // Act
-          const result = validateAndCollect(instance.update(params as IUpdateImageParams), failures)
+          const result = validateAndCollect(instance.update(params), failures)
 
           // Assert
           expect(result).toBeDefined()
@@ -316,7 +316,7 @@ describe('Image', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(1)
+        expect(failures).toHaveLength(1)
       })
     })
   })

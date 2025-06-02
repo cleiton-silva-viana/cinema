@@ -13,7 +13,7 @@ import { ensureNotNull, validateAndCollect } from '@shared/validator/common.vali
  * @property language - Código do idioma (ex: "pt", "en")
  * @property text - Texto no idioma especificado
  */
-export interface ItextContent {
+export interface ITextContent {
   language: string
   text: string
 }
@@ -43,8 +43,8 @@ export interface ISizes {
  */
 export interface ICreateImageParams {
   uid: string
-  title: ItextContent[]
-  description: ItextContent[]
+  title: ITextContent[]
+  description: ITextContent[]
   sizes: ISizes
 }
 
@@ -59,8 +59,8 @@ export interface ICreateImageParams {
  */
 export interface IHydrateImageParams {
   uid: string
-  title: ItextContent
-  description: ItextContent
+  title: ITextContent
+  description: ITextContent
   sizes: ISizes
 }
 
@@ -73,8 +73,8 @@ export interface IHydrateImageParams {
  * @property sizes - Objeto contendo as URLs para os diferentes tamanhos da imagem
  */
 export interface IUpdateImageParams {
-  title?: ItextContent[]
-  description?: ItextContent[]
+  title?: ITextContent[]
+  description?: ITextContent[]
   sizes?: ISizes
 }
 
