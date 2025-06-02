@@ -7,7 +7,7 @@ import { IPersonRepository } from '../repository/person.repository.interface'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { validateAndCollect } from '@shared/validator/common.validators'
-import { CreateTestPerson } from '@test/builder/person.builder'
+import {CloneTestPersonWithOverrides, CreateTestPerson} from '@test/builder/person.builder'
 
 describe('PersonService', () => {
   let repository: jest.Mocked<IPersonRepository>
@@ -101,12 +101,10 @@ describe('PersonService', () => {
   describe('update', () => {
     it('deve atualizar nome e data de nascimento', async () => {
       // Arrange
-      const originalName = 'Nome Original'
-      const originalBirthDate = new Date('1990-01-01')
-      const person = Person.hydrate(PersonUID.create().value, originalName, originalBirthDate)
+      const person = CreateTestPerson()
       const newName = faker.person.fullName()
       const newBirth = faker.date.birthdate()
-      const updatedPerson = Person.hydrate(person.uid.value, newName, newBirth)
+      const updatedPerson = CloneTestPersonWithOverrides(person, { name: newName, birthDate: newBirth })
       repository.findById.mockResolvedValue(person)
       repository.update.mockResolvedValue(updatedPerson)
 
