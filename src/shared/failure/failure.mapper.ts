@@ -3,7 +3,7 @@ import { RichFailure } from './rich.failure.type'
 import { IFailureMessageProvider } from './failure.message.provider.interface'
 import { IFailureMapper } from './failure.mapper.interface'
 import { FailureMessageProvider } from './failure.message.provider'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
 
 /**
  * Classe responsável por mapear SimpleFailure para RichFailureType,
@@ -43,7 +43,7 @@ export class FailureMapper implements IFailureMapper {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Um objeto RichFailureType com informações completas sobre o erro
    */
-  public toRichFailure(failure: SimpleFailure, language: SupportedLanguage): RichFailure {
+  public toRichFailure(failure: SimpleFailure, language: SupportedLanguageEnum): RichFailure {
     const messageConfig = this.messageProvider.getMessageConfig(failure.code, language)
 
     const formattedMessage = this.formatMessageWithTemplate(messageConfig.message, failure.details || {})
@@ -63,7 +63,7 @@ export class FailureMapper implements IFailureMapper {
    * @param language Idioma desejado para as mensagens (padrão: 'pt')
    * @returns Array de objetos RichFailureType
    */
-  public toRichFailures(failures: SimpleFailure[], language: SupportedLanguage): RichFailure[] {
+  public toRichFailures(failures: SimpleFailure[], language: SupportedLanguageEnum): RichFailure[] {
     return failures.map((failure) => this.toRichFailure(failure, language))
   }
 

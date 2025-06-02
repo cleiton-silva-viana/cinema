@@ -1,7 +1,7 @@
 import { FailureMapper } from './failure.mapper'
 import { IFailureMessageProvider } from './failure.message.provider.interface'
 import { SimpleFailure } from './simple.failure.type'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 
 describe('FailureMapper', () => {
@@ -53,12 +53,12 @@ describe('FailureMapper', () => {
       FailureMapper.setMessageProvider(customProvider)
       const mapper = FailureMapper.getInstance()
       const failure: SimpleFailure = { code: FailureCode.STRING_INVALID_FORMAT }
-      mapper.toRichFailure(failure, SupportedLanguage.PT)
+      mapper.toRichFailure(failure, SupportedLanguageEnum.PT)
 
       // Act & Assert
       expect(customProvider.getMessageConfig).toHaveBeenCalledWith(
         FailureCode.STRING_INVALID_FORMAT,
-        SupportedLanguage.PT
+        SupportedLanguageEnum.PT
       )
     })
   })
@@ -78,7 +78,7 @@ describe('FailureMapper', () => {
       const failure: SimpleFailure = { code: FailureCode.UID_WITH_INVALID_FORMAT }
 
       // Act
-      const result = mapper.toRichFailure(failure, SupportedLanguage.PT)
+      const result = mapper.toRichFailure(failure, SupportedLanguageEnum.PT)
 
       // Assert
       expect(result).toEqual({
@@ -89,7 +89,7 @@ describe('FailureMapper', () => {
       })
       expect(mockMessageProvider.getMessageConfig).toHaveBeenCalledWith(
         FailureCode.UID_WITH_INVALID_FORMAT,
-        SupportedLanguage.PT
+        SupportedLanguageEnum.PT
       )
     })
 
@@ -108,7 +108,7 @@ describe('FailureMapper', () => {
         details: { campo: 'email' },
       }
 
-      const result = mapper.toRichFailure(failure, SupportedLanguage.EN)
+      const result = mapper.toRichFailure(failure, SupportedLanguageEnum.EN)
 
       expect(result.message).toBe('Erro no campo email')
     })
@@ -132,7 +132,7 @@ describe('FailureMapper', () => {
         { code: FailureCode.MISSING_REQUIRED_DATA },
       ]
 
-      const results = mapper.toRichFailures(failures, SupportedLanguage.PT)
+      const results = mapper.toRichFailures(failures, SupportedLanguageEnum.PT)
 
       expect(results).toHaveLength(2)
       expect(results[0].code).toBe(FailureCode.DATE_CANNOT_BE_PAST)
@@ -153,7 +153,7 @@ describe('FailureMapper', () => {
       })
 
       const failure: SimpleFailure = { code: FailureCode.DATE_WITH_INVALID_SEQUENCE, details }
-      const result = mapper.toRichFailure(failure, SupportedLanguage.EN)
+      const result = mapper.toRichFailure(failure, SupportedLanguageEnum.EN)
       return result.message
     }
 
