@@ -2,7 +2,8 @@ import { faker } from '@faker-js/faker/locale/pt_PT'
 import { Person } from './person'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { validateAndCollect } from '@shared/validator/common.validators'
-import {CreateTestPerson} from "@test/builder/person.builder";
+import { CreateTestPerson } from '@test/builder/person.builder'
+import {FailureCode} from "@shared/failure/failure.codes.enum";
 
 describe('Person', () => {
   const fullName = faker.person.firstName()
@@ -162,7 +163,7 @@ describe('Person', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures[0].code).toBe('MISSING_REQUIRED_DATA')
+        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
       })
 
       it('deve manter os valores originais quando nenhuma propriedade for fornecida', () => {
