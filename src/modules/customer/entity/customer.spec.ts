@@ -72,7 +72,7 @@ describe('Customer', () => {
 
         // Assert
         expect(result).toBeNull()
-        expect(failures.length).toBe(3)
+        expect(failures).toHaveLength(3)
       })
     })
 
