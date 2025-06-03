@@ -1,4 +1,4 @@
-import { FailureTemplate } from 'src/shared/failure/failure.template'
+import { FailureTemplate } from '@shared/failure/failure.template.type'
 
 type Failures = Record<string, FailureTemplate>
 type TemplateVariable = { field: string; type: string }
@@ -8,15 +8,22 @@ type TemplateVariable = { field: string; type: string }
  * @Example "O campo '{field:string}' deve ter entre {min:number} e {max:number}" -> [ {field: 'field', type: 'string'} ]
  * */
 export function extractTemplateVariables(template: string): Array<TemplateVariable> {
-  const regexp = /\{(\w+)(?::(\w+))?\}/g
+  const regexp = /\{(\w+)(?::([\w\s|\[\]]+))?\}/g
   const variables: Array<{ field: string; type: string }> = []
   let match
 
   while ((match = regexp.exec(template)) !== null) {
     const field = match[1]
-    let type = match[2] || 'any'
+    let type = match[2] ? match[2].trim() : 'string'
 
-    if (!['string', 'number', 'Date'].includes(type)) type = 'any'
+    // Validate and normalize types
+    const validTypes = ['string', 'number', 'boolean', 'Date', 'string[]', 'number[]', 'boolean[]', 'Date[]']
+    const types = type.split('|').map((t) => t.trim())
+    const filteredTypes = types.filter((t) => {
+      return validTypes.includes(t)
+    })
+
+    type = filteredTypes.length > 0 ? filteredTypes.join(' | ') : 'string'
 
     if (!variables.some((v) => v.field === field)) {
       variables.push({ field, type })
@@ -67,7 +74,7 @@ export function generateCodeConstant(failures: Failures): string {
   let codes: string = ''
 
   entries.forEach(([code, template]) => {
-    let params = analyzeFailureTemplate(template)
+    const params = analyzeFailureTemplate(template)
     if (params.length === 0) {
       codes += `${code}: (): SimpleFailure => ({ 
         code: FailureCode.${code}, 

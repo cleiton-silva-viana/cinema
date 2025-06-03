@@ -5,7 +5,7 @@ import {
   generateCodeConstant,
   generateFailureCodes,
 } from './generate.failure.types'
-import { FailureTemplate } from 'src/shared/failure/failure.template'
+import { FailureTemplate } from '@/shared/failure/failure.template.type'
 
 function generateTemplate(template?: { pt: string; en: string }) {
   return {
@@ -22,7 +22,7 @@ function generateTemplate(template?: { pt: string; en: string }) {
 }
 
 describe('extractTemplateVariables', () => {
-  it('deve retornar um array contendo todas as variáveis contída sno template', () => {
+  it('deve retornar um array contendo todas as variáveis contídas no template', () => {
     // Arrange
     const fieldName = 'field'
     const fieldType = 'string'
@@ -33,12 +33,12 @@ describe('extractTemplateVariables', () => {
     const result = extractTemplateVariables(template)
 
     // Assert
-    expect(result.length).toBe(1)
+    expect(result).toHaveLength(1)
     expect(result[0].field).toBe(fieldName)
     expect(result[0].type).toBe(fieldType)
   })
 
-  it('deve retornar um valor do tipo any se o valor do field for desconhecido', () => {
+  it('deve retornar um valor do tipo string se o valor do field for desconhecido', () => {
     // Arrange
     const fieldName = 'property'
     const fieldType = 'property'
@@ -49,23 +49,23 @@ describe('extractTemplateVariables', () => {
     const result = extractTemplateVariables(template)
 
     // Assert
-    expect(result.length).toBe(1)
+    expect(result).toHaveLength(1)
     expect(result[0].field).toBe(fieldName)
-    expect(result[0].type).toBe('any')
+    expect(result[0].type).toBe('string')
   })
 
-  it('deve retornar um tipo any quando não for fornecido uma tipagem para a variável', () => {
+  it('deve retornar um tipo string quando não for fornecido uma tipagem para a variável', () => {
     // Arrange
     const fieldName = 'property'
-    const template = `A variável deste template deve ser do tipo any {${fieldName}}`
+    const template = `A variável deste template deve ser do tipo string {${fieldName}}`
 
     // Act
     const result = extractTemplateVariables(template)
 
     // Assert
-    expect(result.length).toBe(1)
+    expect(result).toHaveLength(1)
     expect(result[0].field).toBe(fieldName)
-    expect(result[0].type).toBe('any')
+    expect(result[0].type).toBe('string')
   })
 
   it('deve retornar um array vazio se não houver qualquer variável no template', () => {
@@ -76,24 +76,42 @@ describe('extractTemplateVariables', () => {
     const result = extractTemplateVariables(template)
 
     // Assert
-    expect(result.length).toBe(0)
+    expect(result).toHaveLength(0)
   })
 
   it('deve retornar mais de uma propriedade corretamente', () => {
     // Arrange
-    const field1 = { name: 'name', type: 'string' }
-    const field3 = { name: 'max', type: 'number' }
-    const field4 = { name: 'hour', type: 'any' }
+    const field1 = { name: 'name', type: 'string[]' }
+    const field3 = { name: 'max',  type: 'number'   }
+    const field4 = { name: 'hour', type: 'boolean'  }
     const template = `{${field1.name}:${field1.type}} - {${field3.name}:${field3.type}} - {${field4.name}:${field4.type}}`
 
     // Act
     const result = extractTemplateVariables(template)
 
     // Assert
-    expect(result.length).toBe(3)
-    expect(result.some((f) => f.field === field1.name && f.type === field1.type))
-    expect(result.some((f) => f.field === field3.name && f.type === field3.type))
-    expect(result.some((f) => f.field === field4.name && f.type === field4.type))
+    expect(result).toHaveLength(3)
+    expect(result.some((f) => f.field === field1.name && f.type === field1.type)).toBe(true)
+    expect(result.some((f) => f.field === field3.name && f.type === field3.type)).toBe(true)
+    expect(result.some((f) => f.field === field4.name && f.type === field4.type)).toBe(true)
+  })
+
+  it('deve retornar uma variável com múltiplos tipos', () => {
+    // Arrange
+    const fieldName = 'value'
+    const fieldType1 = 'string'
+    const fieldType2 = 'number'
+    const variable = `${fieldName}:${fieldType1} | ${fieldType2}`
+    const template = `${faker.lorem.lines(1)} {${variable}} ${faker.lorem.lines(1)}`
+
+    // Act
+    const result = extractTemplateVariables(template)
+
+    // Assert
+    expect(result).toHaveLength(1)
+    expect(result[0].field).toBe(fieldName)
+    expect(result[0].type).toContain(fieldType1)
+    expect(result[0].type).toContain(fieldType2)
   })
 })
 
@@ -115,7 +133,7 @@ describe('analyzeFailureTemplate', () => {
     const result = analyzeFailureTemplate(temp)
 
     // Assert
-    expect(result.length).toBe(5)
+    expect(result).toHaveLength(5)
   })
 
   it('deve retornar os campos duplicados no template apenas 1 vez', () => {
@@ -133,7 +151,7 @@ describe('analyzeFailureTemplate', () => {
     const result = analyzeFailureTemplate(temp)
 
     // Assert
-    expect(result.length).toBe(3)
+    expect(result).toHaveLength(3)
   })
 
   it('deve retornar um array vazio se não houver variáveis no template', () => {
@@ -144,7 +162,7 @@ describe('analyzeFailureTemplate', () => {
     const result = analyzeFailureTemplate(template)
 
     // Assert
-    expect(result.length).toBe(0)
+    expect(result).toHaveLength(0)
     expect(result).toEqual([])
   })
 })
@@ -173,7 +191,7 @@ describe('generateFailureCodes', () => {
 })
 
 describe('generateCodeConstant', () => {
-  it('deve criar ', () => {
+  it('deve criar', () => {
     // Arrange
     const failures: Record<string, FailureTemplate> = {
       WITHOUT_VAR: generateTemplate({
