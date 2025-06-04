@@ -17,8 +17,8 @@
       "en": "Invalid Price"
     },
     "template": {
-      "pt": "O valor '{value:string}' fornecido para o preço não é um número válido.",
-      "en": "The value '{value:string}' provided for price is not a valid number."
+      "pt": "O valor '{value:number}' fornecido para o preço não é um número válido.",
+      "en": "The value '{value:number}' provided for price is not a valid number."
     }
   },
   "PRICE_MUST_BE_INTEGER": {
@@ -28,8 +28,8 @@
       "en": "Price Must Be Integer"
     },
     "template": {
-      "pt": "O preço deve ser um valor inteiro. Valor fornecido: {value:string}.",
-      "en": "The price must be an integer value. Provided value: {value:string}."
+      "pt": "O preço deve ser um valor inteiro. Valor fornecido: {value:number}.",
+      "en": "The price must be an integer value. Provided value: {value:number}."
     }
   },
   "PRICE_MUST_BE_POSITIVE": {
@@ -39,8 +39,8 @@
       "en": "Price Must Be Positive"
     },
     "template": {
-      "pt": "O preço deve ser um valor positivo. Valor fornecido: {value:string}.",
-      "en": "The price must be a positive value. Provided value: {value:string}."
+      "pt": "O preço deve ser um valor positivo. Valor fornecido: {value:number}.",
+      "en": "The price must be a positive value. Provided value: {value:number}."
     }
   },
   "PRICE_INVALID_INSTANCE": {
@@ -72,8 +72,8 @@
       "en": "Invalid Multiplication Factor"
     },
     "template": {
-      "pt": "O fator de multiplicação '{value:string}' não é um número válido. É esperado um valor do tipo '{type:string}'.",
-      "en": "The multiplication factor '{value:string}' is not a valid number. A value of type '{type:string}' is expected."
+      "pt": "O fator de multiplicação '{value:number}' não é um número válido. É esperado um valor do tipo '{type:string}'.",
+      "en": "The multiplication factor '{value:number}' is not a valid number. A value of type '{type:string}' is expected."
     }
   },
   "PRICE_NEGATIVE_FACTOR_NOT_ALLOWED": {
@@ -94,8 +94,8 @@
       "en": "Invalid Division Factor"
     },
     "template": {
-      "pt": "O divisor '{value:string}' não é um número válido. É esperado um valor do tipo '{type:string}'.",
-      "en": "The divisor '{value:string}' is not a valid number. A value of type '{type:string}' is expected."
+      "pt": "O divisor '{value:number}' não é um número válido. É esperado um valor do tipo '{type:string}'.",
+      "en": "The divisor '{value:number}' is not a valid number. A value of type '{type:string}' is expected."
     }
   },
   "PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED": {
@@ -369,8 +369,8 @@
       "en": "Invalid Content Format"
     },
     "template": {
-      "pt": "O formato do campo '{field:string}' é inválido. {reason:string}",
-      "en": "The format of field '{field:string}' is invalid. {reason:string}"
+      "pt": "O formato do conteúdo '{format:string}' é inválido para '{resource:string}'.",
+      "en": "The content format '{format:string}' is invalid for '{resource:string}'."
     }
   },
   "EMAIL_ALREADY_IN_USE": {
@@ -479,8 +479,8 @@
       "en": "Value Out of Range"
     },
     "template": {
-      "pt": "O valor '{value:string}' fornecido para '{field:string}' está fora do intervalo permitido ({min_value:string} - {max_value:string}).",
-      "en": "The value '{value:string}' provided for '{field:string}' is out of the allowed range ({min_value:string} - {max_value:string})."
+      "pt": "O valor '{value:string | number}' fornecido para '{field:string}' está fora do intervalo permitido ({min_value:string | number} - {max_value:string | number}).",
+      "en": "The value '{value:string | number}' provided for '{field:string}' is out of the allowed range ({min_value:string | number} - {max_value:string | number})."
     }
   },
   "VALUE_GREATER_THAN_MAX": {
@@ -490,8 +490,8 @@
       "en": "Value Exceeds Maximum"
     },
     "template": {
-      "pt": "O valor '{value:string}' fornecido excede o valor máximo permitido ({max_value:string}).",
-      "en": "The provided value '{value:string}' exceeds the maximum allowed value ({max_value:string})."
+      "pt": "O valor '{value:number}' fornecido excede o valor máximo permitido ({max_value:number}).",
+      "en": "The provided value '{value:number}' exceeds the maximum allowed value ({max_value:number})."
     }
   },
   "VALUE_LESS_THAN_MIN": {
@@ -501,8 +501,8 @@
       "en": "Value Less Than Minimum"
     },
     "template": {
-      "pt": "O valor '{value:string}' fornecido para '{field:string}' é menor que o valor mínimo permitido ({min_value:string}).",
-      "en": "The value '{value:string}' provided for '{field:string}' is less than the minimum allowed value ({min_value:string})."
+      "pt": "O valor '{value:number}' fornecido para '{field:string}' é menor que o valor mínimo permitido ({min_value:number}).",
+      "en": "The value '{value:number}' provided for '{field:string}' is less than the minimum allowed value ({min_value:number})."
     }
   },
   "VALUE_NOT_INTEGER": {
@@ -512,8 +512,8 @@
       "en": "Value Not Integer"
     },
     "template": {
-      "pt": "O valor para o campo '{field:string}' deve ser um número inteiro. Valor fornecido: {value:string}.",
-      "en": "The value for field '{field:string}' must be an integer. Provided value: {value:string}."
+      "pt": "O valor para o campo '{field:string}' deve ser um número inteiro. Valor fornecido: {value:number}.",
+      "en": "The value for field '{field:string}' must be an integer. Provided value: {value:number}."
     }
   },
   "VALUE_CANNOT_BE_NEGATIVE": {
@@ -523,8 +523,8 @@
       "en": "Value Cannot Be Negative"
     },
     "template": {
-      "pt": "O valor para o campo '{field:string}' não pode ser negativo. Valor fornecido: {value:string}.",
-      "en": "The value for field '{field:string}' cannot be negative. Provided value: {value:string}."
+      "pt": "O valor para o campo '{field:string}' não pode ser negativo. Valor fornecido: {value:number}.",
+      "en": "The value for field '{field:string}' cannot be negative. Provided value: {value:number}."
     }
   },
   "VALUE_NOT_POSITIVE": {
@@ -534,8 +534,8 @@
       "en": "Value Not Positive"
     },
     "template": {
-      "pt": "O valor para o campo '{field:string}' deve ser um número positivo. Valor fornecido: {value:string}.",
-      "en": "The value for field '{field:string}' must be a positive number. Provided value: {value:string}."
+      "pt": "O valor para o campo '{field:string}' deve ser um número positivo. Valor fornecido: {value:number}.",
+      "en": "The value for field '{field:string}' must be a positive number. Provided value: {value:number}."
     }
   },
   "INVALID_ENUM_VALUE": {
@@ -545,8 +545,19 @@
       "en": "Invalid Value"
     },
     "template": {
-      "pt": "O valor '{value:string}' fornecido para '{field:string}' é inválido. Valores permitidos: {allowed_values:string[]}.",
-      "en": "The value '{value:string}' provided for '{field:string}' is invalid. Allowed values: {allowed_values:string[]}."
+      "pt": "O valor '{value:string}' fornecido para '{field:string}' é inválido. Valores permitidos: {allowed_values:string[] | number[]}.",
+      "en": "The value '{value:string}' provided for '{field:string}' is invalid. Allowed values: {allowed_values:string[] | number[]}."
+    }
+  },
+  "ARRAY_LENGTH_IS_OUT_OF_RANGE": {
+    "status": 400,
+    "title": {
+      "pt": "Tamanho do Array Fora do Intervalo",
+      "en": "Array Length Out of Range"
+    },
+    "template": {
+      "pt": "O array '{field:string}' deve ter entre {min:number} e {max:number} elementos.",
+      "en": "The array '{field:string}' must have between {min:number} and {max:number} elements."
     }
   },
   "MOVIE_MISSING_CONTRIBUTORS": {
@@ -1044,6 +1055,17 @@
       "en": "A minimum interval of {min_interval:number} minutes between screenings is required in room '{room_name:string}'."
     }
   },
+  "DATE_IS_OUT_OF_RANGE": {
+    "status": 400,
+    "title": {
+      "pt": "Data Fora do Intervalo",
+      "en": "Date Out of Range"
+    },
+    "template": {
+      "pt": "A data '{date:string}' está fora do intervalo permitido entre '{startDate:string}' e '{endDate:string}'.",
+      "en": "The date '{date:string}' is out of the allowed range between '{startDate:string}' and '{endDate:string}'."
+    }
+  },
   "INVALID_OPERATION_DURATION": {
     "status": 400,
     "title": {
@@ -1416,6 +1438,149 @@
     "template": {
       "pt": "O filme deve estar no status de rascunho para permitir esta operação.",
       "en": "The movie must be in draft status to allow this operation."
+    }
+  },
+  "SCREENING_START_DATE_IN_PAST": {
+    "status": 400,
+    "title": {
+      "pt": "Data de Início Inválida",
+      "en": "Invalid Start Date"
+    },
+    "template": {
+      "pt": "A data de início da sessão não pode estar no passado. A sessão deve ser agendada com pelo menos 5 minutos de antecedência.",
+      "en": "The screening start date cannot be in the past. The screening must be scheduled at least 5 minutes in advance."
+    }
+  },
+  "SCREENING_INVALID_DISPLAY_PERIOD": {
+    "status": 400,
+    "title": {
+      "pt": "Período de Exibição Inválido",
+      "en": "Invalid Display Period"
+    },
+    "template": {
+      "pt": "O período de exibição é inválido. A data de início deve ser anterior à data de término.",
+      "en": "The display period is invalid. The start date must be before the end date."
+    }
+  },
+  "SEAT_DOES_NOT_EXIST": {
+    "status": 400,
+    "title": {
+      "pt": "Assento Não Existe",
+      "en": "Seat Does Not Exist"
+    },
+    "template": {
+      "pt": "O assento especificado não existe no layout da sala.",
+      "en": "The specified seat does not exist in the room layout."
+    }
+  },
+  "SEAT_ALREADY_BOOKED": {
+    "status": 409,
+    "title": {
+      "pt": "Assento Já Reservado",
+      "en": "Seat Already Booked"
+    },
+    "template": {
+      "pt": "O assento já está reservado para esta sessão.",
+      "en": "The seat is already booked for this screening."
+    }
+  },
+  "SEAT_NOT_BOOKED": {
+    "status": 400,
+    "title": {
+      "pt": "Assento Não Reservado",
+      "en": "Seat Not Booked"
+    },
+    "template": {
+      "pt": "O assento especificado não possui reserva ativa para cancelamento.",
+      "en": "The specified seat does not have an active booking to cancel."
+    }
+  },
+  "SCREENING_NOT_AVAILABLE_FOR_BOOKING": {
+    "status": 400,
+    "title": {
+      "pt": "Sessão Indisponível para Reservas",
+      "en": "Screening Not Available for Booking"
+    },
+    "template": {
+      "pt": "A sessão não está disponível para reservas. Reservas só são permitidas durante o período de pré-venda.",
+      "en": "The screening is not available for booking. Bookings are only allowed during the presale period."
+    }
+  },
+  "SEAT_ALREADY_SOLD": {
+    "status": 409,
+    "title": {
+      "pt": "Assento Já Vendido",
+      "en": "Seat Already Sold"
+    },
+    "template": {
+      "pt": "O assento {seatKey:string} já foi vendido e não pode ser reservado ou comprado.",
+      "en": "The seat {seatKey:string} has already been sold and cannot be reserved or purchased."
+    }
+  },
+  "SEAT_ALREADY_RESERVED": {
+    "status": 409,
+    "title": {
+      "pt": "Assento Já Reservado",
+      "en": "Seat Already Reserved"
+    },
+    "template": {
+      "pt": "O assento {seatKey:string} já está reservado por outro cliente.",
+      "en": "The seat {seatKey:string} is already reserved by another customer."
+    }
+  },
+  "SEAT_NOT_RESERVED_BY_CUSTOMER": {
+    "status": 403,
+    "title": {
+      "pt": "Assento Não Reservado Pelo Cliente",
+      "en": "Seat Not Reserved By Customer"
+    },
+    "template": {
+      "pt": "O assento {seatKey:string} não foi reservado por você ou a reserva não está mais ativa.",
+      "en": "The seat {seatKey:string} was not reserved by you or the reservation is no longer active."
+    }
+  },
+  "SEAT_RESERVATION_EXPIRED": {
+    "status": 410,
+    "title": {
+      "pt": "Reserva de Assento Expirada",
+      "en": "Seat Reservation Expired"
+    },
+    "template": {
+      "pt": "A reserva para o assento {seatKey:string} expirou.",
+      "en": "The reservation for seat {seatKey:string} has expired."
+    }
+  },
+  "SCREENING_DOES_NOT_ALLOW_CANCELLATION": {
+    "status": 400,
+    "title": {
+      "pt": "Sessão Não Permite Cancelamento",
+      "en": "Screening Does Not Allow Cancellation"
+    },
+    "template": {
+      "pt": "A sessão não permite cancelamento de compras no momento.",
+      "en": "The screening does not allow purchase cancellations at this time."
+    }
+  },
+  "SEAT_NOT_SOLD": {
+    "status": 400,
+    "title": {
+      "pt": "Assento Não Vendido",
+      "en": "Seat Not Sold"
+    },
+    "template": {
+      "pt": "O assento {seatIdentifier:string} não foi vendido e não pode ser cancelado.",
+      "en": "The seat {seatIdentifier:string} has not been sold and cannot be cancelled."
+    }
+  },
+  "VALUE_MUST_BE_NEGATIVE": {
+    "status": 400,
+    "title": {
+      "pt": "Valor Deve Ser Negativo",
+      "en": "Value Must Be Negative"
+    },
+    "template": {
+      "pt": "O valor para o campo '{field:string}' deve ser um número negativo. Valor fornecido: {value:number}.",
+      "en": "The value for field '{field:string}' must be a negative number. Provided value: {value:number}."
     }
   }
 }
