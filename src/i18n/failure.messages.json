@@ -461,17 +461,6 @@
       "en": "The date sequence is invalid. The start date '{start_date:string}' must be before the end date '{end_date:string}'."
     }
   },
-  "DATE_OUT_OF_RANGE": {
-    "status": 400,
-    "title": {
-      "pt": "Intervalo de Datas Muito Grande",
-      "en": "Date Range Too Large"
-    },
-    "template": {
-      "pt": "O intervalo entre as datas é muito grande. O período máximo permitido é de {max_days:number} dias.",
-      "en": "The date range is too large. The maximum allowed period is {max_days:number} days."
-    }
-  },
   "VALUE_OUT_OF_RANGE": {
     "status": 400,
     "title": {
