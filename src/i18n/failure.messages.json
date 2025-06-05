@@ -1297,15 +1297,15 @@
       "en": "The field '{field:string}' cannot contain only whitespace."
     }
   },
-  "STRING_INVALID_FORMAT": {
+  "STRING_WITH_INVALID_FORMAT": {
     "status": 400,
     "title": {
       "pt": "Formato de String Inválido",
       "en": "Invalid String Format"
     },
     "template": {
-      "pt": "O formato do campo '{field:string}' é inválido. {reason:string}",
-      "en": "The format of field '{field:string}' is invalid. {reason:string}"
+      "pt": "O formato do campo '{field:string}' é inválido.",
+      "en": "The format of field '{field:string}' is invalid."
     }
   },
   "STRING_LENGTH_OUT_OF_RANGE": {
