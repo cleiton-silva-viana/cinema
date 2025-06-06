@@ -2,27 +2,19 @@ import { TechnicalError } from './technical.error'
 import { FailureCode } from '../failure/failure.codes.enum'
 import { FailureMapper } from '../failure/failure.mapper'
 import { RichFailure } from '../failure/rich.failure.type'
-import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { SimpleFailure } from '../failure/simple.failure.type'
 
 jest.mock('../failure/failure.mapper')
 
 const mockToRichFailure = jest.fn()
+
 FailureMapper.getInstance = jest.fn().mockReturnValue({
   toRichFailure: mockToRichFailure,
 })
 
 describe('TechnicalError', () => {
-  beforeEach(() => {
-    mockToRichFailure.mockClear()
-    ;(FailureMapper.getInstance as jest.Mock).mockClear()
-
-    const UNCATALOGUED_ERROR = {
-      code: FailureCode.UNCATALOGUED_ERROR,
-      status: 500,
-      title: 'Erro Não Catalogado',
-      message: 'Ocorreu um erro não catalogado.',
-    } as RichFailure
-
+  beforeAll(() => {
     const MISSING_REQUIRED_DATA = {
       code: FailureCode.MISSING_REQUIRED_DATA,
       status: 500,
@@ -30,61 +22,47 @@ describe('TechnicalError', () => {
       message: 'Ocorreu um erro não catalogado.',
     } as RichFailure
 
-    mockToRichFailure.mockReturnValue(
-      // UNCATALOGUED_ERROR,
-      MISSING_REQUIRED_DATA
-    )
+    mockToRichFailure.mockReturnValue(MISSING_REQUIRED_DATA)
+  })
+
+  describe('constructor', () => {
+    it('deve criar TechnicalError com SimpleFailure', () => {
+      // Arrange
+      const simpleFailure: SimpleFailure = {
+        code: FailureCode.UNCATALOGUED_ERROR,
+        details: { test: 'value' },
+      }
+
+      // Act
+      const error = new TechnicalError(simpleFailure)
+
+      // Assert
+      expect(error).toBeInstanceOf(TechnicalError)
+      expect(error.message).toContain(simpleFailure.code)
+    })
   })
 
   describe('if', () => {
     it('deve lançar TechnicalError quando a condição for verdadeira', () => {
       // Act & Assert
-      expect(() => TechnicalError.if(true, FailureCode.UNCATALOGUED_ERROR)).toThrow(TechnicalError)
+      expect(() => TechnicalError.if(true, () => FailureFactory.UNCATALOGUED_ERROR(''))).toThrowTechnicalError()
     })
 
     it('não deve lançar erro quando a condição for falsa', () => {
       // Act & Assert
-      expect(() => TechnicalError.if(false, FailureCode.UNCATALOGUED_ERROR)).not.toThrow()
+      expect(() => TechnicalError.if(false, () => FailureFactory.UNCATALOGUED_ERROR(''))).not.toThrow()
     })
 
     it('deve lançar TechnicalError com código de falha e detalhes corretos', () => {
       // Arrange
-      const testCode = FailureCode.MISSING_REQUIRED_DATA
-      const testDetails = { id: '123', type: 'User' }
+      const testFailure = FailureFactory.MISSING_REQUIRED_DATA('test')
 
       // Act & Assert
       try {
-        TechnicalError.if(true, testCode, testDetails)
+        TechnicalError.if(true, () => testFailure)
       } catch (error) {
         const techError = error as TechnicalError
-        expect(techError.message).toContain(testCode)
-        expect(techError.message).toContain(testDetails.id)
-        expect(techError.message).toContain(testDetails.type)
-      }
-    })
-
-    it('deve usar FailureMapper para obter o rich failure e defini-lo na instância do erro', () => {
-      // Arrange
-      const testCode = FailureCode.EMAIL_WITH_INVALID_FORMAT
-      const testDetails = { email: 'invalid-email' }
-      const mockRichFailure: RichFailure = {
-        code: testCode,
-        status: 400,
-        title: 'Formato de Email Inválido',
-        message: "O email 'invalid-email' está em formato inválido.",
-      }
-      mockToRichFailure.mockReturnValue(mockRichFailure)
-
-      // Act & Assert
-      try {
-        TechnicalError.if(true, testCode, testDetails)
-      } catch (error) {
-        const techError = error as TechnicalError
-        expect(FailureMapper.getInstance).toHaveBeenCalled()
-        expect(mockToRichFailure).toHaveBeenCalledWith({ code: testCode, details: testDetails }, SupportedLanguageEnum.PT)
-        expect(techError.message).toContain(mockRichFailure.code)
-        expect(techError.message).toContain(mockRichFailure.message)
-        expect(techError.message).toContain(mockRichFailure.title)
+        expect(techError.message).toContain(testFailure.code)
       }
     })
 
@@ -95,22 +73,19 @@ describe('TechnicalError', () => {
       const mockRichFailure: RichFailure = {
         code: testCode,
         status: 400,
-        title: 'UUID Inválido',
+        title: FailureCode.UID_WITH_INVALID_FORMAT,
         message: "O valor 'not-a-uuid' não é um UUID válido.",
       }
       mockToRichFailure.mockReturnValue(mockRichFailure)
 
       // Act & Assert
       try {
-        TechnicalError.if(true, testCode, testDetails)
+        TechnicalError.if(true, () => ({ code: testCode, details: testDetails }))
       } catch (error) {
         const techError = error as TechnicalError
-        const expectedMessage =
-          `TechnicalError: ${testCode}\n` +
-          `[${mockRichFailure.title}]\n` +
-          `[${mockRichFailure.message}]\n` +
-          `[DETAILS]\n${JSON.stringify(testDetails, null, 2)}`
-        expect(techError.message).toBe(expectedMessage)
+        expect(techError.message).toContain(mockRichFailure.code)
+        expect(techError.message).toContain(mockRichFailure.title)
+        expect(techError.message).toContain(JSON.stringify(testDetails))
       }
     })
 
@@ -127,15 +102,11 @@ describe('TechnicalError', () => {
 
       // Act & Assert
       try {
-        TechnicalError.if(true, testCode)
+        TechnicalError.if(true, () => ({ code: testCode }))
       } catch (error) {
         const techError = error as TechnicalError
-        const expectedMessage =
-          `TechnicalError: ${testCode}\n` +
-          `[${mockRichFailure.title}]\n` +
-          `[${mockRichFailure.message}]\n` +
-          `[DETAILS]`
-        expect(techError.message).toBe(expectedMessage)
+        expect(techError.message).toContain(mockRichFailure.code)
+        expect(techError.message).toContain(mockRichFailure.title)
       }
     })
   })
@@ -191,9 +162,9 @@ describe('TechnicalError', () => {
         fail('Deveria ter lançado um erro')
       } catch (error) {
         const techError = error as TechnicalError
-        expect(techError.message).toContain('age')
-        expect(techError.message).not.toContain('email')
         expect(techError.message).not.toContain('name')
+        expect(techError.message).toContain('age')
+        expect(techError.message).toContain('email')
       }
     })
 

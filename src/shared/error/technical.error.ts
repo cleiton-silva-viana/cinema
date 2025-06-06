@@ -1,8 +1,8 @@
-import { FailureDetails, SimpleFailure } from '../failure/simple.failure.type'
+import { SimpleFailure } from '../failure/simple.failure.type'
 import { FailureCode } from '../failure/failure.codes.enum'
 import { FailureMapper } from '../failure/failure.mapper'
-import { RichFailure } from '@/shared/failure/rich.failure.type'
-import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
+import { RichFailure } from '../failure/rich.failure.type'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 /**
  * Representa um erro técnico inesperado na aplicação.
@@ -22,11 +22,7 @@ export class TechnicalError extends Error {
 
     const detailsString: string = failure.details ? '\n' + JSON.stringify(failure.details, null, 2) : ''
 
-    const message =
-      `TechnicalError: ${richFailure.code}\n` +
-      `[${richFailure.title}]\n` +
-      `[${richFailure.message}]\n` +
-      `[DETAILS]${detailsString}`
+    const message = `${richFailure.code}: ${richFailure.title}${detailsString ? ` | ${JSON.stringify(failure.details)}` : ''}`
 
     super(message)
   }
@@ -35,12 +31,16 @@ export class TechnicalError extends Error {
    * Método estático helper para lançar um `TechnicalError` se uma condição for verdadeira.
    * Útil para verificações concisas de pré-condições ou estados inesperados.
    * @param condition Condição que, se verdadeira, dispara o lançamento do erro.
-   * @param code Código de erro único que identifica a falha técnica.
-   * @param details Detalhes adicionais sobre o erro (opcional). Pode incluir contexto ou variáveis relevantes.
+   * @param failure Função que retorna um `SimpleFailure`. Esta função será executada
+   *                apenas se a `condition` for verdadeira, para criar o erro.
    * @throws {TechnicalError} Se a `condition` for `true`.
+   *
+   * @example
+   * // Exemplo de uso correto:
+   * TechnicalError.if(someCondition, () => FailureFactory.SOME_ERROR('detalhes'))
    */
-  public static if(condition: boolean, code: FailureCode, details?: FailureDetails): void {
-    if (condition) throw new TechnicalError({ code, details })
+  public static if(condition: boolean, failure: () => SimpleFailure): void {
+    if (condition) throw new TechnicalError(failure())
   }
 
   /**
@@ -76,10 +76,12 @@ export class TechnicalError extends Error {
 
     if (nullFields.length === 0) return
 
-    const str = nullFields.reduce((field) => ` ${field}`)
-    this.if(nullFields.length > 0, failureCode, {
-      resource: str,
-      ...additionalDetails,
+    throw new TechnicalError({
+      code: failureCode || FailureCode.MISSING_REQUIRED_DATA,
+      details: {
+        resource: nullFields,
+        ...additionalDetails,
+      },
     })
   }
 }
