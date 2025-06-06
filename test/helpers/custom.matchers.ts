@@ -2,6 +2,7 @@ import { Result } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@/shared/error/technical.error'
+import { matcherHint, printExpected, printReceived } from 'jest-matcher-utils'
 
 /**
  * Matchers customizados para Jest específicos do domínio do cinema
@@ -30,15 +31,23 @@ function toBeValidResult(received: Result<any>) {
 
   if (pass) {
     return {
-      message: () => `Expected Result to be invalid, but it was valid`,
+      message: () =>
+        matcherHint('.not.toBeValidResult', 'received', '') +
+        '\n\n' +
+        'Expected Result to be invalid, but it was valid\n' +
+        'Received: ' +
+        printReceived(received),
       pass: true,
     }
   } else {
+    const failures = received.failures.map((f) => f.code).join(', ')
     return {
-      message: () => {
-        const failures = received.failures.map((f) => `${f.code}`).join(', ')
-        return `Expected Result to be valid, but it was invalid with failures: ${failures}`
-      },
+      message: () =>
+        matcherHint('.toBeValidResult', 'received', '') +
+        '\n\n' +
+        'Expected Result to be valid, but it was invalid\n' +
+        'Failures: ' +
+        printReceived(`[${failures}]`),
       pass: false,
     }
   }
@@ -52,12 +61,22 @@ function toBeInvalidResult(received: Result<any>) {
 
   if (pass) {
     return {
-      message: () => `Expected Result to be valid, but it was invalid`,
+      message: () =>
+        matcherHint('.not.toBeInvalidResult', 'received', '') +
+        '\n\n' +
+        'Expected Result to be valid, but it was invalid\n' +
+        'Received: ' +
+        printReceived(received),
       pass: true,
     }
   } else {
     return {
-      message: () => `Expected Result to be invalid, but it was valid with value: ${JSON.stringify(received.value)}`,
+      message: () =>
+        matcherHint('.toBeInvalidResult', 'received', '') +
+        '\n\n' +
+        'Expected Result to be invalid, but it was valid\n' +
+        'Received value: ' +
+        printReceived(received.value),
       pass: false,
     }
   }
@@ -69,22 +88,49 @@ function toBeInvalidResult(received: Result<any>) {
 function toHaveFailureCode(received: Result<any>, expectedCode: FailureCode) {
   if (received.isValid()) {
     return {
-      message: () => `Expected Result to have failure code '${expectedCode}', but Result was valid`,
+      message: () =>
+        matcherHint('.toHaveFailureCode', 'received', 'expectedCode') +
+        '\n\n' +
+        'Expected Result to have failure code:\n' +
+        '  ' +
+        printExpected(expectedCode) +
+        '\n' +
+        'But Result was valid with value:\n' +
+        '  ' +
+        printReceived(received.value),
       pass: false,
     }
   }
 
   const hasCode = received.failures.some((failure: SimpleFailure) => failure.code === expectedCode)
+  const actualCodes = received.failures.map((f: SimpleFailure) => f.code)
 
   if (hasCode) {
     return {
-      message: () => `Expected Result not to have failure code '${expectedCode}', but it did`,
+      message: () =>
+        matcherHint('.not.toHaveFailureCode', 'received', 'expectedCode') +
+        '\n\n' +
+        'Expected Result not to have failure code:\n' +
+        '  ' +
+        printExpected(expectedCode) +
+        '\n' +
+        'But it was found in failures:\n' +
+        '  ' +
+        printReceived(actualCodes),
       pass: true,
     }
   } else {
-    const actualCodes = received.failures.map((f: SimpleFailure) => f.code).join(', ')
     return {
-      message: () => `Expected Result to have failure code '${expectedCode}', but got: ${actualCodes}`,
+      message: () =>
+        matcherHint('.toHaveFailureCode', 'received', 'expectedCode') +
+        '\n\n' +
+        'Expected Result to have failure code:\n' +
+        '  ' +
+        printExpected(expectedCode) +
+        '\n' +
+        'Received failure codes:\n' +
+        '  ' +
+        printReceived(actualCodes),
       pass: false,
     }
   }
@@ -96,24 +142,54 @@ function toHaveFailureCode(received: Result<any>, expectedCode: FailureCode) {
 function toHaveFailureCodes(received: Result<any>, expectedCodes: FailureCode[]) {
   if (received.isValid()) {
     return {
-      message: () => `Expected Result to have failure codes [${expectedCodes.join(', ')}], but Result was valid`,
+      message: () =>
+        matcherHint('.toHaveFailureCodes', 'received', 'expectedCodes') +
+        '\n\n' +
+        'Expected Result to have failure codes:\n' +
+        '  ' +
+        printExpected(expectedCodes) +
+        '\n' +
+        'But Result was valid with value:\n' +
+        '  ' +
+        printReceived(received.value),
       pass: false,
     }
   }
 
   const actualCodes = received.failures.map((f: SimpleFailure) => f.code)
   const hasAllCodes = expectedCodes.every((code) => actualCodes.includes(code))
+  const missingCodes = expectedCodes.filter((code) => !actualCodes.includes(code))
 
   if (hasAllCodes) {
     return {
-      message: () => `Expected Result not to have all failure codes [${expectedCodes.join(', ')}], but it did`,
+      message: () =>
+        matcherHint('.not.toHaveFailureCodes', 'received', 'expectedCodes') +
+        '\n\n' +
+        'Expected Result not to have all failure codes:\n' +
+        '  ' +
+        printExpected(expectedCodes) +
+        '\n' +
+        'But all were found in:\n' +
+        '  ' +
+        printReceived(actualCodes),
       pass: true,
     }
   } else {
-    const missingCodes = expectedCodes.filter((code) => !actualCodes.includes(code))
     return {
       message: () =>
-        `Expected Result to have failure codes [${expectedCodes.join(', ')}], but missing: [${missingCodes.join(', ')}]. Actual codes: [${actualCodes.join(', ')}]`,
+        matcherHint('.toHaveFailureCodes', 'received', 'expectedCodes') +
+        '\n\n' +
+        'Expected Result to have failure codes:\n' +
+        '  ' +
+        printExpected(expectedCodes) +
+        '\n' +
+        'Missing codes:\n' +
+        '  ' +
+        printExpected(missingCodes) +
+        '\n' +
+        'Received failure codes:\n' +
+        '  ' +
+        printReceived(actualCodes),
       pass: false,
     }
   }
@@ -124,12 +200,22 @@ function toHaveFailureCodes(received: Result<any>, expectedCodes: FailureCode[])
  * Útil para testar se uma função lança um TechnicalError.
  */
 function toThrowTechnicalError(received: any) {
-  const pass = received instanceof TechnicalError
+  let thrownError: any
+  let isFunction = typeof received === 'function'
+  if (isFunction) {
+    try {
+      received()
+    } catch (err) {
+      thrownError = err
+    }
+  }
+  const valueToCheck = isFunction ? thrownError : received
+  const pass = valueToCheck instanceof TechnicalError
   return {
     message: () =>
       pass
         ? `Expected value not to be instance of TechnicalError, but it was.`
-        : `Expected value to be instance of TechnicalError, but got: ${received?.constructor?.name}`,
+        : `Expected value to be instance of TechnicalError, but got: ${valueToCheck?.constructor?.name}`,
     pass,
   }
 }
@@ -139,13 +225,38 @@ function toThrowTechnicalError(received: any) {
  * @param received A instância de TechnicalError recebida.
  * @param expectedCode O código de falha esperado.
  */
-function toHaveTechnicalErrorCode(received: TechnicalError, expectedCode: FailureCode) {
-  const pass = received instanceof TechnicalError && received.message.includes(expectedCode) 
+function toHaveTechnicalErrorCode(received: any, expectedCode: FailureCode) {
+  let throwErr: any
+  let isFunction = typeof received === 'function'
+
+  if (isFunction) {
+    try {
+      received()
+    } catch (err) {
+      throwErr = err
+    }
+  }
+
+  const valueToCheck = isFunction ? throwErr : received
+  const isInstanceOfTechnicalError = valueToCheck instanceof TechnicalError
+
+  if (!isInstanceOfTechnicalError) {
+    return {
+      message: () =>
+        isInstanceOfTechnicalError
+          ? `Expected value not to be instance of TechnicalError, but it was.`
+          : `Expected value to be instance of TechnicalError, but got: ${valueToCheck?.constructor?.name}`,
+      pass: isInstanceOfTechnicalError,
+    }
+  }
+
+  const techError: TechnicalError = valueToCheck
+  const pass = techError.message.includes(expectedCode)
   return {
     message: () =>
       pass
         ? `Expected TechnicalError not to have code '${expectedCode}', but it did.`
-        : `Expected TechnicalError to have code '${expectedCode}', but got: '${received.message}'`,
+        : `Expected TechnicalError to have code '${expectedCode}', but got: '${techError.message}'`,
     pass,
   }
 }
