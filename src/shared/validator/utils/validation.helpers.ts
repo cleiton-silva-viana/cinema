@@ -1,9 +1,9 @@
-import { SimpleFailure } from '../failure/simple.failure.type'
-import { FailureCode } from '../failure/failure.codes.enum'
-import { isNull } from './validator'
-import { failure, Result, success } from '../result/result'
-import { TechnicalError } from '../error/technical.error'
-import { FailureFactory } from '../failure/failure.factory'
+import { SimpleFailure } from '../../failure/simple.failure.type'
+import { FailureCode } from '../../failure/failure.codes.enum'
+import { failure, Result, success } from '../../result/result'
+import { TechnicalError } from '../../error/technical.error'
+import { FailureFactory } from '../../failure/failure.factory'
+import { CaseSensitivityEnum } from '@shared/validator/enum/case.sensitivity.enum'
 
 /**
  * Verifica se valores são nulos ou indefinidos e cria falhas para cada campo inválido.
@@ -26,7 +26,7 @@ export function ensureNotNull(fieldsToCheck: Record<string, any>): SimpleFailure
   const failures: SimpleFailure[] = []
 
   for (const [fieldName, fieldValue] of Object.entries(fieldsToCheck)) {
-    if (isNull(fieldValue)) {
+    if (!fieldValue) {
       failures.push({
         code: FailureCode.MISSING_REQUIRED_DATA,
         details: { field: fieldName },
@@ -60,7 +60,7 @@ export function collectNullFields(fieldsToCheck: Record<string, any>): string[] 
   const nullFields: string[] = []
 
   for (const [fieldName, fieldValue] of Object.entries(fieldsToCheck)) {
-    if (isNull(fieldValue)) {
+    if (fieldValue === null || fieldValue === undefined) {
       nullFields.push(fieldName)
     }
   }
@@ -86,11 +86,6 @@ export function validateAndCollect<T>(result: Result<T>, failures: SimpleFailure
   }
 }
 
-export const enum Mode {
-  IGNORE_CASE = 'IGNORE_CASE',
-  SENSITIVE_CASE = 'SENSITIVE_CASE',
-}
-
 /**
  * Tenta converter uma string para um valor de enum.
  *
@@ -104,34 +99,37 @@ export function parseToEnum<T extends Record<string, string | number>>(
   fieldName: string,
   value: string | null | undefined,
   enumType: T,
-  mode: Mode = Mode.IGNORE_CASE
+  mode: CaseSensitivityEnum = CaseSensitivityEnum.INSENSITIVE
 ): Result<T[keyof T]> {
   TechnicalError.validateRequiredFields({ enumType })
 
   const enumValues = Object.values(enumType)
 
-  if (isNull(value)) return failure(FailureFactory.INVALID_ENUM_VALUE('N/D', fieldName))
+  if (value === null || value === undefined)
+    return failure(FailureFactory.INVALID_ENUM_VALUE('N/D', fieldName, enumValues))
 
-  const stringValue = mode === Mode.IGNORE_CASE ? String(value).toUpperCase() : String(value)
+  const stringValue = mode === CaseSensitivityEnum.INSENSITIVE ? String(value).toUpperCase() : String(value)
 
-  const foundValue = enumValues.find((enumValue) => {
-    const enumString = String(enumValue)
-    return enumString === stringValue
-  })
+  const foundValue = enumValues.find((enumValue) => String(enumValue) === stringValue)
 
-  if (isNull(foundValue)) return failure(FailureFactory.INVALID_ENUM_VALUE(value?.toString() || 'N/D', fieldName))
-
-  return success(foundValue as T[keyof T])
+  return !foundValue
+    ? failure(FailureFactory.INVALID_ENUM_VALUE(value?.toString() || 'N/D', fieldName, enumValues))
+    : success(foundValue as T[keyof T])
 }
 
 export function hydrateEnum<T extends Record<string, string | number>>(
-  fieldName: string,
-  value: string | null | undefined,
+  value: Record<string, string>,
   enumType: T
 ): T[keyof T] {
-  const result = parseToEnum(fieldName, value, enumType, Mode.IGNORE_CASE)
-  if (result.isValid()) {
-    return result.value
-  }
+  TechnicalError.validateRequiredFields({ enumType })
+
+  const str = Object.entries(value)
+
+  TechnicalError.if(str.length !== 1, FailureCode.INVALID_ENUM_VALUE_COUNT, { values: str })
+
+  const result = parseToEnum(str[0][0], str[0][1], enumType, CaseSensitivityEnum.INSENSITIVE)
+
+  if (result.isValid()) return result.value
+
   throw new TechnicalError(result.failures[0])
 }

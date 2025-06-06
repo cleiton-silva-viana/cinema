@@ -1,15 +1,9 @@
-import {
-  collectNullFields,
-  ensureNotNull,
-  hydrateEnum,
-  Mode,
-  parseToEnum,
-  validateAndCollect,
-} from './common.validators'
+import { collectNullFields, ensureNotNull, hydrateEnum, parseToEnum, validateAndCollect } from './validation.helpers'
 import { faker } from '@faker-js/faker'
-import { FailureCode } from '../failure/failure.codes.enum'
-import { failure, Result, success } from '../result/result'
-import { SimpleFailure } from '../failure/simple.failure.type'
+import { FailureCode } from '../../failure/failure.codes.enum'
+import { failure, Result, success } from '../../result/result'
+import { SimpleFailure } from '../../failure/simple.failure.type'
+import { CaseSensitivityEnum } from '@shared/validator/enum/case.sensitivity.enum'
 
 describe('Common Validators', () => {
   describe('ensureNotNull', () => {
@@ -245,7 +239,6 @@ describe('Common Validators', () => {
   })
 
   describe('parseToEnum', () => {
-    let failures: SimpleFailure[]
     const fieldName = 'test_enum'
 
     enum StringEnum {
@@ -253,86 +246,51 @@ describe('Common Validators', () => {
       ValueB = 'VALUE_B',
     }
 
-    beforeEach(() => {
-      failures = []
-    })
-
     it('deve converter string para enum (IgnoreCase, sucesso)', () => {
       // Arrange
-      const result = parseToEnum(fieldName, 'value_a', StringEnum, Mode.IGNORE_CASE)
-
-      // Act
-      const parsedValue = validateAndCollect(result, failures)
+      const result = parseToEnum(fieldName, 'value_a', StringEnum, CaseSensitivityEnum.INSENSITIVE)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(parsedValue).toBe(StringEnum.ValueA)
-      expect(failures).toHaveLength(0)
+      expect(result).toBeValidResultWithValue(StringEnum.ValueA)
     })
 
     it('deve converter string para enum (CaseSensitive, sucesso)', () => {
       // Arrange
-      const result = parseToEnum(fieldName, 'VALUE_B', StringEnum, Mode.SENSITIVE_CASE)
-
-      // Act
-      const parsedValue = validateAndCollect(result, failures)
+      const result = parseToEnum(fieldName, 'VALUE_B', StringEnum, CaseSensitivityEnum.SENSITIVE)
 
       // Assert
-      expect(parsedValue).toBeDefined()
-      expect(parsedValue).toBe(StringEnum.ValueB)
-      expect(failures).toHaveLength(0)
+      expect(result).toBeValidResultWithValue(StringEnum.ValueB)
     })
 
     it('deve falhar ao converter string inexistente (IgnoreCase)', () => {
       // Arrange
-      const result = parseToEnum(fieldName, 'non_existent', StringEnum, Mode.IGNORE_CASE)
-
-      // Act
-      const parsedValue = validateAndCollect(result, failures)
+      const result = parseToEnum(fieldName, 'non_existent', StringEnum, CaseSensitivityEnum.INSENSITIVE)
 
       // Assert
-      expect(parsedValue).toBeNull()
-      expect(failures).toHaveLength(1)
-      expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.INVALID_ENUM_VALUE)
     })
 
     it('deve falhar ao converter string inexistente (CaseSensitive)', () => {
       // Arrange
-      const result = parseToEnum(fieldName, 'value_c', StringEnum, Mode.SENSITIVE_CASE)
-
-      // Act
-      const parsedValue = validateAndCollect(result, failures)
+      const result = parseToEnum(fieldName, 'value_c', StringEnum, CaseSensitivityEnum.SENSITIVE)
 
       // Assert
-      expect(parsedValue).toBeNull()
-      expect(failures).toHaveLength(1)
-      expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE)
     })
 
     it('deve falhar ao converter string vazia', () => {
       // Arrange
-      const result = parseToEnum(fieldName, '', StringEnum, Mode.IGNORE_CASE)
-
-      // Act
-      const parsedValue = validateAndCollect(result, failures)
+      const result = parseToEnum(fieldName, '', StringEnum, CaseSensitivityEnum.INSENSITIVE)
 
       // Assert
-      expect(parsedValue).toBeNull()
-      expect(failures).toHaveLength(1)
-      expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.INVALID_ENUM_VALUE)
     })
 
     it('deve falhar quando o valor for nulo', () => {
-      // Arrange
-      failures = []
-
       // Act
-      const parsedValue = validateAndCollect(parseToEnum(fieldName, null, StringEnum, Mode.IGNORE_CASE), failures)
+      const result = parseToEnum(fieldName, null, StringEnum, CaseSensitivityEnum.INSENSITIVE)
 
       // Assert
-      expect(parsedValue).toBeFalsy()
-      expect(failures).toHaveLength(1)
-      expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.INVALID_ENUM_VALUE)
     })
   })
 
@@ -343,20 +301,30 @@ describe('Common Validators', () => {
     }
 
     it('deve retornar o valor correto do enum quando válido', () => {
-      const value = hydrateEnum('campo', 'A', TestEnum)
+      const value = hydrateEnum({ value: 'A' }, TestEnum)
       expect(value).toBe(TestEnum.A)
     })
 
     it('deve lançar TechnicalError quando valor inválido', () => {
-      expect(() => hydrateEnum('campo', 'C', TestEnum)).toThrowError()
+      expect(() => hydrateEnum({ value: 'C' }, TestEnum)).toHaveTechnicalErrorCode(FailureCode.INVALID_ENUM_VALUE)
     })
 
     it('deve lançar TechnicalError quando valor for null', () => {
-      expect(() => hydrateEnum('campo', null, TestEnum)).toThrowError()
+      expect(() => hydrateEnum({ value: null as any }, TestEnum)).toHaveTechnicalErrorCode(
+        FailureCode.INVALID_ENUM_VALUE
+      )
     })
 
     it('deve lançar TechnicalError quando valor for undefined', () => {
-      expect(() => hydrateEnum('campo', undefined, TestEnum)).toThrowError()
+      expect(() => hydrateEnum({ value: undefined as any }, TestEnum)).toHaveTechnicalErrorCode(
+        FailureCode.INVALID_ENUM_VALUE
+      )
+    })
+
+    it('deve lançar TechnicalError se o número de valores para hidratar for diferente de 1', () => {
+      expect(() => hydrateEnum({ valueA: 'B', valueB: 'A' }, TestEnum)).toHaveTechnicalErrorCode(
+        FailureCode.INVALID_ENUM_VALUE_COUNT
+      )
     })
   })
 })
