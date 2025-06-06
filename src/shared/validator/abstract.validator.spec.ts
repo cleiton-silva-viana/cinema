@@ -1,8 +1,8 @@
-import {AbstractValidator} from './abstract.validator'
-import {SimpleFailure} from '../failure/simple.failure.type'
-import {FailureCode} from '../failure/failure.codes.enum'
-import {FailureFactory} from '../failure/failure.factory'
-import {FlowEnum} from './enum/flow.enum'
+import { AbstractValidator } from './abstract.validator'
+import { SimpleFailure } from '../failure/simple.failure.type'
+import { FailureCode } from '../failure/failure.codes.enum'
+import { FailureFactory } from '../failure/failure.factory'
+import { FlowEnum } from './enum/flow.enum'
 
 class TestValidator extends AbstractValidator<TestValidator> {
   constructor(value: Record<string, any>, failures: SimpleFailure[] = []) {
@@ -39,17 +39,17 @@ describe('AbstractValidator', () => {
   describe('constructor', () => {
     it('deve lançar TechnicalError se o número de chaves no objeto de dados for diferente de 1', () => {
       // Arrange
-      const invalidData = {field1: 'value1', field2: 'value2'}
+      const invalidData = { field1: 'value1', field2: 'value2' }
 
       // Act & Assert
       expect(() => new TestValidator(invalidData)).toHaveTechnicalErrorCode(
-          FailureCode.VALIDATOR_WITH_INVALID_DATA_STRUCTURE,
+        FailureCode.VALIDATOR_WITH_INVALID_DATA_STRUCTURE
       )
     })
 
     it('não deve lançar TechnicalError se o número de chaves no objeto de dados for 1', () => {
       // Arrange
-      const validData = {field1: 'value1'}
+      const validData = { field1: 'value1' }
 
       // Act & Assert
       expect(() => new TestValidator(validData)).not.toThrowTechnicalError()

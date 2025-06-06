@@ -60,7 +60,7 @@ export abstract class AbstractValidator<T extends AbstractValidator<T>> {
    */
   protected constructor(data: Record<string, any>, failures: SimpleFailure[]) {
     const keys = Object.keys(data)
-    TechnicalError.if(keys.length !== 1, FailureCode.VALIDATOR_WITH_INVALID_DATA_STRUCTURE)
+    TechnicalError.if(keys.length !== 1, () => FailureFactory.VALIDATOR_WITH_INVALID_DATA_STRUCTURE(data.toString()))
 
     this._field = keys[0]
     this._value = data[this._field]
@@ -168,7 +168,9 @@ export abstract class AbstractValidator<T extends AbstractValidator<T>> {
    */
   public isEqualTo(target: Record<string, any>, failure?: () => SimpleFailure): T {
     const targetKeys = Object.keys(target)
-    TechnicalError.if(targetKeys.length !== 1, FailureCode.VALIDATOR_WITH_INVALID_DATA_STRUCTURE)
+    TechnicalError.if(targetKeys.length !== 1, () =>
+      FailureFactory.VALIDATOR_WITH_INVALID_DATA_STRUCTURE(target.toString())
+    )
 
     const targetField = targetKeys[0]
     const targetValue = target[targetField]
