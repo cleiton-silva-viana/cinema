@@ -1,4 +1,4 @@
-import {SupportedLanguageEnum} from "@shared/value-object/language-content/supported.language.enum";
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 /**
  * Interface que define a estrutura de um conteúdo em um idioma específico
@@ -8,6 +8,6 @@ import {SupportedLanguageEnum} from "@shared/value-object/language-content/suppo
  * ```
  */
 export interface ILanguageContent {
-    text: string
-    language: SupportedLanguageEnum
+  text: string
+  language: SupportedLanguageEnum
 }

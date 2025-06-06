@@ -5,7 +5,7 @@
  * { text: "Olá Mundo", language: "pt" }
  * ```
  */
-export interface ILanguageContentInput  {
-    text: string
-    language: string
+export interface ILanguageContentInput {
+  text: string
+  language: string
 }

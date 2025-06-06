@@ -1,42 +1,13 @@
-import { SimpleFailure } from '../failure/simple.failure.type'
-import { failure, Result, success } from '../result/result'
-import { TechnicalError } from '../error/technical.error'
-import { FailureCode } from '../failure/failure.codes.enum'
-import { Validate } from '../validator/validate'
-import { FailureFactory } from '../failure/failure.factory'
-import { parseToEnum } from '../validator/common.validators'
-
-/**
- * Idiomas suportados pela aplicação
- */
-export enum SupportedLanguageEnum {
-  PT = 'PT',
-  EN = 'EN',
-}
-
-/**
- * Interface para entrada de conteúdo multilíngue
- * Exemplo:
- * ```ts
- * { text: "Olá Mundo", language: "pt" }
- * ```
- */
-export interface IMultilingualInput {
-  text: string
-  language: string
-}
-
-/**
- * Interface que define a estrutura de um conteúdo em um idioma específico
- * Exemplo:
- * ```ts
- * { text: "Hello World", language: SupportedLanguageEnum.EN }
- * ```
- */
-export interface ILanguageContent {
-  text: string
-  language: SupportedLanguageEnum
-}
+import { SimpleFailure } from '../../failure/simple.failure.type'
+import { failure, Result, success } from '../../result/result'
+import { TechnicalError } from '../../error/technical.error'
+import { FailureCode } from '../../failure/failure.codes.enum'
+import { Validate } from '../../validator/validate'
+import { FailureFactory } from '../../failure/failure.factory'
+import { SupportedLanguageEnum } from './supported.language.enum'
+import { ILanguageContentInput } from './language.content.input.interface'
+import { ILanguageContent } from './language.content.interface'
+import { parseToEnum } from '@shared/validator/utils/validation.helpers'
 
 /**
  * Classe abstrata para representar conteúdo multilíngue com validações rigorosas.
@@ -47,7 +18,7 @@ export interface ILanguageContent {
  * - Os idiomas obrigatórios estejam sempre presentes
  * - O texto siga regras de formato e tamanho
  */
-export abstract class MultilingualContent {
+export abstract class LanguageContent {
   /**
    * Configurações de validação que podem ser sobrescritas pelas classes derivadas
    */
@@ -58,7 +29,10 @@ export abstract class MultilingualContent {
   /**
    * Idiomas obrigatórios por padrão (ex: 'pt' e 'en')
    */
-  protected static readonly REQUIRED_LANGUAGES: SupportedLanguageEnum[] = [SupportedLanguageEnum.PT, SupportedLanguageEnum.EN]
+  protected static readonly REQUIRED_LANGUAGES: SupportedLanguageEnum[] = [
+    SupportedLanguageEnum.PT,
+    SupportedLanguageEnum.EN,
+  ]
 
   /**
    * Expressão regular para validar o formato do texto:
@@ -74,10 +48,10 @@ export abstract class MultilingualContent {
    * @param contents Array de objetos com texto e idioma
    * @returns Result<T> com falha nos seguintes casos:
    */
-  public static create<T extends MultilingualContent>(contents: IMultilingualInput[]): Result<T> {
+  public static create<T extends LanguageContent>(contents: ILanguageContentInput[]): Result<T> {
     const failures: SimpleFailure[] = []
 
-    MultilingualContent.validateContentArray(contents, failures)
+    LanguageContent.validateContentArray(contents, failures)
     if (failures.length > 0) return failure(failures)
 
     const contentsParsed: ILanguageContent[] = []
@@ -111,15 +85,41 @@ export abstract class MultilingualContent {
    * @throws TechnicalError se o idioma ou texto forem vazios
    * @throws TechnicalError se o idioma não for suportado
    */
-  public static hydrate<T extends MultilingualContent>(lang: string, value: string): T {
+  public static hydrate<T extends LanguageContent>(lang: string, value: string): T {
     TechnicalError.validateRequiredFields({ lang, value })
     const contentMap = new Map<SupportedLanguageEnum, string>()
 
     const langEnumResult = parseToEnum(lang, lang, SupportedLanguageEnum)
-    if (langEnumResult.isInvalid()) new TechnicalError(FailureFactory.CONTENT_WITH_INVALID_LANGUAGE(lang))
+    if (langEnumResult.isInvalid()) throw new TechnicalError(FailureFactory.CONTENT_WITH_INVALID_LANGUAGE(lang))
     else contentMap.set(langEnumResult.value, value)
 
     return new (this as any)(contentMap)
+  }
+
+  /**
+   * Obtém o conteúdo em um idioma específico
+   * @param language Idioma a ser buscado
+   * @returns Texto correspondente ou undefined se não existir
+   */
+  public content(language: SupportedLanguageEnum): string | undefined {
+    return this.contents.get(language)
+  }
+
+  /**
+   * Verifica se possui conteúdo em um idioma específico
+   * @param language Idioma a ser verificado
+   * @returns true se o idioma existir, false caso contrário
+   */
+  public hasLanguage(language: SupportedLanguageEnum): boolean {
+    return this.contents.has(language)
+  }
+
+  /**
+   * Obtém todos os idiomas disponíveis
+   * @returns Array de idiomas presentes na instância atual
+   */
+  public languages(): SupportedLanguageEnum[] {
+    return Array.from(this.contents.keys())
   }
 
   /**
@@ -195,31 +195,5 @@ export abstract class MultilingualContent {
     for (const requiredLang of this.REQUIRED_LANGUAGES) {
       if (!languages.has(requiredLang)) failures.push(FailureFactory.TEXT_LANGUAGE_REQUIRED(requiredLang))
     }
-  }
-
-  /**
-   * Obtém o conteúdo em um idioma específico
-   * @param language Idioma a ser buscado
-   * @returns Texto correspondente ou undefined se não existir
-   */
-  public content(language: SupportedLanguageEnum): string | undefined {
-    return this.contents.get(language)
-  }
-
-  /**
-   * Verifica se possui conteúdo em um idioma específico
-   * @param language Idioma a ser verificado
-   * @returns true se o idioma existir, false caso contrário
-   */
-  public hasLanguage(language: SupportedLanguageEnum): boolean {
-    return this.contents.has(language)
-  }
-
-  /**
-   * Obtém todos os idiomas disponíveis
-   * @returns Array de idiomas presentes na instância atual
-   */
-  public languages(): SupportedLanguageEnum[] {
-    return Array.from(this.contents.keys())
   }
 }
