@@ -1,8 +1,8 @@
 import { IFailureMessageProvider } from './failure.message.provider.interface'
 import { FailureCode } from './failure.codes.enum'
-import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
-import { RichFailure } from '@shared/failure/rich.failure.type'
-import { FailureTemplate } from '@shared/failure/failure.template.type'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
+import { RichFailure } from './rich.failure.type'
+import { FailureTemplate } from './failure.template.type'
 
 const fails = require('../../i18n/failure.messages.json')
 

@@ -1,6 +1,6 @@
 import { FailureMessageProvider } from './failure.message.provider'
 import { FailureCode } from './failure.codes.enum'
-import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 jest.mock(
   '../../i18n/failure.messages.json',

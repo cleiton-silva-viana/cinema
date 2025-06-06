@@ -1,9 +1,9 @@
 import { RichFailure } from './rich.failure.type'
 import { SimpleFailure } from './simple.failure.type'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 export interface IFailureMapper {
-  toRichFailure(failure: SimpleFailure, language: SupportedLanguage): RichFailure
+  toRichFailure(failure: SimpleFailure, language: SupportedLanguageEnum): RichFailure
 
-  toRichFailures(failures: SimpleFailure[], language: SupportedLanguage): RichFailure[]
+  toRichFailures(failures: SimpleFailure[], language: SupportedLanguageEnum): RichFailure[]
 }

@@ -3,7 +3,7 @@ import { RichFailure } from './rich.failure.type'
 import { IFailureMessageProvider } from './failure.message.provider.interface'
 import { IFailureMapper } from './failure.mapper.interface'
 import { FailureMessageProvider } from './failure.message.provider'
-import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 /**
  * Classe responsável por mapear SimpleFailure para RichFailureType,

@@ -1,6 +1,6 @@
 import { FailureCode } from './failure.codes.enum'
-import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
-import { RichFailure } from '@shared/failure/rich.failure.type'
+import { RichFailure } from './rich.failure.type'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 /**
  * Interface para provedores de mensagens de falha

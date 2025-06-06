@@ -1,7 +1,7 @@
 import { FailureMapper } from './failure.mapper'
 import { IFailureMessageProvider } from './failure.message.provider.interface'
 import { SimpleFailure } from './simple.failure.type'
-import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 
 describe('FailureMapper', () => {
@@ -52,12 +52,12 @@ describe('FailureMapper', () => {
       }
       FailureMapper.setMessageProvider(customProvider)
       const mapper = FailureMapper.getInstance()
-      const failure: SimpleFailure = { code: FailureCode.STRING_INVALID_FORMAT }
+      const failure: SimpleFailure = { code: FailureCode.STRING_WITH_INVALID_FORMAT }
       mapper.toRichFailure(failure, SupportedLanguageEnum.PT)
 
       // Act & Assert
       expect(customProvider.getMessageConfig).toHaveBeenCalledWith(
-        FailureCode.STRING_INVALID_FORMAT,
+        FailureCode.STRING_WITH_INVALID_FORMAT,
         SupportedLanguageEnum.PT
       )
     })
