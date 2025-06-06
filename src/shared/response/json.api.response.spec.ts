@@ -2,8 +2,8 @@ import { JsonApiResponse } from './json.api.response'
 import { SimpleFailure } from '../failure/simple.failure.type'
 import { IFailureMapper } from '../failure/failure.mapper.interface'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 import { JsonApiResponseLogMessage } from './json.api.response.log.messages.enum'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 const mockLoggerWarn = jest.fn()
 const mockLoggerError = jest.fn()
@@ -27,7 +27,7 @@ jest.mock('@nestjs/common', () => ({
 
 describe('JsonApiResponse', () => {
   const mockFailureMapper: IFailureMapper = {
-    toRichFailures: jest.fn().mockImplementation((failures: SimpleFailure[], language = SupportedLanguage.PT) => {
+    toRichFailures: jest.fn().mockImplementation((failures: SimpleFailure[], language = SupportedLanguageEnum.PT) => {
       return failures.map((failure) => ({
         code: failure.code,
         status: 400,
@@ -35,7 +35,7 @@ describe('JsonApiResponse', () => {
         details: failure.details || {},
       }))
     }),
-    toRichFailure: jest.fn().mockImplementation((failure: SimpleFailure, language = SupportedLanguage.PT) => {
+    toRichFailure: jest.fn().mockImplementation((failure: SimpleFailure, language = SupportedLanguageEnum.PT) => {
       return {
         code: failure.code,
         status: 400,
@@ -275,7 +275,7 @@ describe('JsonApiResponse', () => {
       const json = response.toJSON()
 
       // Assert
-      expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith([failure], SupportedLanguage.PT)
+      expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith([failure], SupportedLanguageEnum.PT)
       expect(json.errors).toHaveLength(1)
       expect(json.errors[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
     })
@@ -292,7 +292,7 @@ describe('JsonApiResponse', () => {
       const json = response.toJSON()
 
       // Assert
-      expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith(failures, SupportedLanguage.PT)
+      expect(mockFailureMapper.toRichFailures).toHaveBeenCalledWith(failures, SupportedLanguageEnum.PT)
       expect(json.errors).toHaveLength(2)
       expect(json.errors[0].code).toBe(FailureCode.DATE_CANNOT_BE_PAST)
       expect(json.errors[1].code).toBe(FailureCode.DATE_NOT_AFTER_LIMIT)
@@ -498,7 +498,7 @@ describe('JsonApiResponse', () => {
     it('deve priorizar errors sobre data na resposta final', () => {
       // Arrange
       const resource = { id: '1', type: 'users' }
-      const failure: SimpleFailure = { code: FailureCode.STRING_INVALID_FORMAT }
+      const failure: SimpleFailure = { code: FailureCode.STRING_WITH_INVALID_FORMAT }
 
       // Act
       response.data(resource).errors(failure)

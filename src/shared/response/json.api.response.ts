@@ -1,12 +1,12 @@
 import { HttpStatus } from '@nestjs/common'
-import { isBlank, isNull } from '../validator/validator'
+import { isBlank, isNull } from '../validator/utils/validation'
 import { SimpleFailure } from '../failure/simple.failure.type'
 import { IFailureMapper } from '../failure/failure.mapper.interface'
 import { FailureMapper } from '../failure/failure.mapper'
-import { SupportedLanguage } from '@shared/value-object/multilingual-content'
 import { LoggerService } from '@shared/logging/logging.service'
 import { JsonApiResponseLogMessage } from '@shared/response/json.api.response.log.messages.enum'
 import { ResourceTypesEnum } from '@shared/constant/resource.types'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 export interface ICommonLinks {
   self?: string
@@ -218,7 +218,7 @@ export class JsonApiResponse {
 
     const failures = this._failureMapper.toRichFailures(
       Array.isArray(failure) ? failure : [failure],
-      SupportedLanguage.PT
+      SupportedLanguageEnum.PT
     )
 
     failures.forEach((f) => {
