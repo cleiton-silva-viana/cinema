@@ -2,17 +2,9 @@ import { Name } from './name'
 import { TechnicalError } from '../error/technical.error'
 import { faker } from '@faker-js/faker'
 import { FailureCode } from '../failure/failure.codes.enum'
-import { validateAndCollect } from '../validator/common.validators'
-import { SimpleFailure } from '../failure/simple.failure.type'
 
 describe('Name', () => {
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     describe('deve criar um nome válido', () => {
       const successCases = [
         { name: 'john', scenario: 'com comprimento mínimo' },
@@ -31,10 +23,12 @@ describe('Name', () => {
       successCases.forEach(({ name, scenario }) => {
         it(`objeto Name ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(Name.create(name), failures)
+          const result = Name.create(name)
 
           // Assert
-          expect(result.value).toBe(name)
+          expect(result).toBeValidResultMatching<Name>(n => {
+            expect(n.value).toBe(name)
+          })
         })
       })
     })
@@ -54,7 +48,7 @@ describe('Name', () => {
         {
           name: '',
           scenario: 'quando o nome está vazio',
-          errorCodeExpected: FailureCode.STRING_CANNOT_BE_EMPTY,
+          errorCodeExpected: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
           name: 'ab',
@@ -81,12 +75,10 @@ describe('Name', () => {
       failureCases.forEach(({ name, scenario, errorCodeExpected }) => {
         it(`objeto Name ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(Name.create(name), failures)
+          const result = Name.create(name)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(errorCodeExpected)
+          expect(result).toBeInvalidResultWithSingleFailure(errorCodeExpected)
         })
       })
     })

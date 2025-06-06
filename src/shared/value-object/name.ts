@@ -1,9 +1,9 @@
 import { failure, Result, success } from '../result/result'
 import { SimpleFailure } from '../failure/simple.failure.type'
 import { TechnicalError } from '../error/technical.error'
-import { FailureCode } from '../failure/failure.codes.enum'
 import { Validate } from '../validator/validate'
-import { isNull } from '../validator/validator'
+import { isNull } from '@shared/validator/utils/validation'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 /**
  * Representa um nome válido encapsulado com validações de formato e tamanho.
@@ -38,7 +38,7 @@ export class Name {
       .isRequired()
       .isNotEmpty()
       .hasLengthBetween(Name.MIN_NAME_LENGTH, Name.MAX_NAME_LENGTH)
-      .matchesPattern(Name.NAME_FORMAT_REGEX, FailureCode.NAME_WITH_INVALID_FORMAT)
+      .matchesPattern(Name.NAME_FORMAT_REGEX, () => FailureFactory.NAME_WITH_INVALID_FORMAT(name))
 
     return failures.length > 0 ? failure(failures) : success(new Name(name))
   }
@@ -49,9 +49,7 @@ export class Name {
    * @throws TechnicalError se o nome for nulo ou vazio
    */
   public static hydrate(name: string): Name {
-    TechnicalError.if(isNull(name), FailureCode.MISSING_REQUIRED_DATA, {
-      field: name,
-    })
+    TechnicalError.if(isNull(name), () => FailureFactory.MISSING_REQUIRED_DATA('name'))
     return new Name(name)
   }
 
