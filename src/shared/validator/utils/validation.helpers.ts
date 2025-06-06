@@ -4,7 +4,7 @@ import { failure, Result, success } from '../../result/result'
 import { TechnicalError } from '../../error/technical.error'
 import { FailureFactory } from '../../failure/failure.factory'
 import { CaseSensitivityEnum } from '@shared/validator/enum/case.sensitivity.enum'
-import {isNullOrUndefined} from "@shared/validator/utils/validation";
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 /**
  * Verifica se valores são nulos ou indefinidos e cria falhas para cada campo inválido.
@@ -61,7 +61,7 @@ export function collectNullFields(fieldsToCheck: Record<string, any>): string[] 
   const nullFields: string[] = []
 
   for (const [fieldName, fieldValue] of Object.entries(fieldsToCheck)) {
-    if (fieldValue === null || fieldValue === undefined) {
+    if (isNullOrUndefined(fieldValue)) {
       nullFields.push(fieldName)
     }
   }
