@@ -82,8 +82,8 @@ describe('extractTemplateVariables', () => {
   it('deve retornar mais de uma propriedade corretamente', () => {
     // Arrange
     const field1 = { name: 'name', type: 'string[]' }
-    const field3 = { name: 'max',  type: 'number'   }
-    const field4 = { name: 'hour', type: 'boolean'  }
+    const field3 = { name: 'max', type: 'number' }
+    const field4 = { name: 'hour', type: 'boolean' }
     const template = `{${field1.name}:${field1.type}} - {${field3.name}:${field3.type}} - {${field4.name}:${field4.type}}`
 
     // Act

@@ -17,7 +17,18 @@ export function extractTemplateVariables(template: string): Array<TemplateVariab
     let type = match[2] ? match[2].trim() : 'string'
 
     // Validate and normalize types
-    const validTypes = ['string', 'number', 'boolean', 'Date', 'string[]', 'number[]', 'boolean[]', 'Date[]']
+    const validTypes = [
+      'any',
+      'string',
+      'number',
+      'boolean',
+      'Date',
+      'string[]',
+      'number[]',
+      'boolean[]',
+      'Date[]',
+      'any[]',
+    ]
     const types = type.split('|').map((t) => t.trim())
     const filteredTypes = types.filter((t) => {
       return validTypes.includes(t)
