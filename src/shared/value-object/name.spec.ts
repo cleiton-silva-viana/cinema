@@ -26,7 +26,7 @@ describe('Name', () => {
           const result = Name.create(name)
 
           // Assert
-          expect(result).toBeValidResultMatching<Name>(n => {
+          expect(result).toBeValidResultMatching<Name>((n) => {
             expect(n.value).toBe(name)
           })
         })
