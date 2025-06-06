@@ -2,8 +2,6 @@ import { UID } from './uid'
 import { v4, v7 } from 'uuid'
 import { TechnicalError } from '../error/technical.error'
 import { FailureCode } from '../failure/failure.codes.enum'
-import { validateAndCollect } from '../validator/common.validators'
-import { SimpleFailure } from '../failure/simple.failure.type'
 
 const PREFIX = 'TEST'
 const SEPARATOR = '.'
@@ -16,11 +14,6 @@ class TestUID extends UID {
 
 describe('UID', () => {
   const UID_STRING = `${PREFIX}${SEPARATOR}${v7()}`
-  let failures: SimpleFailure[]
-
-  beforeEach(() => {
-    failures = []
-  })
 
   describe('create', () => {
     it('deve criar um UID válido com UUID v7', () => {
@@ -37,12 +30,10 @@ describe('UID', () => {
     describe('deve criar um válido', () => {
       it('objeto UID a partir de uma string válida', () => {
         // Act
-        const result = validateAndCollect(TestUID.parse(UID_STRING), failures)
+        const result = TestUID.parse(UID_STRING)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result.value).not.toBeNull()
-        expect(result.value).toBe(UID_STRING)
+        expect(result).toBeValidResultMatching<UID>((uid) => uid.value === UID_STRING)
       })
     })
 
@@ -61,23 +52,20 @@ describe('UID', () => {
       failureCases.forEach(({ value, scenario }) => {
         it(scenario, () => {
           // Act
-          const result = validateAndCollect(TestUID.parse(value), failures)
+          const result = TestUID.parse(value)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
         })
       })
     })
 
     it('deve falhar ao usar um valor vazio para criar um UID', () => {
       // Act
-      const result = validateAndCollect(TestUID.parse('     '), failures)
+      const result = TestUID.parse('     ')
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.STRING_CANNOT_BE_EMPTY)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.STRING_CANNOT_BE_EMPTY)
     })
 
     describe('deve falhar ao criar um UID com formato inválido', () => {
@@ -103,12 +91,10 @@ describe('UID', () => {
       failureCases.forEach(({ value, scenario }) => {
         it(`objeto UID ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(TestUID.parse(value), failures)
+          const result = TestUID.parse(value)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(FailureCode.UID_WITH_INVALID_FORMAT)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.UID_WITH_INVALID_FORMAT)
         })
       })
     })

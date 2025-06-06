@@ -1,10 +1,12 @@
 import { v7 } from 'uuid'
 import { failure, Result, success } from '../result/result'
 import { SimpleFailure } from '../failure/simple.failure.type'
-import { isBlank, isNull } from '../validator/validator'
 import { TechnicalError } from '../error/technical.error'
-import { FailureCode } from '../failure/failure.codes.enum'
 import { Validate } from '../validator/validate'
+import { isBlank, isNull } from '@shared/validator/utils/validation'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { CaseSensitivityEnum } from '@shared/validator/enum/case.sensitivity.enum'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
 
 /**
  * Classe base abstrata para valores de identificação únicos (UIDs)
@@ -68,9 +70,7 @@ export abstract class UID {
    * @returns Nova instância de UID
    */
   public static hydrate(value: string): UID {
-    TechnicalError.if(isBlank(value), FailureCode.MISSING_REQUIRED_DATA, {
-      field: 'uid',
-    })
+    TechnicalError.if(isBlank(value), () => FailureFactory.MISSING_REQUIRED_DATA('uid'))
     const uid = UID.extractUuidPart(value, this)
     return new (this as any)(uid)
   }
@@ -83,7 +83,9 @@ export abstract class UID {
    * - `FailureCode.INVALID_UUID`: Se o prefixo, formato ou UUID forem inválidos
    */
   public static parse(uid: string): Result<UID> {
-    const failures: SimpleFailure[] = []
+    const failures = ensureNotNull({ uid })
+    if (failures.length > 0) return failure(failures)
+
     const concreteClass = this
     const prefix = concreteClass.PREFIX + concreteClass.SEPARATOR
     let uuidPart: string = UID.extractUuidPart(uid, concreteClass)
@@ -91,7 +93,7 @@ export abstract class UID {
     Validate.string({ uid }, failures)
       .isRequired()
       .isNotEmpty()
-      .startsWith(prefix, FailureCode.UID_WITH_INVALID_FORMAT)
+      .startsWith(prefix, CaseSensitivityEnum.INSENSITIVE, () => FailureFactory.UID_WITH_INVALID_FORMAT(uid, 'uid'))
       .then(() => {
         uuidPart = UID.extractUuidPart(uid, concreteClass)
         Validate.string({ uid: uuidPart }, failures).isValidUUIDv7()
