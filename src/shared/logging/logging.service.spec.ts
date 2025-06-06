@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common'
 import { LoggerService } from './logging.service'
-import ResourceTypesEnum from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 
 jest.mock('@nestjs/common', () => ({
   Logger: jest.fn().mockImplementation(() => ({
