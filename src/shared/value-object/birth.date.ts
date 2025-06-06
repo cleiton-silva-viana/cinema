@@ -1,8 +1,8 @@
 import { failure, Result, success } from '../result/result'
 import { SimpleFailure } from '../failure/simple.failure.type'
 import { TechnicalError } from '../error/technical.error'
-import { isNull } from '../validator/validator'
 import { Validate } from '../validator/validate'
+import { isNull } from '@shared/validator/utils/validation'
 
 /**
  * Representa uma data de nascimento válida com regras de negócio aplicadas.

@@ -1,8 +1,6 @@
 import { BirthDate } from './birth.date'
 import { TechnicalError } from '../error/technical.error'
 import { FailureCode } from '../failure/failure.codes.enum'
-import { validateAndCollect } from '../validator/common.validators'
-import { SimpleFailure } from '../failure/simple.failure.type'
 
 describe('BirthDate', () => {
   const originalDateNow = Date.now
@@ -16,12 +14,6 @@ describe('BirthDate', () => {
   })
 
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     describe('deve criar um objeto válido', () => {
       const successCases = [
         {
@@ -41,11 +33,13 @@ describe('BirthDate', () => {
       successCases.forEach(({ date, scenario }) => {
         it(`objeto BirthDate ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(BirthDate.create(date), failures)
+          const result = BirthDate.create(date)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.value.getTime()).toBe(date.getTime())
+          expect(result).toBeValidResultMatching<BirthDate>((b) => {
+            expect(b).toBeDefined()
+            expect(b.value.getTime()).toBe(date.getTime())
+          })
         })
       })
     })
@@ -71,12 +65,10 @@ describe('BirthDate', () => {
       failureCases.forEach(({ date, scenario, errorCodeExpected }) => {
         it(`objeto BirthDate ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(BirthDate.create(date), failures)
+          const result = BirthDate.create(date)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(errorCodeExpected)
+          expect(result).toBeInvalidResultWithSingleFailure(errorCodeExpected)
         })
       })
     })
@@ -87,11 +79,10 @@ describe('BirthDate', () => {
 
       // Act
       for (const date of invalidValues) {
-        const result = validateAndCollect(BirthDate.create(date), failures)
+        const result = BirthDate.create(date)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
       }
     })
   })
