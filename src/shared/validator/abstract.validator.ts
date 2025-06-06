@@ -3,7 +3,7 @@ import { TechnicalError } from '../error/technical.error'
 import { FailureFactory } from '../failure/failure.factory'
 import { FlowEnum } from './enum/flow.enum'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { isEqual } from '@shared/validator/utils/validation'
+import {isEqual, isNull, isNullOrUndefined} from '@shared/validator/utils/validation'
 
 /**
  * Classe base abstrata para validação de propriedades.
@@ -151,7 +151,7 @@ export abstract class AbstractValidator<T extends AbstractValidator<T>> {
    * ```
    */
   public isRequired(failure?: () => SimpleFailure): T {
-    return this.validate(() => !this._value, failure ? failure() : FailureFactory.MISSING_REQUIRED_DATA(this._field))
+    return this.validate(() => isNullOrUndefined(this._value), failure ? failure() : FailureFactory.MISSING_REQUIRED_DATA(this._field))
   }
 
   /**
