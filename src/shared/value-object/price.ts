@@ -1,10 +1,9 @@
 import { failure, Result, success } from '../result/result'
-import { isNull } from '../validator/validator'
-import { FailureCode } from '../failure/failure.codes.enum'
-import { ensureNotNull } from '../validator/common.validators'
 import { Validate } from '../validator/validate'
 import { TechnicalError } from '../error/technical.error'
 import { FailureFactory } from '../failure/failure.factory'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
+import { isNull } from '@shared/validator/utils/validation'
 
 /**
  * Representa um valor monetário (Preço).
@@ -58,9 +57,9 @@ export class Price {
 
     Validate.number({ valueInCents }, failures)
       .isRequired()
-      .isInteger(FailureCode.PRICE_MUST_BE_INTEGER, { value: valueInCents })
-      .isTrue(valueInCents >= 0, FailureCode.PRICE_MUST_BE_POSITIVE, { value: valueInCents })
-      .isTrue(!isNaN(valueInCents), FailureCode.PRICE_INVALID_INSTANCE, { type: typeof valueInCents })
+      .isInteger(() => FailureFactory.PRICE_MUST_BE_INTEGER(valueInCents))
+      .isTrue(valueInCents >= 0, () => FailureFactory.PRICE_MUST_BE_POSITIVE(valueInCents))
+      .isTrue(!isNaN(valueInCents), () => FailureFactory.PRICE_INVALID_INSTANCE(typeof valueInCents))
 
     return failures.length > 0 ? failure(failures) : success(new Price(valueInCents))
   }
@@ -121,7 +120,7 @@ export class Price {
    */
   public multiply(factor: number): Result<Price> {
     if (typeof factor !== 'number' || isNaN(factor))
-      return failure(FailureFactory.PRICE_INVALID_MULTIPLICATION_FACTOR(factor.toString(), typeof factor))
+      return failure(FailureFactory.PRICE_INVALID_MULTIPLICATION_FACTOR(factor, typeof factor))
 
     if (factor < 0) return failure(FailureFactory.PRICE_NEGATIVE_FACTOR_NOT_ALLOWED(factor))
 
@@ -141,7 +140,7 @@ export class Price {
    */
   public divide(divisor: number): Result<Price> {
     if (typeof divisor !== 'number' || isNaN(divisor))
-      return failure(FailureFactory.PRICE_INVALID_DIVISION_FACTOR(divisor.toString(), 'number'))
+      return failure(FailureFactory.PRICE_INVALID_DIVISION_FACTOR(divisor, 'number'))
 
     if (divisor <= 0) return failure(FailureFactory.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED(divisor))
 
@@ -158,7 +157,7 @@ export class Price {
    * @throws TechnicalError se o parâmetro não for uma instância de Price.
    */
   public compare(other: Price): number {
-    TechnicalError.if(!(other instanceof Price), FailureCode.PRICE_INVALID_INSTANCE)
+    TechnicalError.if(!(other instanceof Price), () => FailureFactory.PRICE_INVALID_INSTANCE(typeof other))
 
     if (this.value < other.value) return -1
     if (this.value > other.value) return 1

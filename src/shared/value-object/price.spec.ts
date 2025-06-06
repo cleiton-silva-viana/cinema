@@ -1,32 +1,27 @@
 import { Price } from './price'
 import { FailureCode } from '../failure/failure.codes.enum'
-import { validateAndCollect } from '../validator/common.validators'
-import { SimpleFailure } from '../failure/simple.failure.type'
 
 describe('Price', () => {
   function createValidPrice(value: number): Price {
-    return validateAndCollect(Price.create(value), [])
+    const r = Price.create(value)
+    if (r.isValid()) return r.value
+    throw new Error('Invalid price')
   }
 
   const price = createValidPrice(10)
 
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     it('deve criar um Price válido com número inteiro', () => {
       // Arrange
       const value = 10
 
       // Act
-      const result = validateAndCollect(Price.create(value), failures)
+      const result = Price.create(value)
 
       // Assert
-      expect(result).not.toBeNull()
-      expect(result.value).toBe(value) // Valor armazenado em centavos
+      expect(result).toBeValidResultMatching((price: Price) => {
+        expect(price.value).toBe(value)
+      })
     })
 
     it('deve criar um Price com valor 0', () => {
@@ -34,20 +29,20 @@ describe('Price', () => {
       const value = 0
 
       // Act
-      const result = validateAndCollect(Price.create(value), failures)
+      const result = Price.create(value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.value).toBe(value)
+      expect(result).toBeValidResultMatching((p: Price) => {
+        expect(p.value).toBe(value)
+      })
     })
 
     it('deve falhar quando receber um NaN', () => {
       // Act
-      const result = validateAndCollect(Price.create(NaN), failures)
+      const result = Price.create(NaN)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures.length).toBeGreaterThan(0)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_MUST_BE_INTEGER)
     })
 
     describe('deve falhar ao criar um Price inválido', () => {
@@ -77,12 +72,10 @@ describe('Price', () => {
       failureCases.forEach(({ value, scenario, errorCodeExpected }) => {
         it(`objeto Price ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(Price.create(value), failures)
+          const result = Price.create(value)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures.length).toBeGreaterThan(0)
-          expect(failures.some((e) => e.code === errorCodeExpected)).toBe(true)
+          expect(result).toBeInvalidResultWithSingleFailure(errorCodeExpected)
         })
       })
     })
@@ -132,33 +125,24 @@ describe('Price', () => {
   })
 
   describe('operations', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     describe('add', () => {
       it('deve adicionar dois preços corretamente', () => {
         // Arrange
         const price2 = createValidPrice(20)
 
         // Act
-        const sum = validateAndCollect(price.add(price2), failures)
+        const result = price.add(price2)
 
         // Assert
-        expect(sum).not.toBeNull()
-        expect(sum.value).toBe(30) // 30 em centavos
+        expect(result).toBeValidResultMatching<Price>((p) => expect(p.value).toBe(price.value + price2.value))
       })
 
       it('deve falhar ao adicionar um valor que não é Price', () => {
         // Act
-        const result = validateAndCollect(price.add(5 as any), failures)
+        const result = price.add(5 as any)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.PRICE_INVALID_INSTANCE)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_INVALID_INSTANCE)
       })
     })
 
@@ -168,11 +152,12 @@ describe('Price', () => {
         const price2 = createValidPrice(10)
 
         // Act
-        const result = validateAndCollect(price.subtract(price2), failures)
+        const result = price.subtract(price2)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result.value).toBe(0)
+        expect(result).toBeValidResultMatching<Price>((p) => {
+          expect(p.value).toBe(0)
+        })
       })
 
       it('deve subtrair dois preços corretamente', () => {
@@ -180,11 +165,12 @@ describe('Price', () => {
         const price2 = createValidPrice(9)
 
         // Act
-        const result = validateAndCollect(price.subtract(price2), failures)
+        const result = price.subtract(price2)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result.value).toBe(1)
+        expect(result).toBeValidResultMatching<Price>((p) => {
+          expect(p.value).toBe(price.value - price2.value)
+        })
       })
 
       it('deve falhar quando a subtração resulta em valor negativo', () => {
@@ -192,22 +178,18 @@ describe('Price', () => {
         const price2 = createValidPrice(20)
 
         // Act
-        const result = validateAndCollect(price.subtract(price2), failures)
+        const result = price.subtract(price2)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.PRICE_NEGATIVE_RESULT_NOT_ALLOWED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_NEGATIVE_RESULT_NOT_ALLOWED)
       })
 
       it('deve falhar ao subtrair um valor que não é Price', () => {
         // Act
-        const result = validateAndCollect(price.subtract(5 as any), failures)
+        const result = price.subtract(5 as any)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.PRICE_INVALID_INSTANCE)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_INVALID_INSTANCE)
       })
     })
 
@@ -217,21 +199,20 @@ describe('Price', () => {
         const factor = 2.5
 
         // Act
-        const result = validateAndCollect(price.multiply(factor), failures)
+        const result = price.multiply(factor)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result.value).toBe(25)
+        expect(result).toBeValidResultMatching<Price>((p) => {
+          expect(p.value).toBe(price.value * factor)
+        })
       })
 
       it('deve falhar quando o fator de multiplicação não é um número', () => {
         // Act
-        const result = validateAndCollect(price.multiply('2' as any), failures)
+        const result = price.multiply('2' as any)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.PRICE_INVALID_MULTIPLICATION_FACTOR)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_INVALID_MULTIPLICATION_FACTOR)
       })
 
       it('deve falhar quando o fator de multiplicação é negativo', () => {
@@ -239,12 +220,10 @@ describe('Price', () => {
         const factor = -2
 
         // Act
-        const result = validateAndCollect(price.multiply(factor), failures)
+        const result = price.multiply(factor)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.PRICE_NEGATIVE_FACTOR_NOT_ALLOWED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_NEGATIVE_FACTOR_NOT_ALLOWED)
       })
     })
 
@@ -254,11 +233,12 @@ describe('Price', () => {
         const divisor = 2
 
         // Act
-        const result = validateAndCollect(price.divide(divisor), failures)
+        const result = price.divide(divisor)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result.value).toBe(5)
+        expect(result).toBeValidResultMatching<Price>((p) => {
+          expect(p.value).toBe(price.value / divisor)
+        })
       })
 
       it('deve arredondar o resultado para o centavo mais próximo', () => {
@@ -266,21 +246,20 @@ describe('Price', () => {
         const divisor = 3
 
         // Act
-        const result = validateAndCollect(price.divide(divisor), failures)
+        const result = price.divide(divisor)
 
         // Assert
-        expect(result).not.toBeNull()
-        expect(result.value).toBe(3)
+        expect(result).toBeValidResultMatching<Price>((p) => {
+          expect(p.value).toBe(Math.round(price.value / divisor))
+        })
       })
 
       it('deve falhar quando o divisor não é um número', () => {
         // Act
-        const result = validateAndCollect(price.divide('2' as any), failures)
+        const result = price.divide('2' as any)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.PRICE_INVALID_DIVISION_FACTOR)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_INVALID_DIVISION_FACTOR)
       })
 
       it('deve falhar quando o divisor é zero', () => {
@@ -288,26 +267,21 @@ describe('Price', () => {
         const divisor = 0
 
         // Act
-        const result = validateAndCollect(price.divide(divisor), failures)
+        const result = price.divide(divisor)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED)
       })
 
       it('deve falhar quando o divisor é negativo', () => {
         // Arrange
         const divisor = -2
-        const failures: SimpleFailure[] = []
 
         // Act
-        const result = validateAndCollect(price.divide(divisor), failures)
+        const result = price.divide(divisor)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.PRICE_ZERO_OR_NEGATIVE_DIVISOR_NOT_ALLOWED)
       })
     })
 
