@@ -4,6 +4,7 @@ import { failure, Result, success } from '../../result/result'
 import { TechnicalError } from '../../error/technical.error'
 import { FailureFactory } from '../../failure/failure.factory'
 import { CaseSensitivityEnum } from '@shared/validator/enum/case.sensitivity.enum'
+import {isNullOrUndefined} from "@shared/validator/utils/validation";
 
 /**
  * Verifica se valores são nulos ou indefinidos e cria falhas para cada campo inválido.
@@ -26,7 +27,7 @@ export function ensureNotNull(fieldsToCheck: Record<string, any>): SimpleFailure
   const failures: SimpleFailure[] = []
 
   for (const [fieldName, fieldValue] of Object.entries(fieldsToCheck)) {
-    if (!fieldValue) {
+    if (isNullOrUndefined(fieldValue)) {
       failures.push({
         code: FailureCode.MISSING_REQUIRED_DATA,
         details: { field: fieldName },
