@@ -125,7 +125,7 @@ export function hydrateEnum<T extends Record<string, string | number>>(
 
   const str = Object.entries(value)
 
-  TechnicalError.if(str.length !== 1, FailureCode.INVALID_ENUM_VALUE_COUNT, { values: str })
+  TechnicalError.if(str.length !== 1, () => FailureFactory.INVALID_ENUM_VALUE_COUNT(str[0][0], 1, str.length, str))
 
   const result = parseToEnum(str[0][0], str[0][1], enumType, CaseSensitivityEnum.INSENSITIVE)
 
