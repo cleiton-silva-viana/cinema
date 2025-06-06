@@ -16,6 +16,10 @@ export const isNull = (value: any): boolean => {
   return value === null || value === undefined
 }
 
+export const isNullOrUndefined = (value: any): boolean => {
+  return value === null || value === undefined
+}
+
 /**
  * Verifica se uma string (ignorando espaços nas bordas) ou um array está vazio.
  * Retorna true também se o valor for null ou undefined.
