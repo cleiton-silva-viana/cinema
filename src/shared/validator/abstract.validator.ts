@@ -1,13 +1,9 @@
 import { SimpleFailure } from '../failure/simple.failure.type'
-import { isEqual } from './validator'
-import { FailureCode } from '../failure/failure.codes.enum'
 import { TechnicalError } from '../error/technical.error'
 import { FailureFactory } from '../failure/failure.factory'
-
-export enum FlowEnum {
-  STOP = 'STOP',
-  CONTINUE = 'CONTINUE',
-}
+import { FlowEnum } from './enum/flow.enum'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { isEqual } from '@shared/validator/utils/validation'
 
 /**
  * Classe base abstrata para validação de propriedades.

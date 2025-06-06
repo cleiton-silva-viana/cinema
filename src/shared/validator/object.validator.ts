@@ -1,4 +1,4 @@
-import { isNull } from './validator'
+import { isNull } from './utils/validation'
 import { SimpleFailure } from '../failure/simple.failure.type'
 import { AbstractValidator } from './abstract.validator'
 import { FailureFactory } from '@shared/failure/failure.factory'

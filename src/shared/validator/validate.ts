@@ -2,8 +2,8 @@ import { NumberValidator } from './number.validator'
 import { StringValidator } from './string.validator'
 import { DateValidator } from './date.validator'
 import { ArrayValidator } from './array.validator'
-import { ObjectValidator } from './object.valdiator'
 import { SimpleFailure } from '../failure/simple.failure.type'
+import { ObjectValidator } from './object.validator'
 
 /**
  * Classe principal para iniciar validações tipadas
