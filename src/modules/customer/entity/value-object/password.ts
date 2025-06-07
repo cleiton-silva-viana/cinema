@@ -4,6 +4,7 @@ import { TechnicalError } from '@shared/error/technical.error'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { hash, verify } from 'argon2'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 export class Password {
   private static MIN_LENGTH = 6
@@ -17,14 +18,13 @@ export class Password {
 
     Validate.string({ password }, failures)
       .isRequired()
-      .hasLengthBetween(this.MIN_LENGTH, this.MAX_LENGTH, FailureCode.PASSWORD_LENGTH_OUT_OF_RANGE, {
-        min: this.MIN_LENGTH,
-        max: this.MAX_LENGTH,
-      })
-      .matchesPattern(/[A-Z]/, FailureCode.PASSWORD_MISSING_UPPERCASE)
-      .matchesPattern(/[a-z]/, FailureCode.PASSWORD_MISSING_LOWERCASE)
-      .matchesPattern(/[0-9]/, FailureCode.PASSWORD_MISSING_DIGIT)
-      .matchesPattern(/[^a-zA-Z0-9]/, FailureCode.PASSWORD_MISSING_SPECIAL_CHARACTER)
+      .hasLengthBetween(this.MIN_LENGTH, this.MAX_LENGTH, () =>
+        FailureFactory.PASSWORD_LENGTH_OUT_OF_RANGE(this.MIN_LENGTH, this.MAX_LENGTH)
+      )
+      .matchesPattern(/[A-Z]/, () => FailureFactory.PASSWORD_MISSING_UPPERCASE())
+      .matchesPattern(/[a-z]/, () => FailureFactory.PASSWORD_MISSING_LOWERCASE())
+      .matchesPattern(/[0-9]/, () => FailureFactory.PASSWORD_MISSING_DIGIT())
+      .matchesPattern(/[^a-zA-Z0-9]/, () => FailureFactory.PASSWORD_MISSING_SPECIAL_CHARACTER())
 
     if (failures.length > 0) return failure(failures)
 

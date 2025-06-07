@@ -1,17 +1,9 @@
 import { Password } from './password'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { TechnicalError } from '@shared/error/technical.error'
 
 describe('Password', () => {
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     describe('deve criar uma senha válida', () => {
       const successCases = [
         { password: '123ABf@#', scenario: 'com tamanho mínimo permitido' },
@@ -26,12 +18,10 @@ describe('Password', () => {
       successCases.forEach(({ password, scenario }) => {
         it(`objeto Password ${scenario}`, async () => {
           // Act
-          const result = validateAndCollect(await Password.create(password), failures)
+          const result = await Password.create(password)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.value).toBeDefined() // O valor é o hash
-          expect(failures).toHaveLength(0)
+          expect(result).toBeValidResult()
         })
       })
     })
@@ -88,12 +78,10 @@ describe('Password', () => {
       failureCases.forEach(({ password, scenario, errorCodeExpected }) => {
         it(`objeto Password ${scenario}`, async () => {
           // Act
-          const result = validateAndCollect(await Password.create(password), failures)
+          const result = await Password.create(password)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(errorCodeExpected)
+          expect(result).toBeInvalidResultWithSingleFailure(errorCodeExpected)
         })
       })
     })
