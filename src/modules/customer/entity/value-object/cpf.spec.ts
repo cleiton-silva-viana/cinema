@@ -1,20 +1,12 @@
 import { CPF } from './cpf'
 import { TechnicalError } from '@shared/error/technical.error'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 
 describe('CPF', () => {
   const VALID_CPF_1 = '123.456.789-90'
   const VALID_CPF_2 = '123.456.789-40'
 
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     describe('deve criar um CPF válido', () => {
       const successCases = [
         { cpf: VALID_CPF_1, scenario: 'com formato válido' },
@@ -24,22 +16,22 @@ describe('CPF', () => {
       successCases.forEach(({ cpf, scenario }) => {
         it(`objeto CPF ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(CPF.create(cpf), failures)
+          const result = CPF.create(cpf)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.value).toBe(cpf)
+          expect(result).toBeValidResultMatching<CPF>((c) => {
+            expect(c.value).toBe(cpf)
+          })
         })
       })
     })
 
     it('deve falhar ao usar um valor vazio para criar um CPF', () => {
       // Act
-      const result = validateAndCollect(CPF.create('    '), failures)
+      const result = CPF.create('    ')
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
     })
 
     describe('deve falhar ao criar um CPF com valor inválido', () => {
@@ -61,12 +53,10 @@ describe('CPF', () => {
       failureCases.forEach(({ cpf, scenario }) => {
         it(`objeto CPF ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(CPF.create(cpf), failures)
+          const result = CPF.create(cpf)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(FailureCode.CPF_WITH_INVALID_FORMAT)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.CPF_WITH_INVALID_FORMAT)
         })
       })
     })
@@ -86,12 +76,10 @@ describe('CPF', () => {
       failureCases.forEach(({ cpf, scenario }) => {
         it(scenario, () => {
           // Act
-          const result = validateAndCollect(CPF.create(cpf), failures)
+          const result = CPF.create(cpf)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
         })
       })
     })

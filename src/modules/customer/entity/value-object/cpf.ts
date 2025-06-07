@@ -1,9 +1,10 @@
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { TechnicalError } from '@shared/error/technical.error'
-import { isNull } from '@shared/validator/validator'
+import { isNull } from '@shared/validator/utils/validation'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { Validate } from '@shared/validator/validate'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 /**
  * Representa um CPF (Cadastro de Pessoas Físicas) brasileiro.
@@ -29,8 +30,8 @@ export class CPF {
 
     Validate.string({ cpf }, failures)
       .isRequired()
-      .isNotEmpty(FailureCode.MISSING_REQUIRED_DATA)
-      .matchesPattern(CPF.FORMAT_REGEX, FailureCode.CPF_WITH_INVALID_FORMAT)
+      .isNotEmpty(() => FailureFactory.MISSING_REQUIRED_DATA('cpf'))
+      .matchesPattern(CPF.FORMAT_REGEX, () => FailureFactory.CPF_WITH_INVALID_FORMAT(cpf))
 
     return failures.length > 0 ? failure(failures) : success(new CPF(cpf))
   }
@@ -44,7 +45,7 @@ export class CPF {
    * @throws {TechnicalError} Se o CPF for nulo.
    */
   public static hydrate(cpf: string): CPF {
-    TechnicalError.if(isNull(cpf), FailureCode.MISSING_REQUIRED_DATA)
+    TechnicalError.if(isNull(cpf), () => FailureFactory.MISSING_REQUIRED_DATA('cpf'))
     return new CPF(cpf)
   }
 
