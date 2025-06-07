@@ -1,4 +1,6 @@
+import { TechnicalError } from '../error/technical.error'
 import { SimpleFailure } from '../failure/simple.failure.type'
+import { FailureFactory } from '../failure/failure.factory'
 
 interface ISuccess<V> extends IBaseResult<V> {
   readonly type: 'SUCCESS'
@@ -67,4 +69,74 @@ export const failure = (errors: SimpleFailure | ReadonlyArray<SimpleFailure>): R
       return true
     },
   }
+}
+
+// Assinatura de sobrecarga para array
+/**
+ * Combina múltiplos resultados (Result) de um array em um único Result.
+ * Se todos os resultados forem SUCCESS, retorna um SUCCESS contendo um array com os valores de cada resultado.
+ * Se um ou mais resultados forem FAILURE, retorna um FAILURE contendo todas as falhas coletadas.
+ * @template T Um array de instâncias de Result.
+ * @param results Os resultados a serem combinados.
+ * @returns Um Result que é SUCCESS com um array de valores ou FAILURE com um array de falhas.
+ */
+export function combine<T extends ReadonlyArray<Result<unknown>>>(
+  ...results: T
+): Result<{
+  [K in keyof T]: T[K] extends Result<infer V> ? V : never
+}>
+
+// Assinatura de sobrecarga para objeto (Record)
+/**
+ * Combina múltiplos resultados (Result) de um objeto (Record) em um único Result.
+ * Se todos os resultados forem SUCCESS, retorna um SUCCESS contendo um objeto com os valores de cada resultado.
+ * Se um ou mais resultados forem FAILURE, retorna um FAILURE contendo todas as falhas coletadas.
+ * @template T Um Record onde as chaves são strings e os valores são instâncias de Result.
+ * @param results O objeto de resultados a serem combinados.
+ * @returns Um Result que é SUCCESS com um objeto de valores ou FAILURE com um array de falhas.
+ */
+export function combine<T extends Record<string, Result<unknown>>>(
+  results: T
+): Result<{
+  [K in keyof T]: T[K] extends Result<infer V> ? V : never
+}>
+
+// Implementação única que lida com ambos os casos
+/**
+ * Implementação principal da função combine que lida com arrays e objetos de Result.
+ * Esta função coleta todos os sucessos ou todas as falhas dos resultados fornecidos.
+ * @template T O tipo de entrada, que pode ser um array de Result ou um Record de Result.
+ * @param results Os resultados a serem processados, seja um array ou um objeto.
+ * @returns Um Result que é SUCCESS com os valores combinados ou FAILURE com as falhas coletadas.
+ */
+export function combine<T extends ReadonlyArray<Result<unknown>> | Record<string, Result<unknown>>>(
+  results: T
+): Result<unknown> {
+  const failures: SimpleFailure[] = []
+
+  if (Array.isArray(results)) {
+    const values: unknown[] = []
+
+    results.forEach((result) => {
+      if (result.isInvalid()) failures.push(...result.failures)
+      else values.push(result.value)
+    })
+
+    return failures.length > 0 ? failure(failures) : success(values)
+  }
+
+  if (typeof results === 'object' && results !== null) {
+    const values: Record<string, unknown> = {}
+
+    const entries = Object.entries(results)
+
+    for (const [key, result] of entries) {
+      if (result.isInvalid()) failures.push(...result.failures)
+      else values[key] = result.value
+    }
+
+    return failures.length > 0 ? failure(failures) : success(values)
+  }
+
+  throw new TechnicalError(FailureFactory.INVALID_COMBINE_INPUT())
 }
