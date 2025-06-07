@@ -1,9 +1,9 @@
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { isEmail, isNull } from '@shared/validator/validator'
 import { TechnicalError } from '@shared/error/technical.error'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { Validate } from '@shared/validator/validate'
+import { isEmail, isNull } from '@shared/validator/utils/validation'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 export class Email {
   private constructor(public readonly value: string) {}
@@ -13,14 +13,14 @@ export class Email {
 
     Validate.string({ email }, failures)
       .isRequired()
-      .isNotEmpty(FailureCode.MISSING_REQUIRED_DATA)
-      .isTrue(isEmail(email), FailureCode.EMAIL_WITH_INVALID_FORMAT)
+      .isNotEmpty(() => FailureFactory.MISSING_REQUIRED_DATA('email'))
+      .isTrue(isEmail(email), () => FailureFactory.EMAIL_WITH_INVALID_FORMAT(email))
 
     return failures.length > 0 ? failure(failures) : success(new Email(email))
   }
 
   public static hydrate(email: string): Email {
-    TechnicalError.if(isNull(email), FailureCode.MISSING_REQUIRED_DATA)
+    TechnicalError.if(isNull(email), () => FailureFactory.MISSING_REQUIRED_DATA('email'))
     return new Email(email)
   }
 

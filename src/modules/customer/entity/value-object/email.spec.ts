@@ -1,19 +1,11 @@
 import { Email } from './email'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 import { faker } from '@faker-js/faker'
 
 describe('Email', () => {
   const EMAIL_STRING = faker.internet.email()
 
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     describe('deve criar um email válido', () => {
       const successCases = [
         { email: 'test@example.com', scenario: 'com formato padrão' },
@@ -31,22 +23,22 @@ describe('Email', () => {
       successCases.forEach(({ email, scenario }) => {
         it(`objeto Email ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(Email.create(email), failures)
+          const result = Email.create(email)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.value).toBe(email)
+          expect(result).toBeValidResultMatching<Email>((e) => {
+            expect(e.value).toBe(email)
+          })
         })
       })
     })
 
     it('deve falhar ao usar um valor vazio para criar um Email', () => {
       // Act
-      const result = validateAndCollect(Email.create(''), failures)
+      const result = Email.create('')
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
     })
 
     describe('deve falhar ao criar um Email com formato inválido', () => {
@@ -76,12 +68,10 @@ describe('Email', () => {
       failureCases.forEach(({ email, scenario }) => {
         it(`objeto Email ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(Email.create(email), failures)
+          const result = Email.create(email)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(FailureCode.EMAIL_WITH_INVALID_FORMAT)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.EMAIL_WITH_INVALID_FORMAT)
         })
       })
     })
@@ -101,12 +91,10 @@ describe('Email', () => {
       failureCases.forEach(({ email, scenario }) => {
         it(scenario, () => {
           // Act
-          const result = validateAndCollect(Email.create(email), failures)
+          const result = Email.create(email)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
         })
       })
     })
