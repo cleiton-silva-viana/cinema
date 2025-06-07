@@ -1,4 +1,4 @@
-import { MultilingualContent } from '@shared/value-object/multilingual-content'
+import { LanguageContent } from '@shared/value-object/language-content/language.content'
 
 /**
  * Representa o título de um filme em múltiplos idiomas.
@@ -15,7 +15,7 @@ import { MultilingualContent } from '@shared/value-object/multilingual-content'
  * - Pontuação básica (., ,)
  * - Símbolos comuns (-, _, ?, !, @, #, $, %, &, +, /)
  */
-export class MovieTitle extends MultilingualContent {
+export class MovieTitle extends LanguageContent {
   /**
    * Comprimento mínimo permitido para o título do filme (8 caracteres).
    */

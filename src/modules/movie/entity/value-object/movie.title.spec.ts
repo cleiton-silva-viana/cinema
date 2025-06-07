@@ -1,6 +1,5 @@
 import { MovieTitle } from './movie.title'
 import { faker } from '@faker-js/faker/.'
-import { validateAndCollect } from '@shared/validator/common.validators'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 
@@ -45,11 +44,10 @@ describe('MovieTitle', () => {
       successCases.forEach(({ contents, scenario }) => {
         it(`deve aceitar um título ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(MovieTitle.create(contents), failures)
+          const result = MovieTitle.create(contents)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result).toBeInstanceOf(MovieTitle)
+          expect(result).toBeValidResult()
         })
       })
     })
@@ -78,7 +76,7 @@ describe('MovieTitle', () => {
             { language: 'en', text: titleWithValidCharacters },
           ],
           scenario: 'com caracteres inválidos no título',
-          errorCode: FailureCode.STRING_INVALID_FORMAT,
+          errorCode: FailureCode.STRING_WITH_INVALID_FORMAT,
         },
         {
           contents: null as any,
@@ -100,11 +98,10 @@ describe('MovieTitle', () => {
       failureCases.forEach(({ contents, scenario, errorCode }) => {
         it(`deve rejeitar um título ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(MovieTitle.create(contents), failures)
+          const result = MovieTitle.create(contents)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures[0].code).toBe(errorCode)
+          expect(result).toBeInvalidResultWithSingleFailure(errorCode)
         })
       })
     })
