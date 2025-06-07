@@ -1,19 +1,11 @@
 import { StudentCard } from './student-card'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { TechnicalError } from '@shared/error/technical.error'
 
 describe('StudentCard', () => {
-  let failures: SimpleFailure[]
-
   const MIN_ID_LENGTH = 6
   const MAX_ID_LENGTH = 24
   const MAX_VALIDITY_DAY_IN_FUTURE = 360 * 2
-
-  beforeEach(() => {
-    failures = []
-  })
 
   const getFutureDate = (days: number): Date => {
     const date = new Date()
@@ -60,21 +52,18 @@ describe('StudentCard', () => {
       successCases.forEach(({ id, validity, scenario }) => {
         it(`objeto StudentCard ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(StudentCard.create(id, validity), failures)
+          const result = StudentCard.create(id, validity)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result?.id).toBe(id)
-          expect(result?.validity.toISOString()).toBe(validity.toISOString())
-          expect(failures).toHaveLength(0)
+          expect(result).toBeValidResultMatching<StudentCard>((c) => {
+            expect(c?.id).toBe(id)
+            expect(c?.validity.toISOString()).toBe(validity.toISOString())
+          })
         })
       })
     })
 
     describe('deve falhar ao criar um StudentCard inválido', () => {
-      const now = new Date()
-      const maxFutureDate = new Date(now.getTime() + MAX_VALIDITY_DAY_IN_FUTURE * 24 * 60 * 60 * 1000)
-
       const failureCases = [
         {
           id: null as any,
@@ -93,47 +82,40 @@ describe('StudentCard', () => {
           validity: getFutureDate(30),
           scenario: 'quando o ID é muito curto',
           errorCodeExpected: FailureCode.STUDENT_CARD_ID_INVALID_FORMAT,
-          params: { min: MIN_ID_LENGTH, max: MAX_ID_LENGTH },
         },
         {
           id: 'B'.repeat(MAX_ID_LENGTH + 1),
           validity: getFutureDate(30),
           scenario: 'quando o ID é muito longo',
           errorCodeExpected: FailureCode.STUDENT_CARD_ID_INVALID_FORMAT,
-          params: { min: MIN_ID_LENGTH, max: MAX_ID_LENGTH },
         },
         {
           id: 'PASTDATE',
           validity: getPastDate(1),
           scenario: 'quando a data de validade é no passado',
           errorCodeExpected: FailureCode.DATE_CANNOT_BE_PAST,
-          params: { now: new Date().toISOString().split('T')[0] },
         },
         {
           id: 'TODAYVAL',
           validity: new Date(), // Hoje
           scenario: 'quando a data de validade é hoje',
           errorCodeExpected: FailureCode.DATE_CANNOT_BE_PAST,
-          params: { now: new Date().toISOString().split('T')[0] },
         },
         {
           id: 'TOOFAR',
           validity: getFutureDate(MAX_VALIDITY_DAY_IN_FUTURE + 10),
           scenario: 'quando a data de validade é muito distante no futuro',
           errorCodeExpected: FailureCode.DATE_NOT_AFTER_LIMIT,
-          params: { limit: maxFutureDate.toISOString().split('T')[0] },
         },
       ]
 
-      failureCases.forEach(({ id, validity, scenario, errorCodeExpected, params }) => {
+      failureCases.forEach(({ id, validity, scenario, errorCodeExpected }) => {
         it(`falha ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(StudentCard.create(id, validity), failures)
+          const result = StudentCard.create(id, validity)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures).toHaveLength(1)
-          expect(failures[0].code).toBe(errorCodeExpected)
+          expect(result).toBeInvalidResultWithSingleFailure(errorCodeExpected)
         })
       })
     })

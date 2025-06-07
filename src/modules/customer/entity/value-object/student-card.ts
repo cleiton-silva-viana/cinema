@@ -1,10 +1,10 @@
 import { failure, Result, success } from '@shared/result/result'
 import { Validate } from '@shared/validator/validate'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@shared/error/technical.error'
-import { ensureNotNull } from '@shared/validator/common.validators'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { isNull } from '@shared/validator/validator'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 /**
  * @class StudentCard
@@ -62,11 +62,8 @@ export class StudentCard {
 
     Validate.string({ id }, failures)
       .isRequired()
-      .hasLengthBetween(
-        StudentCard.MIN_ID_LENGTH,
-        StudentCard.MAX_ID_LENGTH,
-        FailureCode.STUDENT_CARD_ID_INVALID_FORMAT,
-        { value: id }
+      .hasLengthBetween(StudentCard.MIN_ID_LENGTH, StudentCard.MAX_ID_LENGTH, () =>
+        FailureFactory.STUDENT_CARD_ID_INVALID_FORMAT(id)
       )
 
     const now = new Date()
@@ -74,12 +71,13 @@ export class StudentCard {
 
     Validate.date({ validity }, failures)
       .isRequired()
-      .isAfter(now, FailureCode.DATE_CANNOT_BE_PAST, {
-        now: now.toISOString().split('T')[0],
-      })
-      .isBefore(maxFutureDate, FailureCode.DATE_NOT_AFTER_LIMIT, {
-        limit: maxFutureDate.toISOString().split('T')[0],
-      })
+      .isAfter(now, () => FailureFactory.DATE_CANNOT_BE_PAST('validity'))
+      .isBefore(maxFutureDate, () =>
+        FailureFactory.DATE_NOT_AFTER_LIMIT(
+          validity.toISOString().split('T')[0],
+          maxFutureDate.toISOString().split('T')[0]
+        )
+      )
 
     return failures.length > 0 ? failure(failures) : success(new StudentCard(id, validity))
   }
@@ -109,7 +107,7 @@ export class StudentCard {
    * @memberof StudentCard
    */
   public equals(other?: StudentCard): boolean {
-    if (isNull(other)) return false
+    if (isNullOrUndefined(other)) return false
     if (!(other instanceof StudentCard)) return false
     return this.id === other.id && this.validity.getTime() === other.validity.getTime()
   }
