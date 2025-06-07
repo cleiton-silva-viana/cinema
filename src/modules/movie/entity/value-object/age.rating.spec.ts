@@ -1,29 +1,22 @@
 import { AgeRating, AgeRatingEnum } from './age.rating'
 import { TechnicalError } from '@shared/error/technical.error'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 
 describe('AgeRating', () => {
   describe('Static Methods', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => {
-        failures = []
-      })
-
       it('deve criar um Result de sucesso com classificação existente', () => {
         // Arrange
         const validRatings = Object.values(AgeRatingEnum)
 
         validRatings.forEach((rating) => {
           // Act
-          const result = validateAndCollect(AgeRating.create(rating), failures)
+          const result = AgeRating.create(rating)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.value).toBe(rating)
+          expect(result).toBeValidResultMatching<AgeRating>((a) => {
+            expect(a.value).toBe(rating)
+          })
         })
       })
 
@@ -32,11 +25,10 @@ describe('AgeRating', () => {
         const invalidRating = 'INVALID_RATING'
 
         // Act
-        const result = validateAndCollect(AgeRating.create(invalidRating), failures)
+        const result = AgeRating.create(invalidRating)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.INVALID_ENUM_VALUE)
       })
     })
 

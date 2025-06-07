@@ -1,6 +1,6 @@
 import { TechnicalError } from '@shared/error/technical.error'
 import { Result, success } from '@shared/result/result'
-import { parseToEnum } from '@shared/validator/common.validators'
+import { parseToEnum } from '@shared/validator/utils/validation.helpers'
 
 /**
  * Enumeração que representa a Classificação Etária dos Filmes de acordo com o padrão brasileiro.
