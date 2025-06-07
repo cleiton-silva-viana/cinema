@@ -534,8 +534,8 @@
       "en": "Invalid Value"
     },
     "template": {
-      "pt": "O valor '{value:string}' fornecido para '{field:string}' é inválido. Valores permitidos: {allowed_values:string[] | number[]}.",
-      "en": "The value '{value:string}' provided for '{field:string}' is invalid. Allowed values: {allowed_values:string[] | number[]}."
+      "pt": "O valor '{value:string}' fornecido para '{field:string}' é inválido. Valores permitidos: {allowed_values:any[]}.",
+      "en": "The value '{value:string}' provided for '{field:string}' is invalid. Allowed values: {allowed_values:any[]}."
     }
   },
   "ARRAY_LENGTH_IS_OUT_OF_RANGE": {
@@ -1570,6 +1570,28 @@
     "template": {
       "pt": "O valor para o campo '{field:string}' deve ser um número negativo. Valor fornecido: {value:number}.",
       "en": "The value for field '{field:string}' must be a negative number. Provided value: {value:number}."
+    }
+  },
+  "INVALID_ENUM_VALUE_COUNT": {
+    "status": 400,
+    "title": {
+      "pt": "Quantidade Inválida de Valores para Enum",
+      "en": "Invalid Number of Values for Enum"
+    },
+    "template": {
+      "pt": "O campo '{field:string}' esperava exatamente {expected:number} valor(es), mas recebeu '{received:number}' valor(es): '{value:any}'.",
+      "en": "The field '{field:string}' expected exactly {expected:number} value(s), but received '{received:number}' value(s): '{value:any}'."
+    }
+  },
+  "INVALID_COMBINE_INPUT": {
+    "status": 400,
+    "title": {
+      "pt": "Entrada Inválida para Combinação",
+      "en": "Invalid Input for Combine"
+    },
+    "template": {
+      "pt": "A função combine recebeu um tipo de entrada inválido. Esperado um array ou um objeto de Results.",
+      "en": "The combine function received an invalid input type. Expected an array or an object of Results."
     }
   }
 }
