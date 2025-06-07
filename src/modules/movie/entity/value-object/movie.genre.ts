@@ -1,10 +1,11 @@
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
 import { TechnicalError } from '@shared/error/technical.error'
 import { Validate } from '@shared/validator/validate'
 import { FailureFactory } from '@shared/failure/failure.factory'
-import { ensureNotNull, hydrateEnum, parseToEnum } from '@shared/validator/common.validators'
+import { SupportedLanguageEnum } from '@/shared/value-object/language-content/supported.language.enum'
+import { ensureNotNull, hydrateEnum, parseToEnum } from '@shared/validator/utils/validation.helpers'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 // Enum para os gêneros
 export enum Genre {
@@ -102,7 +103,7 @@ export class MovieGenre {
 
     const movieGenres: Set<Genre> = new Set()
 
-    genres.forEach((genre) => movieGenres.add(hydrateEnum('genre', genre, Genre)))
+    genres.forEach((genre) => movieGenres.add(hydrateEnum({ genre }, Genre)))
 
     return new MovieGenre(movieGenres)
   }
@@ -113,7 +114,7 @@ export class MovieGenre {
    * @returns Result<MovieGenre>
    */
   public static create(genres: Genre[] | string[]): Result<MovieGenre> {
-    if (!genres || genres.length === 0) return failure(FailureFactory.MISSING_REQUIRED_DATA('genres'))
+    if (isNullOrUndefined(genres) || genres.length === 0) return failure(FailureFactory.MISSING_REQUIRED_DATA('genres'))
 
     if (typeof genres[0] === 'string') return this.createFromStrings(genres as string[])
     else return this.createFromEnums(genres as Genre[])

@@ -1,9 +1,7 @@
 import { Genre, MovieGenre } from './movie.genre'
-import { SupportedLanguageEnum} from '@shared/value-object/multilingual-content'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { TechnicalError } from '@shared/error/technical.error'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 describe('MovieGenre', () => {
   const validGenres: Genre[] = [Genre.ACTION, Genre.COMEDY]
@@ -15,10 +13,6 @@ describe('MovieGenre', () => {
 
   describe('Static Methods', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => (failures = []))
-
       describe('deve retornar uma instância de MovieGenre com sucesso', () => {
         const successCases = [
           {
@@ -42,11 +36,12 @@ describe('MovieGenre', () => {
         successCases.forEach(({ genres, scenario }) => {
           it(`deve aceitar gêneros ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(MovieGenre.create(genres), failures)
+            const result = MovieGenre.create(genres)
 
             // Assert
-            expect(result).toBeDefined()
-            expect(result).toBeInstanceOf(MovieGenre)
+            expect(result).toBeValidResultMatching<MovieGenre>((m) => {
+              expect(m).toBeInstanceOf(MovieGenre)
+            })
           })
         })
       })
@@ -71,7 +66,7 @@ describe('MovieGenre', () => {
           {
             genres: tooManyGenres,
             scenario: 'quando há mais que o número máximo de gêneros',
-            errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
+            errorCode: FailureCode.ARRAY_LENGTH_IS_OUT_OF_RANGE,
           },
           {
             genres: duplicatedGenres,
@@ -93,11 +88,10 @@ describe('MovieGenre', () => {
         failureCases.forEach(({ genres, scenario, errorCode }) => {
           it(`deve rejeitar gêneros ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(MovieGenre.create(genres), failures)
+            const result = MovieGenre.create(genres)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(errorCode)
+            expect(result).toBeInvalidResultWithSingleFailure(errorCode)
           })
         })
       })
