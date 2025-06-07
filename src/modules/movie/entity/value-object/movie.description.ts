@@ -1,4 +1,4 @@
-import { MultilingualContent } from '../../../../shared/value-object/multilingual-content'
+import { LanguageContent } from '@shared/value-object/language-content/language.content'
 
 /**
  * Representa a descrição de um filme em múltiplos idiomas.
@@ -15,7 +15,7 @@ import { MultilingualContent } from '../../../../shared/value-object/multilingua
  * - Pontuação básica (., ,)
  * - Símbolos comuns (-, _, ?, !, @, #, $, %, &, +, /)
  */
-export class MovieDescription extends MultilingualContent {
+export class MovieDescription extends LanguageContent {
   /**
    * Comprimento mínimo permitido para a descrição do filme (48 caracteres).
    */

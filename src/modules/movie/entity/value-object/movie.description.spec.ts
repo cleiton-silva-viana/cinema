@@ -1,8 +1,6 @@
 import { faker } from '@faker-js/faker/.'
 import { MovieDescription } from './movie.description'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 
 describe('MovieDescription', () => {
   const VALID_PT_DESCRIPTION = faker.lorem.paragraph()
@@ -13,10 +11,6 @@ describe('MovieDescription', () => {
   const DESCRIPTION_WITH_INVALID_SPECIAL_CHARS = faker.lorem.paragraph() + '¥'
 
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => (failures = []))
-
     describe('deve retornar uma instância de MovieDescription com sucesso', () => {
       const successCases = [
         {
@@ -45,10 +39,10 @@ describe('MovieDescription', () => {
       successCases.forEach(({ contents, scenario }) => {
         it(`deve aceitar uma descrição ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(MovieDescription.create(contents), failures)
+          const result = MovieDescription.create(contents)
 
           // Assert
-          expect(result).toBeDefined()
+          expect(result).toBeValidResult()
         })
       })
     })
@@ -77,7 +71,7 @@ describe('MovieDescription', () => {
             { language: 'en', text: DESCRIPTION_WITH_VALID_SPECIAL_CHARS },
           ],
           scenario: 'com caracteres inválidos na descrição',
-          errorCode: FailureCode.STRING_INVALID_FORMAT,
+          errorCode: FailureCode.STRING_WITH_INVALID_FORMAT,
         },
         {
           contents: null as any,
@@ -99,11 +93,10 @@ describe('MovieDescription', () => {
       failureCases.forEach(({ contents, scenario, errorCode }) => {
         it(`deve rejeitar uma descrição ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(MovieDescription.create(contents), failures)
+          const result = MovieDescription.create(contents)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures[0].code).toBe(errorCode)
+          expect(result).toBeInvalidResultWithSingleFailure(errorCode)
         })
       })
     })
