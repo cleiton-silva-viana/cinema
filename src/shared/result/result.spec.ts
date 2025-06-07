@@ -97,7 +97,7 @@ describe('combine', () => {
     const r2 = success('hello')
     const r3 = success(true)
 
-    const combined = combine(r1, r2, r3)
+    const combined = combine([ r1, r2, r3 ])
 
     expect(combined.isValid()).toBe(true)
     if (combined.isValid()) {
@@ -110,11 +110,11 @@ describe('combine', () => {
     const r2 = failure({ code: FailureCode.MISSING_REQUIRED_DATA, details: { field: 'name' } })
     const r3 = success(true)
 
-    const combined = combine(r1, r2, r3)
+    const combined = combine([ r1, r2, r3 ])
 
     expect(combined.isInvalid()).toBe(true)
     if (combined.isInvalid()) {
-      expect(combined.failures).toEqual([{ code: FailureCode.INVALID_ENUM_VALUE_COUNT, details: { field: 'name' } }])
+      expect(combined.failures).toEqual([{ code: FailureCode.MISSING_REQUIRED_DATA, details: { field: 'name' } }])
     }
   })
 
@@ -123,13 +123,13 @@ describe('combine', () => {
     const r2 = failure({ code: FailureCode.INVALID_ENUM_VALUE_COUNT, details: { field: 'name' } })
     const r3 = failure({ code: FailureCode.INVALID_ENUM_VALUE, details: { id: '123' } })
 
-    const combined = combine(r1, r2, r3)
+    const combined = combine([ r1, r2, r3 ])
 
     expect(combined.isInvalid()).toBe(true)
     if (combined.isInvalid()) {
       expect(combined.failures).toEqual([
-        { code: FailureCode.MISSING_REQUIRED_DATA, details: { field: 'name' } },
-        { code: FailureCode.DATE_CANNOT_BE_PAST, details: { id: '123' } },
+        { code: FailureCode.INVALID_ENUM_VALUE_COUNT, details: { field: 'name' } },
+        { code: FailureCode.INVALID_ENUM_VALUE, details: { id: '123' } },
       ])
     }
   })
@@ -156,7 +156,7 @@ describe('combine', () => {
 
     expect(combined.isInvalid()).toBe(true)
     if (combined.isInvalid()) {
-      expect(combined.failures).toEqual([{ code: FailureCode.VALUE_MUST_BE_NEGATIVE, details: { field: 'name' } }])
+      expect(combined.failures).toEqual([{ code: FailureCode.MISSING_VALID_ITEM, details: { field: 'name' } }])
     }
   })
 

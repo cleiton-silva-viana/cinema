@@ -71,7 +71,6 @@ export const failure = (errors: SimpleFailure | ReadonlyArray<SimpleFailure>): R
   }
 }
 
-// Assinatura de sobrecarga para array
 /**
  * Combina múltiplos resultados (Result) de um array em um único Result.
  * Se todos os resultados forem SUCCESS, retorna um SUCCESS contendo um array com os valores de cada resultado.
@@ -81,12 +80,11 @@ export const failure = (errors: SimpleFailure | ReadonlyArray<SimpleFailure>): R
  * @returns Um Result que é SUCCESS com um array de valores ou FAILURE com um array de falhas.
  */
 export function combine<T extends ReadonlyArray<Result<unknown>>>(
-  ...results: T
+  results: T
 ): Result<{
   [K in keyof T]: T[K] extends Result<infer V> ? V : never
 }>
 
-// Assinatura de sobrecarga para objeto (Record)
 /**
  * Combina múltiplos resultados (Result) de um objeto (Record) em um único Result.
  * Se todos os resultados forem SUCCESS, retorna um SUCCESS contendo um objeto com os valores de cada resultado.
@@ -101,7 +99,6 @@ export function combine<T extends Record<string, Result<unknown>>>(
   [K in keyof T]: T[K] extends Result<infer V> ? V : never
 }>
 
-// Implementação única que lida com ambos os casos
 /**
  * Implementação principal da função combine que lida com arrays e objetos de Result.
  * Esta função coleta todos os sucessos ou todas as falhas dos resultados fornecidos.
@@ -117,7 +114,7 @@ export function combine<T extends ReadonlyArray<Result<unknown>> | Record<string
   if (Array.isArray(results)) {
     const values: unknown[] = []
 
-    results.forEach((result) => {
+    results.forEach((result: Result<unknown>) => {
       if (result.isInvalid()) failures.push(...result.failures)
       else values.push(result.value)
     })
