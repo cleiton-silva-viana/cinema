@@ -1,8 +1,8 @@
 import { TechnicalError } from '@shared//error/technical.error'
 import { failure, Result, success } from '@shared//result/result'
 import { Validate } from '@shared//validator/validate'
-import {ensureNotNull, parseToEnum} from "@shared/validator/utils/validation.helpers";
-import {isNullOrUndefined} from "@shared/validator/utils/validation";
+import { ensureNotNull, parseToEnum } from '@shared/validator/utils/validation.helpers'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 /**
  * Tipos de tela suportados pelo cinema

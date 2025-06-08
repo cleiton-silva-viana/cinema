@@ -52,7 +52,7 @@ describe('Screen', () => {
             const result = Screen.create(size, type)
 
             // Assert
-            expect(result).toBeValidResultMatching<Screen>(s => {
+            expect(result).toBeValidResultMatching<Screen>((s) => {
               expect(s.size).toBe(size)
               expect(s.type).toBe(type.trim().toUpperCase())
             })
