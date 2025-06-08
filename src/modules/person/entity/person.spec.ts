@@ -1,9 +1,7 @@
-import { faker } from '@faker-js/faker/locale/pt_PT'
+import { faker } from '@faker-js/faker'
 import { Person } from './person'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 import { CreateTestPerson } from '@test/builder/person.builder'
-import {FailureCode} from "@shared/failure/failure.codes.enum";
+import { FailureCode } from '@shared/failure/failure.codes.enum'
 
 describe('Person', () => {
   const fullName = faker.person.firstName()
@@ -14,20 +12,15 @@ describe('Person', () => {
 
   describe('Static Methods', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => {
-        failures = []
-      })
-
       it('deve criar uma pessoa válida', () => {
         // Act
-        const result = validateAndCollect(Person.create(fullName, birthDate), failures)
+        const result = Person.create(fullName, birthDate)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.name.value).toBe(fullName)
-        expect(result.birthDate.value.toISOString()).toEqual(birthDate.toISOString())
+        expect(result).toBeValidResultMatching<Person>((p) => {
+          expect(p.name.value).toBe(fullName)
+          expect(p.birthDate.value.toISOString()).toEqual(birthDate.toISOString())
+        })
       })
 
       it('deve falhar ao criar pessoa com nome inválido', () => {
@@ -35,11 +28,10 @@ describe('Person', () => {
         const invalidName = ''
 
         // Act
-        const result = validateAndCollect(Person.create(invalidName, birthDate), failures)
+        const result = Person.create(invalidName, birthDate)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
+        expect(result).toBeInvalidResult()
       })
 
       it('deve falhar ao criar pessoa com data de nascimento inválida', () => {
@@ -47,11 +39,10 @@ describe('Person', () => {
         const futureDate = faker.date.soon({ days: 365 }) // data futura
 
         // Act
-        const result = validateAndCollect(Person.create(fullName, futureDate), failures)
+        const result = Person.create(fullName, futureDate)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures.length).toBeGreaterThan(0)
+        expect(result).toBeInvalidResult()
       })
     })
 
@@ -73,26 +64,25 @@ describe('Person', () => {
 
   describe('Instance Methods', () => {
     describe('update', () => {
-      let failures: SimpleFailure[]
       let personInstance: Person
 
       beforeEach(() => {
-        failures = []
         personInstance = CreateTestPerson({ name: fullName, birthDate })
       })
 
       it('deve atualizar o nome da pessoa', () => {
         // Arrange
-        const newName = faker.person.fullName()
+        const newName = faker.person.firstName()
 
         // Act
-        const result = validateAndCollect(personInstance.update({ name: newName }), failures)
+        const result = personInstance.update({ name: newName })
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.name.value).toBe(newName)
-        expect(result.birthDate.value).toEqual(birthDate)
-        expect(result.uid).toEqual(personInstance.uid)
+        expect(result).toBeValidResultMatching<Person>((p) => {
+          expect(p.name.value).toBe(newName)
+          expect(p.birthDate.value).toEqual(birthDate)
+          expect(p.uid).toEqual(personInstance.uid)
+        })
       })
 
       it('deve atualizar a data de nascimento', () => {
@@ -103,31 +93,33 @@ describe('Person', () => {
         })
 
         // Act
-        const result = validateAndCollect(personInstance.update({ birthDate: newDate }), failures)
+        const result = personInstance.update({ birthDate: newDate })
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.birthDate.value).toEqual(newDate)
-        expect(result.name.value).toBe(fullName)
-        expect(result.uid).toEqual(personInstance.uid)
+        expect(result).toBeValidResultMatching<Person>((p) => {
+          expect(p.birthDate.value).toEqual(newDate)
+          expect(p.name.value).toBe(fullName)
+          expect(p.uid).toEqual(personInstance.uid)
+        })
       })
 
       it('deve atualizar múltiplas propriedades simultaneamente', () => {
         // Arrange
-        const newName = faker.person.fullName()
+        const newName = faker.person.firstName()
         const newDate = faker.date.between({
           from: new Date(1940, 0, 1),
           to: new Date(2005, 0, 1),
         })
 
         // Act
-        const result = validateAndCollect(personInstance.update({ name: newName, birthDate: newDate }), failures)
+        const result = personInstance.update({ name: newName, birthDate: newDate })
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.name.value).toBe(newName)
-        expect(result.birthDate.value).toEqual(newDate)
-        expect(result.uid).toEqual(personInstance.uid)
+        expect(result).toBeValidResultMatching<Person>((p) => {
+          expect(p.name.value).toBe(newName)
+          expect(p.birthDate.value).toEqual(newDate)
+          expect(p.uid).toEqual(personInstance.uid)
+        })
       })
 
       it('deve falhar ao atualizar o nome para inválido', () => {
@@ -135,13 +127,10 @@ describe('Person', () => {
         const invalidName = ''
 
         // Act
-        const result = validateAndCollect(personInstance.update({ name: invalidName }), failures)
+        const result = personInstance.update({ name: invalidName })
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures.length).toBeGreaterThan(0)
-        expect(personInstance.name.value).toBe(fullName)
-        expect(personInstance.birthDate.value.toISOString()).toBe(birthDate.toISOString())
+        expect(result).toBeInvalidResult()
       })
 
       it('deve falhar ao atualizar para data de nascimento inválida', () => {
@@ -149,32 +138,30 @@ describe('Person', () => {
         const invalidDate = faker.date.soon({ days: 365 }) // data futura
 
         // Act
-        const result = validateAndCollect(personInstance.update({ birthDate: invalidDate }), failures)
+        const result = personInstance.update({ birthDate: invalidDate })
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures.length).toBeGreaterThan(0)
-        expect(personInstance.birthDate.value.toISOString()).toEqual(birthDate.toISOString())
+        expect(result).toBeInvalidResult()
       })
 
       it('deve falhar quando props for null', () => {
         // Act
-        const result = validateAndCollect(personInstance.update(null as any), failures)
+        const result = personInstance.update(null as any)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
       })
 
       it('deve manter os valores originais quando nenhuma propriedade for fornecida', () => {
         // Act
-        const result = validateAndCollect(personInstance.update({}), failures)
+        const result = personInstance.update({})
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.name.value).toBe(fullName)
-        expect(result.birthDate.value).toEqual(birthDate)
-        expect(result.uid).toEqual(personInstance.uid)
+        expect(result).toBeValidResultMatching<Person>((p) => {
+          expect(p.name.value).toBe(fullName)
+          expect(p.birthDate.value).toEqual(birthDate)
+          expect(p.uid).toEqual(personInstance.uid)
+        })
       })
     })
   })

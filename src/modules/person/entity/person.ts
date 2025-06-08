@@ -1,9 +1,9 @@
-import { failure, Result, success } from '@shared/result/result'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { combine, failure, Result, success } from '@shared/result/result'
 import { BirthDate } from '@shared/value-object/birth.date'
 import { Name } from '@shared/value-object/name'
 import { PersonUID } from './value-object/person.uid'
-import { ensureNotNull, validateAndCollect } from '@shared/validator/common.validators'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 /**
  * Representa a estrutura base de umz pessoa que contribuiu na produção de um filme no sistema.
@@ -22,13 +22,11 @@ export class Person {
    * @returns Result<Person> com o objeto criado ou um array de erros.
    */
   public static create(name: string, birthDate: Date): Result<Person> {
-    const failures: SimpleFailure[] = []
+    const result = combine([Name.create(name), BirthDate.create(birthDate)])
 
-    const nameVO = validateAndCollect(Name.create(name), failures)
-    const birthDateVO = validateAndCollect(BirthDate.create(birthDate), failures)
+    if (result.isInvalid()) return result
 
-    if (failures.length > 0) return failure(failures)
-
+    const [nameVO, birthDateVO] = result.value
     return success(new Person(PersonUID.create(), nameVO, birthDateVO))
   }
 
@@ -49,16 +47,16 @@ export class Person {
    * @returns Result contendo a pessoa atualizada ou falhas de validação.
    */
   public update(props: { name?: string; birthDate?: Date }): Result<Person> {
-    const failures = ensureNotNull({ props })
-    if (failures.length > 0) return failure(failures)
+    if (isNullOrUndefined(props)) return failure(FailureFactory.MISSING_REQUIRED_DATA('props'))
 
-    let nameVO = this.name
-    let birthDateVO = this.birthDate
+    const result = combine([
+      isNullOrUndefined(props.name) ? success(this.name) : Name.create(props.name!),
+      isNullOrUndefined(props.birthDate) ? success(this.birthDate) : BirthDate.create(props.birthDate!),
+    ])
 
-    if (props.name !== undefined) nameVO = validateAndCollect(Name.create(props.name), failures)
+    if (result.isInvalid()) return result
 
-    if (props.birthDate !== undefined) birthDateVO = validateAndCollect(BirthDate.create(props.birthDate), failures)
-
-    return failures.length > 0 ? failure(failures) : success(new Person(this.uid, nameVO, birthDateVO))
+    const [name, birthDate] = result.value
+    return success(new Person(this.uid, name, birthDate))
   }
 }
