@@ -6,7 +6,6 @@ import { Customer } from '../entity/customer'
 import { Email } from '../entity/value-object/email'
 import { Password } from '../entity/value-object/password'
 import { failure, Result, success } from '@shared/result/result'
-import { ensureNotNull } from '@shared/validator/common.validators'
 import { ResourceTypesEnum as ResourceTypes } from '@shared/constant/resource.types'
 import { FailureFactory } from '@shared/failure/failure.factory'
 import {
@@ -14,14 +13,14 @@ import {
   ICustomerApplicationService,
   IStudentCardInput,
 } from '@modules/customer/service/customer.application.service.interface'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 @Injectable()
 export class CustomerApplicationService implements ICustomerApplicationService {
   constructor(@Inject(CUSTOMER_REPOSITORY) private readonly repository: ICustomerRepository) {}
 
   public async findById(uid: string | CustomerUID): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ uid })
-    if (failures.length > 0) return failure(failures)
+    if (isNullOrUndefined(uid)) return failure(FailureFactory.MISSING_REQUIRED_DATA('customer uid'))
 
     const parseCustomerUidResult = uid instanceof CustomerUID ? success(uid) : CustomerUID.parse(uid)
 
@@ -37,8 +36,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
   }
 
   public async findByEmail(email: string | Email): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ email })
-    if (failures.length > 0) return failure(failures)
+    if (isNullOrUndefined(email)) return failure(FailureFactory.MISSING_REQUIRED_DATA('email'))
 
     const emailCheckedResult = email instanceof Email ? success(email) : Email.create(email)
 
@@ -54,12 +52,9 @@ export class CustomerApplicationService implements ICustomerApplicationService {
   }
 
   public async create(props: ICreateCustomerProps): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ props })
-    if (failures.length > 0) return failure(failures)
+    if (isNullOrUndefined(props)) return failure(FailureFactory.MISSING_REQUIRED_DATA('props'))
 
     const { name, birthDate, email, password } = props
-    failures.push(...ensureNotNull({ name, birthDate, email, password }))
-    if (failures.length > 0) return failure(failures)
 
     const createCustomerResult = Customer.create(name, birthDate, email)
     if (createCustomerResult.isInvalid()) return createCustomerResult
@@ -76,9 +71,6 @@ export class CustomerApplicationService implements ICustomerApplicationService {
   }
 
   public async updateCustomerEmail(customerUID: string, email: string): Promise<Result<Customer>> {
-    const failures = ensureNotNull({ customerUID, email })
-    if (failures.length > 0) return failure(failures)
-
     const createEmailResult = Email.create(email)
     if (createEmailResult.isInvalid()) return createEmailResult
     const emailVO = createEmailResult.value

@@ -5,47 +5,16 @@ import { CustomerApplicationService } from './customer.application.service'
 import { CUSTOMER_REPOSITORY } from '../constant/customer.constants'
 import { ICustomerRepository } from '../repository/customer.repository.interface'
 import { Customer } from '../entity/customer'
-import { CustomerUID } from '../entity/value-object/customer.uid'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
+import { CloneTestCustomerWithOverrides, CreateTestCustomer } from '@test/builder/customer.builder'
 
 describe('CustomerApplicationService', () => {
   let service: CustomerApplicationService
-  let failures: SimpleFailure[]
   let customerInstance: Customer
   let mockRepository: jest.Mocked<ICustomerRepository>
 
-  function updatedInstance(
-    customer: Customer,
-    prop: Partial<{
-      name?: string
-      email?: string
-      birthDate?: Date
-      cpf?: string
-      studentCard: { id: string; validity: Date }
-    }>
-  ) {
-    return Customer.hydrate({
-      uid: customer.uid.value,
-      name: prop.name || customer.name.value,
-      email: prop.email || customer.email.value,
-      cpf: prop.cpf || customer.cpf!.value,
-      birthDate: prop.birthDate || customer.birthDate.value,
-      studentCard: customer.studentCard,
-    })
-  }
-
   beforeEach(async () => {
-    failures = []
-    customerInstance = Customer.hydrate({
-      uid: CustomerUID.create().value,
-      name: faker.person.firstName(),
-      cpf: '123.123.123-12',
-      email: faker.internet.email(),
-      birthDate: faker.date.birthdate(),
-      studentCard: null,
-    })
+    customerInstance = CreateTestCustomer()
 
     const module = await Test.createTestingModule({
       providers: [
@@ -75,11 +44,11 @@ describe('CustomerApplicationService', () => {
       mockRepository.findById.mockResolvedValue(customerInstance)
 
       // Act
-      const result = validateAndCollect(await service.findById(customerInstance.uid.value), failures)
+      const result = await service.findById(customerInstance.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(customerInstance)
+      expect(mockRepository.findById).toHaveBeenCalledTimes(1)
+      expect(result).toBeValidResultWithValue(customerInstance)
     })
 
     it('deve retornar um erro quando o cliente não for encontrado', async () => {
@@ -87,11 +56,10 @@ describe('CustomerApplicationService', () => {
       mockRepository.findById.mockResolvedValue(null as any)
 
       // Act
-      const result = validateAndCollect(await service.findById(customerInstance.uid.value), failures)
+      const result = await service.findById(customerInstance.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
   })
 
@@ -101,11 +69,12 @@ describe('CustomerApplicationService', () => {
       mockRepository.findByEmail.mockResolvedValue(customerInstance)
 
       // Act
-      const result = validateAndCollect(await service.findByEmail(customerInstance.email.value), failures)
+      const result = await service.findByEmail(customerInstance.email.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(customerInstance)
+      expect(result).toBeValidResultMatching<Customer>((c) => {
+        expect(c).toEqual(customerInstance)
+      })
     })
 
     it('deve retornar um erro quando o cliente não for encontrado', async () => {
@@ -113,11 +82,10 @@ describe('CustomerApplicationService', () => {
       mockRepository.findByEmail.mockResolvedValue(null as any)
 
       // Act
-      const result = validateAndCollect(await service.findByEmail(faker.internet.email()), failures)
+      const result = await service.findByEmail(faker.internet.email())
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
   })
 
@@ -128,21 +96,17 @@ describe('CustomerApplicationService', () => {
       mockRepository.create.mockResolvedValue(customerInstance)
 
       // Act
-      const result = validateAndCollect(
-        await service.create({
-          name: customerInstance.name.value,
-          birthDate: customerInstance.birthDate.value,
-          email: customerInstance.email.value,
-          password: '#R252f#@$R@65wvw',
-        }),
-        failures
-      )
+      const result = await service.create({
+        name: customerInstance.name.value,
+        birthDate: customerInstance.birthDate.value,
+        email: customerInstance.email.value,
+        password: '#R252f#@$R@65wvw',
+      })
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(customerInstance)
       expect(mockRepository.create).toHaveBeenCalled()
       expect(mockRepository.create).toHaveBeenCalledTimes(1)
+      expect(result).toBeValidResultWithValue(customerInstance)
     })
 
     it('deve retornar erro quando o email já estiver em uso', async () => {
@@ -150,19 +114,15 @@ describe('CustomerApplicationService', () => {
       mockRepository.hasEmail.mockResolvedValue(true)
 
       // Act
-      const result = validateAndCollect(
-        await service.create({
-          name: customerInstance.name.value,
-          birthDate: customerInstance.birthDate.value,
-          email: customerInstance.email.value,
-          password: faker.internet.password(),
-        }),
-        failures
-      )
+      const result = await service.create({
+        name: customerInstance.name.value,
+        birthDate: customerInstance.birthDate.value,
+        email: customerInstance.email.value,
+        password: faker.internet.password(),
+      })
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.EMAIL_ALREADY_IN_USE)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.EMAIL_ALREADY_IN_USE)
       expect(mockRepository.create).not.toHaveBeenCalled()
     })
   })
@@ -171,7 +131,7 @@ describe('CustomerApplicationService', () => {
     it('deve atualizar o email do cliente quando válido', async () => {
       // Arrange
       const email = faker.internet.email()
-      const updatedCustomer = updatedInstance(customerInstance, { email })
+      const updatedCustomer = CloneTestCustomerWithOverrides(customerInstance, { email })
       mockRepository.findById.mockResolvedValue(customerInstance)
       mockRepository.hasEmail.mockResolvedValue(false)
       mockRepository.update.mockResolvedValue(updatedCustomer)
@@ -189,11 +149,10 @@ describe('CustomerApplicationService', () => {
       mockRepository.hasEmail.mockResolvedValue(true)
 
       // Act
-      const result = validateAndCollect(await service.updateCustomerEmail(v4(), faker.internet.email()), failures)
+      const result = await service.updateCustomerEmail(v4(), faker.internet.email())
 
       // Assert
-      expect(result).toBeDefined()
-      expect(failures[0].code).toBe(FailureCode.EMAIL_ALREADY_IN_USE)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.EMAIL_ALREADY_IN_USE)
       expect(mockRepository.update).not.toHaveBeenCalled()
     })
   })
@@ -202,26 +161,27 @@ describe('CustomerApplicationService', () => {
     it('deve atualizar o nome do cliente quando válido', async () => {
       // Arrange
       const name = faker.person.firstName()
-      const updatedCustomer = updatedInstance(customerInstance, { name })
+      const updatedCustomer = CloneTestCustomerWithOverrides(customerInstance, { name })
       mockRepository.findById.mockResolvedValue(customerInstance)
       mockRepository.update.mockResolvedValue(updatedCustomer)
 
       // Act
-      const result = validateAndCollect(await service.updateCustomerName(customerInstance.uid.value, name), failures)
+      const result = await service.updateCustomerName(customerInstance.uid.value, name)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(updatedCustomer)
+      expect(result).toBeValidResultMatching<Customer>((c) => {
+        expect(c).toEqual(updatedCustomer)
+      })
       expect(mockRepository.update).toHaveBeenCalledTimes(1)
     })
 
     it('deve retornar erro quando o novo nome for inválido', async () => {
       // Act
-      const result = validateAndCollect(await service.updateCustomerName(customerInstance.uid.value, 'sa'), failures)
+      const result = await service.updateCustomerName(customerInstance.uid.value, 'sa')
 
       // Assert
-      expect(result).toBeNull()
       expect(mockRepository.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResult()
     })
   })
 
@@ -229,19 +189,17 @@ describe('CustomerApplicationService', () => {
     it('deve atualizar a data de nascimento quando válida', async () => {
       // Arrange
       const birthDate = faker.date.birthdate()
-      const updatedCustomer = updatedInstance(customerInstance, { birthDate })
+      const updatedCustomer = CloneTestCustomerWithOverrides(customerInstance, { birthDate })
       mockRepository.findById.mockResolvedValue(customerInstance)
       mockRepository.update.mockResolvedValue(updatedCustomer)
 
       // Act
-      const result = validateAndCollect(
-        await service.updateCustomerBirthDate(customerInstance.uid.value, birthDate),
-        failures
-      )
+      const result = await service.updateCustomerBirthDate(customerInstance.uid.value, birthDate)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(updatedCustomer)
+      expect(result).toBeValidResultMatching<Customer>((c) => {
+        expect(c).toEqual(updatedCustomer)
+      })
       expect(mockRepository.update).toHaveBeenCalledTimes(1)
     })
 
@@ -250,11 +208,10 @@ describe('CustomerApplicationService', () => {
       mockRepository.hasEmail.mockResolvedValue(true)
 
       // Act
-      const result = validateAndCollect(await service.updateCustomerBirthDate(v4(), new Date()), failures)
+      const result = await service.updateCustomerBirthDate(v4(), new Date())
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures.length).toBeGreaterThan(0)
+      expect(result).toBeInvalidResult()
       expect(mockRepository.update).not.toHaveBeenCalled()
     })
   })
@@ -263,17 +220,16 @@ describe('CustomerApplicationService', () => {
     it('deve atribuir CPF quando válido e único', async () => {
       // Arrange
       const cpf = '222.222.222-33'
-      const updatedCustomer = updatedInstance(customerInstance, { cpf })
+      const updatedCustomer = CloneTestCustomerWithOverrides(customerInstance, { cpf })
       mockRepository.findById.mockResolvedValue(customerInstance)
       mockRepository.hasCPF.mockResolvedValue(false)
       mockRepository.update.mockResolvedValue(updatedCustomer)
 
       // Act
-      const result = validateAndCollect(await service.assignCustomerCPF(customerInstance.uid.value, cpf), failures)
+      const result = await service.assignCustomerCPF(customerInstance.uid.value, cpf)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(updatedCustomer)
+      expect(result).toBeValidResultWithValue(updatedCustomer)
       expect(mockRepository.update).toHaveBeenCalledTimes(1)
     })
 
@@ -282,26 +238,25 @@ describe('CustomerApplicationService', () => {
       mockRepository.hasCPF.mockResolvedValue(true)
 
       // Act
-      const result = validateAndCollect(await service.assignCustomerCPF(v4(), '123.456.789-09'), failures)
+      const result = await service.assignCustomerCPF(v4(), '123.456.789-09')
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures.length).toBeGreaterThan(0)
+      expect(result).toBeInvalidResult()
     })
   })
 
   describe('removeCustomerCPF', () => {
     it('deve remover o CPF do cliente', async () => {
       // Arrange
-      const updatedCustomer = updatedInstance(customerInstance, { cpf: null as any })
+      const updatedCustomer = CloneTestCustomerWithOverrides(customerInstance, { cpf: null as any })
       mockRepository.findById.mockResolvedValue(customerInstance)
       mockRepository.update.mockResolvedValue(updatedCustomer)
 
       // Act
-      const result = validateAndCollect(await service.removeCustomerCPF(customerInstance.uid.value), failures)
+      const result = await service.removeCustomerCPF(customerInstance.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
+      expect(result).toBeValidResult()
       expect(mockRepository.update).toHaveBeenCalledTimes(1)
     })
   })
@@ -313,7 +268,7 @@ describe('CustomerApplicationService', () => {
         id: 'STUDENT123',
         validity: new Date(Date.now() + 1000 + 60000),
       }
-      const updatedCustomer = updatedInstance(customerInstance, {
+      const updatedCustomer = CloneTestCustomerWithOverrides(customerInstance, {
         studentCard,
       })
 
@@ -322,14 +277,12 @@ describe('CustomerApplicationService', () => {
       mockRepository.update.mockResolvedValue(updatedCustomer)
 
       // Act
-      const result = validateAndCollect(
-        await service.assignCustomerStudentCard(customerInstance.uid.value, studentCard),
-        failures
-      )
+      const result = await service.assignCustomerStudentCard(customerInstance.uid.value, studentCard)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(updatedCustomer)
+      expect(result).toBeValidResultMatching<Customer>((c) => {
+        expect(c).toEqual(updatedCustomer)
+      })
       expect(mockRepository.update).toHaveBeenCalledTimes(1)
     })
 
@@ -338,17 +291,13 @@ describe('CustomerApplicationService', () => {
       mockRepository.hasStudentCardID.mockResolvedValue(true)
 
       // Act
-      const result = validateAndCollect(
-        await service.assignCustomerStudentCard('valid-id', {
-          id: 'STUDENT123',
-          validity: new Date('2025-12-31'),
-        }),
-        failures
-      )
+      const result = await service.assignCustomerStudentCard('valid-id', {
+        id: 'STUDENT123',
+        validity: new Date('2025-12-31'),
+      })
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures.length).toBeGreaterThan(0)
+      expect(result).toBeInvalidResult()
       expect(mockRepository.update).not.toHaveBeenCalled()
     })
   })
@@ -356,18 +305,18 @@ describe('CustomerApplicationService', () => {
   describe('removeCustomerStudentCard', () => {
     it('deve remover a carteira de estudante do cliente', async () => {
       // Arrange
-      const instance = updatedInstance(customerInstance, {
+      const instance = CreateTestCustomer({
         studentCard: { id: '123ac1', validity: new Date() },
       })
+      const updatedInstance = CloneTestCustomerWithOverrides(instance, { studentCard: null })
       mockRepository.findById.mockResolvedValue(instance)
-      mockRepository.update.mockResolvedValue(customerInstance)
+      mockRepository.update.mockResolvedValue(updatedInstance)
 
       // Act
-      const result = validateAndCollect(await service.removeCustomerStudentCard(customerInstance.uid.value), failures)
+      const result = await service.removeCustomerStudentCard(customerInstance.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(instance)
+      expect(result).toBeValidResultWithValue(updatedInstance)
     })
   })
 })
