@@ -1,8 +1,6 @@
 import { SeatRow } from './seat.row'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@shared/error/technical.error'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 
 describe('SeatRow', () => {
   describe('Métodos Estáticos', () => {
@@ -10,12 +8,6 @@ describe('SeatRow', () => {
       const ID = 1
       const COLUMNS = 'F'
       const PREFERENTIAL: string[] = []
-
-      let failures: SimpleFailure[]
-
-      beforeEach(() => {
-        failures = []
-      })
 
       describe('Cenários de sucesso', () => {
         const successCases = [
@@ -47,12 +39,13 @@ describe('SeatRow', () => {
         successCases.forEach(({ columns, preferentialSeats, scenario }) => {
           it(`deve criar uma fileira válida ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(SeatRow.create(ID, columns, preferentialSeats), failures)
+            const result = SeatRow.create(ID, columns, preferentialSeats)
 
             // Assert
-            expect(result).toBeDefined()
-            expect(result.lastColumnLetter).toBe(columns.toUpperCase())
-            expect(result.preferentialSeatLetters).toEqual(preferentialSeats ?? [])
+            expect(result).toBeValidResultMatching<SeatRow>((s) => {
+              expect(s.lastColumnLetter).toBe(columns.toUpperCase())
+              expect(s.preferentialSeatLetters).toEqual(preferentialSeats ?? [])
+            })
           })
         })
       })
@@ -80,11 +73,10 @@ describe('SeatRow', () => {
           failureCases.forEach(({ scenario, columns, code }) => {
             it(`deve falhar ${scenario}`, () => {
               // Act
-              const result = validateAndCollect(SeatRow.create(ID, columns, PREFERENTIAL), failures)
+              const result = SeatRow.create(ID, columns, PREFERENTIAL)
 
               // Assert
-              expect(result).toBeNull()
-              expect(failures[0].code).toBe(code)
+              expect(result).toBeInvalidResultWithSingleFailure(code)
             })
           })
         })
@@ -95,12 +87,10 @@ describe('SeatRow', () => {
             const pref = ['A', 'B', 'C', 'D', 'E']
 
             // Act
-            const result = validateAndCollect(SeatRow.create(ID, COLUMNS, pref), failures)
+            const result = SeatRow.create(ID, COLUMNS, pref)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.SEAT_WITH_PREFERENTIAL_LIMIT_EXCEEDED)
-            expect(failures[0].details?.max).toBe(4)
+            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.SEAT_WITH_PREFERENTIAL_LIMIT_EXCEEDED)
           })
 
           it('deve falhar quando um assento preferencial não existe na fileira', () => {
@@ -108,11 +98,10 @@ describe('SeatRow', () => {
             const pref = ['G']
 
             // Act
-            const result = validateAndCollect(SeatRow.create(ID, COLUMNS, pref), failures)
+            const result = SeatRow.create(ID, COLUMNS, pref)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.SEAT_PREFERENTIAL_IN_ROW_IS_NOT_FOUND)
+            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.SEAT_PREFERENTIAL_IN_ROW_IS_NOT_FOUND)
           })
 
           it('deve falhar quando um assento preferencial é duplicado', () => {
@@ -120,11 +109,10 @@ describe('SeatRow', () => {
             const pref = ['A', 'B', 'A']
 
             // Act
-            const result = validateAndCollect(SeatRow.create(ID, COLUMNS, pref), failures)
+            const result = SeatRow.create(ID, COLUMNS, pref)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.SEAT_PREFERENTIAL_IS_DUPLICATED)
+            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.SEAT_PREFERENTIAL_IS_DUPLICATED)
           })
         })
       })

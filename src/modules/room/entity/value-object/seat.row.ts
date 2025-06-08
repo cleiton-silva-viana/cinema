@@ -1,8 +1,8 @@
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { TechnicalError } from '@shared/error/technical.error'
-import { ensureNotNull, validateAndCollect } from '@shared/validator/common.validators'
 import { FailureFactory } from '@shared/failure/failure.factory'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
 
 /**
  * Mapeamento de letras para números (posição no alfabeto)
@@ -91,17 +91,19 @@ export class SeatRow {
     if (failures.length > 0) return failure(failures)
 
     const normalizedLastColumnLetter = lastColumnLetter.toUpperCase()
+    const totalSeatsInRowResult = this.validateLastColumnLetter(rowId, normalizedLastColumnLetter)
+    if (totalSeatsInRowResult.isInvalid()) return failure(totalSeatsInRowResult.failures)
 
-    const totalSeatsInRow = validateAndCollect(
-      this.validateLastColumnLetter(rowId, normalizedLastColumnLetter),
-      failures
+    const totalSeatsInRow = totalSeatsInRowResult.value
+    const preferentialSeatsResult = this.validatePreferentialSeatLetters(
+      rowId,
+      preferentialSeatLetters || [],
+      totalSeatsInRow
     )
-    const preferentialSeats = validateAndCollect(
-      this.validatePreferentialSeatLetters(rowId, preferentialSeatLetters || [], totalSeatsInRow),
-      failures
-    )
+    if (preferentialSeatsResult.isInvalid()) return failure(preferentialSeatsResult.failures)
 
-    return failures.length > 0 ? failure(failures) : success(new SeatRow(normalizedLastColumnLetter, preferentialSeats))
+    const preferentialSeats = preferentialSeatsResult.value
+    return success(new SeatRow(normalizedLastColumnLetter, preferentialSeats))
   }
 
   /**
