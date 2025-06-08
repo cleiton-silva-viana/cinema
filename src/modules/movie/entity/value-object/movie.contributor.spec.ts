@@ -2,8 +2,6 @@ import { faker } from '@faker-js/faker/locale/pt_PT'
 import { IMovieContributorInput, MovieContributor, PersonRole } from './movie.contributor'
 import { PersonUID } from '@modules/person/entity/value-object/person.uid'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 
 describe('MovieContributor', () => {
   const VALID_INPUT: IMovieContributorInput = {
@@ -13,18 +11,15 @@ describe('MovieContributor', () => {
 
   describe('Static Methods', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => (failures = []))
-
       it('deve criar um vínculo válido', () => {
         // Act
-        const result = validateAndCollect(MovieContributor.create(VALID_INPUT), failures)
+        const result = MovieContributor.create(VALID_INPUT)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.personUID.value).toBe(VALID_INPUT.personUID)
-        expect(result.role).toBe(VALID_INPUT.role)
+        expect(result).toBeValidResultMatching<MovieContributor>((m) => {
+          expect(m.personUID.value).toBe(VALID_INPUT.personUID)
+          expect(m.role).toBe(VALID_INPUT.role)
+        })
       })
 
       describe('deve falhar', () => {
@@ -36,11 +31,10 @@ describe('MovieContributor', () => {
           }
 
           // Act
-          const result = validateAndCollect(MovieContributor.create(input), failures)
+          const result = MovieContributor.create(input)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
         })
 
         it(`se role for um valor inválido`, () => {
@@ -48,11 +42,10 @@ describe('MovieContributor', () => {
           const input = { ...VALID_INPUT, role: undefined as any }
 
           // Act
-          const result = validateAndCollect(MovieContributor.create(input), failures)
+          const result = MovieContributor.create(input)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.INVALID_ENUM_VALUE)
         })
       })
     })

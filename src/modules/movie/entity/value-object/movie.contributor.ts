@@ -1,8 +1,8 @@
 import { PersonUID } from '@modules/person/entity/value-object/person.uid'
-import { failure, Result, success } from '@shared/result/result'
-import { isNull } from '@shared/validator/validator'
+import { combine, failure, Result, success } from '@shared/result/result'
 import { TechnicalError } from '@shared/error/technical.error'
-import { ensureNotNull, hydrateEnum, parseToEnum, validateAndCollect } from '@shared/validator/common.validators'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { ensureNotNull, hydrateEnum, parseToEnum } from '@shared/validator/utils/validation.helpers'
 
 /**
  * Enum que define os possíveis papéis que uma pessoa pode ter em um filme.
@@ -73,10 +73,15 @@ export class MovieContributor {
     const failures = ensureNotNull({ input })
     if (failures.length !== 0) return failure(failures)
 
-    const personUID = validateAndCollect(PersonUID.parse(input.personUID), failures)
-    const role = validateAndCollect(parseToEnum('person_role', input.role, PersonRole), failures)
+    const result = combine({
+      personUID: PersonUID.parse(input.personUID),
+      role: parseToEnum('person_role', input.role, PersonRole),
+    })
 
-    return failures.length > 0 ? failure(failures) : success(new MovieContributor(personUID, role))
+    if (result.isInvalid()) return failure(result.failures)
+
+    const { personUID, role } = result.value
+    return success(new MovieContributor(personUID, role))
   }
 
   /**
@@ -93,7 +98,7 @@ export class MovieContributor {
     TechnicalError.validateRequiredFields({ input })
     const { personUID, role } = input
     TechnicalError.validateRequiredFields({ personUID, role })
-    return new MovieContributor(PersonUID.hydrate(personUID), hydrateEnum('person_role', role, PersonRole))
+    return new MovieContributor(PersonUID.hydrate(personUID), hydrateEnum({ role }, PersonRole))
   }
 
   /**
@@ -104,7 +109,7 @@ export class MovieContributor {
    * @returns boolean - true se forem iguais, false caso contrário
    */
   public equal(other: MovieContributor): boolean {
-    if (isNull(other)) return false
+    if (isNullOrUndefined(other)) return false
     if (!(other instanceof MovieContributor)) return false
     return this.role === other.role
   }
