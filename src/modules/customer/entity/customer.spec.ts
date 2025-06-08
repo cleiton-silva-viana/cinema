@@ -1,18 +1,10 @@
 import { Customer, IHydrateCustomerProps } from './customer'
 import { CPF } from './value-object/cpf'
 import { CustomerUID } from './value-object/customer.uid'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
 import { CreateTestCustomer } from '@test/builder/customer.builder'
 
 describe('Customer', () => {
-  let failures: SimpleFailure[]
-
-  beforeEach(() => {
-    failures = []
-  })
-
   const validName = 'John Doe'
   const validBirthDate = new Date(1990, 0, 1)
   const validEmail = 'john.doe@example.com'
@@ -25,54 +17,51 @@ describe('Customer', () => {
     describe('create', () => {
       it('deve criar um Customer válido com todos os campos fornecidos', async () => {
         // Act
-        const result = validateAndCollect(Customer.create(validName, validBirthDate, validEmail), failures)
+        const result = Customer.create(validName, validBirthDate, validEmail)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result).toBeInstanceOf(Customer)
-        expect(result.name.value).toBe(validName)
-        expect(result.birthDate.value.toISOString()).toBe(validBirthDate.toISOString())
-        expect(result.email.value).toBe(validEmail)
-        expect(result.cpf).toBeUndefined()
-        expect(result.studentCard).toBeUndefined()
+        expect(result).toBeValidResultMatching<Customer>((c) => {
+          expect(c).toBeInstanceOf(Customer)
+          expect(c.name.value).toBe(validName)
+          expect(c.birthDate.value.toISOString()).toBe(validBirthDate.toISOString())
+          expect(c.email.value).toBe(validEmail)
+          expect(c.cpf).toBeUndefined()
+          expect(c.studentCard).toBeUndefined()
+        })
       })
 
       it('deve falhar ao criar um Customer com nome inválido', async () => {
         // Act
-        const result = validateAndCollect(Customer.create('J', validBirthDate, validEmail), failures) // Nome muito curto
+        const result = Customer.create('J', validBirthDate, validEmail) // Nome muito curto
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
+        expect(result).toBeInvalidResult()
       })
 
       it('deve falhar ao criar um Customer com data de nascimento inválida', async () => {
         // Act
         const futureDate = new Date()
         futureDate.setDate(futureDate.getDate() + 1) // Data no futuro
-        const result = validateAndCollect(Customer.create(validName, futureDate, validEmail), failures)
+        const result = Customer.create(validName, futureDate, validEmail)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
+        expect(result).toBeInvalidResultWithFailureCount(1)
       })
 
       it('deve falhar ao criar um Customer com email inválido', async () => {
         // Act
-        const result = validateAndCollect(Customer.create(validName, validBirthDate, 'invalid-email'), failures)
+        const result = Customer.create(validName, validBirthDate, 'invalid-email')
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
+        expect(result).toBeInvalidResultWithFailureCount(1)
       })
 
       it('deve acumular falhas se múltiplos campos forem inválidos', async () => {
         // Act
-        const result = validateAndCollect(Customer.create('J', new Date(2500, 0, 1), 'invalid-email'), failures)
+        const result = Customer.create('J', new Date(2500, 0, 1), 'invalid-email')
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(3)
+        expect(result).toBeInvalidResultWithFailureCount(3)
       })
     })
 
@@ -177,116 +166,109 @@ describe('Customer', () => {
   })
 
   describe('Métodos de instância', () => {
+    let customerInstance: Customer
+    beforeEach(() => (customerInstance = CreateTestCustomer()))
+
     describe('updateName', () => {
       it('deve atualizar o nome com sucesso', async () => {
         // Arrange
-        const customer = CreateTestCustomer()
         const newName = 'Jane Doe'
 
         // Act
-        const result = validateAndCollect(customer.updateName(newName), failures)
+        const result = customerInstance.updateName(newName)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.name.value).toBe(newName)
-        expect(result.uid).toBe(customer.uid)
+        expect(result).toBeValidResultMatching<Customer>((c) => {
+          expect(c.name.value).toBe(newName)
+          expect(c.uid).toBe(customerInstance.uid)
+        })
       })
 
       it('deve falhar ao atualizar com nome inválido', async () => {
         // Arrange
-        const customer = CreateTestCustomer()
         const invalidName = 'J'
 
         // Act
-        const result = validateAndCollect(customer.updateName(invalidName), failures)
+        const result = customerInstance.updateName(invalidName)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
+        expect(result).toBeInvalidResult()
       })
     })
 
     describe('updateBirthDate', () => {
       it('deve atualizar a data de nascimento com sucesso', async () => {
         // Arrange
-        const customer = CreateTestCustomer()
         const newBirthDate = new Date(1995, 5, 15)
 
         // Act
-        const result = validateAndCollect(customer.updateBirthDate(newBirthDate), failures)
+        const result = customerInstance.updateBirthDate(newBirthDate)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.birthDate.value.toISOString()).toBe(newBirthDate.toISOString())
+        expect(result).toBeValidResultMatching<Customer>((c) => {
+          expect(c.birthDate.value.toISOString()).toBe(newBirthDate.toISOString())
+        })
       })
 
       it('deve falhar ao atualizar com data de nascimento inválida', async () => {
         // Arrange
-        const customer = CreateTestCustomer()
         const invalidBirthDate = new Date(2500, 0, 1) // Data no futuro
 
         // Act
-        const result = validateAndCollect(customer.updateBirthDate(invalidBirthDate), failures)
+        const result = customerInstance.updateBirthDate(invalidBirthDate)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
+        expect(result).toBeInvalidResult()
       })
     })
 
     describe('updateEmail', () => {
       it('deve atualizar o email com sucesso', async () => {
         // Arrange
-        const customer = CreateTestCustomer()
         const newEmail = 'jane.doe@example.com'
 
         // Act
-        const result = validateAndCollect(customer.updateEmail(newEmail), failures)
+        const result = customerInstance.updateEmail(newEmail)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.email.value).toBe(newEmail)
+        expect(result).toBeValidResultMatching<Customer>((c) => {
+          expect(c.email.value).toBe(newEmail)
+        })
       })
 
       it('deve falhar ao atualizar com email inválido', async () => {
         // Arrange
-        const customer = CreateTestCustomer()
         const invalidEmail = 'invalid-email'
 
         // Act
-        const result = validateAndCollect(customer.updateEmail(invalidEmail), failures)
+        const result = customerInstance.updateEmail(invalidEmail)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
+        expect(result).toBeInvalidResult()
       })
     })
 
     describe('assignCPF', () => {
       it('deve atribuir CPF com sucesso', async () => {
-        // Arrange
-        const customer = CreateTestCustomer()
-
         // Act
-        const result = validateAndCollect(customer.assignCPF(validCpf), failures)
+        const result = customerInstance.assignCPF(validCpf)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.cpf).toBeInstanceOf(CPF)
-        expect(result.cpf?.value).toBe(validCpf)
+        expect(result).toBeValidResultMatching<Customer>((c) => {
+          expect(c.cpf).toBeInstanceOf(CPF)
+          expect(c.cpf?.value).toBe(validCpf)
+        })
       })
 
       it('deve falhar ao atribuir CPF inválido', async () => {
         // Arrange
-        const customer = CreateTestCustomer()
         const invalidCpf = '123'
 
         // Act
-        const result = validateAndCollect(customer.assignCPF(invalidCpf), failures)
+        const result = customerInstance.assignCPF(invalidCpf)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
+        expect(result).toBeInvalidResult()
       })
     })
 
@@ -296,42 +278,36 @@ describe('Customer', () => {
         const customerWithCpf = CreateTestCustomer({ cpf: validCpf })
 
         // Act
-        const result = validateAndCollect(customerWithCpf.removeCPF(), failures)
+        const result = customerWithCpf.removeCPF()
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.cpf).toBeNull()
+        expect(result).toBeValidResultMatching<Customer>((c) => {
+          expect(c.cpf).toBeNull()
+        })
       })
     })
 
     describe('assignStudentCard', () => {
       it('deve atribuir StudentCard com sucesso', async () => {
-        // Arrange
-        const customer = CreateTestCustomer()
-
         // Act
-        const result = validateAndCollect(
-          customer.assignStudentCard(validStudentCardId, validStudentCardValidity),
-          failures
-        )
+        const result = customerInstance.assignStudentCard(validStudentCardId, validStudentCardValidity)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.studentCard?.id).toBe(validStudentCardId)
-        expect(result.studentCard?.validity).toBe(validStudentCardValidity)
+        expect(result).toBeValidResultMatching<Customer>((c) => {
+          expect(c.studentCard?.id).toBe(validStudentCardId)
+          expect(c.studentCard?.validity).toBe(validStudentCardValidity)
+        })
       })
 
       it('deve falhar ao atribuir StudentCard com ID inválido', async () => {
         // Arrange
-        const customer = CreateTestCustomer()
         const invalidId = 'S1'
 
         // Act
-        const result = validateAndCollect(customer.assignStudentCard(invalidId, validStudentCardValidity), failures)
+        const result = customerInstance.assignStudentCard(invalidId, validStudentCardValidity)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.STUDENT_CARD_ID_INVALID_FORMAT)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.STUDENT_CARD_ID_INVALID_FORMAT)
       })
 
       it('deve falhar ao atribuir StudentCard com validade inválida (passado)', async () => {
@@ -340,11 +316,10 @@ describe('Customer', () => {
         const pastDate = new Date(2000, 0, 1)
 
         // Act
-        const result = validateAndCollect(customer.assignStudentCard(validStudentCardId, pastDate), failures)
+        const result = customer.assignStudentCard(validStudentCardId, pastDate)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.DATE_CANNOT_BE_PAST)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.DATE_CANNOT_BE_PAST)
       })
     })
 
@@ -356,11 +331,12 @@ describe('Customer', () => {
         })
 
         // Act
-        const result = validateAndCollect(customerWithCard.removeStudentCard(), failures)
+        const result = customerWithCard.removeStudentCard()
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.studentCard).toBeNull()
+        expect(result).toBeValidResultMatching<Customer>((c) => {
+          expect(c.studentCard).toBeNull()
+        })
       })
     })
   })

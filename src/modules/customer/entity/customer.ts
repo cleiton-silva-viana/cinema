@@ -2,12 +2,10 @@ import { CustomerUID } from './value-object/customer.uid'
 import { Email } from './value-object/email'
 import { CPF } from './value-object/cpf'
 import { StudentCard } from './value-object/student-card'
-import { failure, Result, success } from '@shared/result/result'
+import { combine, failure, Result, success } from '@shared/result/result'
 import { TechnicalError } from '@shared/error/technical.error'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { BirthDate } from '@shared/value-object/birth.date'
 import { Name } from '@shared/value-object/name'
-import { validateAndCollect } from '@shared/validator/common.validators'
 
 export interface IHydrateCustomerProps {
   uid: string
@@ -42,15 +40,11 @@ export class Customer {
    * @returns Um `Result` contendo a instância de `Customer` ou uma lista de falhas.
    */
   public static create(name: string, birthDate: Date, email: string): Result<Customer> {
-    const failures: SimpleFailure[] = []
+    const result = combine([Name.create(name), BirthDate.create(birthDate), Email.create(email)])
+    if (result.isInvalid()) return result
 
-    const nameVO = validateAndCollect(Name.create(name), failures)
-    const birthDateVO = validateAndCollect(BirthDate.create(birthDate), failures)
-    const emailVO = validateAndCollect(Email.create(email), failures)
-
-    return failures.length
-      ? failure(failures)
-      : success(new Customer(CustomerUID.create(), nameVO, birthDateVO, emailVO))
+    const [nameVO, birthDateVO, emailVO] = result.value as [Name, BirthDate, Email]
+    return success(new Customer(CustomerUID.create(), nameVO, birthDateVO, emailVO))
   }
 
   /**
@@ -62,12 +56,10 @@ export class Customer {
   public static hydrate(props: IHydrateCustomerProps): Customer {
     TechnicalError.validateRequiredFields({ props })
 
-    const { uid, name, birthDate, email, cpf, studentCard } = props
-
-    TechnicalError.validateRequiredFields({ uid, name, birthDate, email })
-
-    const cpfVO = cpf ? CPF.hydrate(cpf) : null
-    const studentCardVO = studentCard ? StudentCard.hydrate(studentCard.id, studentCard.validity) : null
+    const cpfVO = props.cpf ? CPF.hydrate(props.cpf) : null
+    const studentCardVO = props.studentCard
+      ? StudentCard.hydrate(props.studentCard.id, props.studentCard.validity)
+      : null
 
     return new Customer(
       CustomerUID.hydrate(props.uid),
