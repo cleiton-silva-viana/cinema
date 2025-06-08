@@ -1,33 +1,14 @@
 import { v4 } from 'uuid'
 import { BookingSlot, BookingType } from './booking.slot'
 import { ScreeningUID } from '../../../screening/aggregate/value-object/screening.uid'
-import { TechnicalError } from '@shared/error/technical.error'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 
 describe('BookingSlot', () => {
-  let originalDateNow: () => number
   const mockScreeningUID = ScreeningUID.create()
   const mockScreeningUIDString = mockScreeningUID.value
   const VALID_TYPE = BookingType.SCREENING
 
-  beforeAll(() => {
-    originalDateNow = Date.now
-    global.Date.now = jest.fn(() => new Date(2023, 0, 1, 10, 0, 0).getTime())
-  })
-
-  afterAll(() => {
-    global.Date.now = originalDateNow
-  })
-
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     const NOW = new Date(Date.now())
     const VALID_SCREENING_UID = ScreeningUID.create()
     const VALID_START_TIME = new Date(NOW.getTime() + 1000 * 60 * 60) // 1 hora no futuro
@@ -40,18 +21,21 @@ describe('BookingSlot', () => {
           const minutes = Math.abs((VALID_START_TIME.getTime() - VALID_END_TIME.getTime()) / 60000)
 
           // Act
-          const result = validateAndCollect(
-            BookingSlot.create(VALID_SCREENING_UID, VALID_START_TIME, VALID_END_TIME, BookingType.SCREENING),
-            failures
+          const result = BookingSlot.create(
+            VALID_SCREENING_UID,
+            VALID_START_TIME,
+            VALID_END_TIME,
+            BookingType.SCREENING
           )
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.screeningUID).toBe(VALID_SCREENING_UID)
-          expect(result.startTime).toBe(VALID_START_TIME)
-          expect(result.endTime).toBe(VALID_END_TIME)
-          expect(result.type).toBe(BookingType.SCREENING)
-          expect(result.durationInMinutes).toBe(minutes)
+          expect(result).toBeValidResultMatching<BookingSlot>((b) => {
+            expect(b.screeningUID).toBe(VALID_SCREENING_UID)
+            expect(b.startTime).toBe(VALID_START_TIME)
+            expect(b.endTime).toBe(VALID_END_TIME)
+            expect(b.type).toBe(BookingType.SCREENING)
+            expect(b.durationInMinutes).toBe(minutes)
+          })
         })
 
         it('Deve criar um BookingSlot do tipo CLEANING com sucesso', () => {
@@ -61,17 +45,15 @@ describe('BookingSlot', () => {
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000)
 
           // Act
-          const result = validateAndCollect(
-            BookingSlot.create(null, startTime, endTime, BookingType.CLEANING),
-            failures
-          )
+          const result = BookingSlot.create(null, startTime, endTime, BookingType.CLEANING)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.type).toBe(BookingType.CLEANING)
-          expect(result.screeningUID).toBeNull()
-          expect(result.bookingUID).toBeDefined()
-          expect(result.durationInMinutes).toBe(minutes)
+          expect(result).toBeValidResultMatching<BookingSlot>((b) => {
+            expect(b.type).toBe(BookingType.CLEANING)
+            expect(b.screeningUID).toBeNull()
+            expect(b.bookingUID).toBeDefined()
+            expect(b.durationInMinutes).toBe(minutes)
+          })
         })
 
         it('Deve criar um BookingSlot do tipo CLEANING associado à um screen uid com sucesso', () => {
@@ -81,17 +63,15 @@ describe('BookingSlot', () => {
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000)
 
           // Act
-          const result = validateAndCollect(
-            BookingSlot.create(VALID_SCREENING_UID, startTime, endTime, BookingType.CLEANING),
-            failures
-          )
+          const result = BookingSlot.create(VALID_SCREENING_UID, startTime, endTime, BookingType.CLEANING)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.type).toBe(BookingType.CLEANING)
-          expect(result.screeningUID).toBe(VALID_SCREENING_UID)
-          expect(result.bookingUID).toBeDefined()
-          expect(result.durationInMinutes).toBe(minutes)
+          expect(result).toBeValidResultMatching<BookingSlot>((b) => {
+            expect(b.type).toBe(BookingType.CLEANING)
+            expect(b.screeningUID).toBe(VALID_SCREENING_UID)
+            expect(b.bookingUID).toBeDefined()
+            expect(b.durationInMinutes).toBe(minutes)
+          })
         })
 
         it('Deve criar um BookingSlot do tipo MAINTENANCE com sucesso', () => {
@@ -101,18 +81,16 @@ describe('BookingSlot', () => {
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000) // 8 horas
 
           // Act
-          const result = validateAndCollect(
-            BookingSlot.create(null, startTime, endTime, BookingType.MAINTENANCE),
-            failures
-          )
+          const result = BookingSlot.create(null, startTime, endTime, BookingType.MAINTENANCE)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.type).toBe(BookingType.MAINTENANCE)
-          expect(result.screeningUID).toBeNull()
-          expect(result.durationInMinutes).toBe(minutes)
-          expect(result.startTime).toEqual(startTime)
-          expect(result.endTime).toEqual(endTime)
+          expect(result).toBeValidResultMatching<BookingSlot>((b) => {
+            expect(b.type).toBe(BookingType.MAINTENANCE)
+            expect(b.screeningUID).toBeNull()
+            expect(b.durationInMinutes).toBe(minutes)
+            expect(b.startTime).toEqual(startTime)
+            expect(b.endTime).toEqual(endTime)
+          })
         })
 
         it('Deve criar um BookingSlot do tipo EXIT_TIME com sucesso', () => {
@@ -122,19 +100,17 @@ describe('BookingSlot', () => {
           const endTime = new Date(startTime.getTime() + minutes * 60 * 1000)
 
           // Act
-          const result = validateAndCollect(
-            BookingSlot.create(VALID_SCREENING_UID, startTime, endTime, BookingType.EXIT_TIME),
-            failures
-          )
+          const result = BookingSlot.create(VALID_SCREENING_UID, startTime, endTime, BookingType.EXIT_TIME)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.type).toBe(BookingType.EXIT_TIME)
-          expect(result.bookingUID).toBeDefined()
-          expect(result.screeningUID).toBe(VALID_SCREENING_UID)
-          expect(result.durationInMinutes).toBe(minutes)
-          expect(result.startTime).toEqual(startTime)
-          expect(result.endTime).toEqual(endTime)
+          expect(result).toBeValidResultMatching<BookingSlot>((b) => {
+            expect(b.type).toBe(BookingType.EXIT_TIME)
+            expect(b.bookingUID).toBeDefined()
+            expect(b.screeningUID).toBe(VALID_SCREENING_UID)
+            expect(b.durationInMinutes).toBe(minutes)
+            expect(b.startTime).toEqual(startTime)
+            expect(b.endTime).toEqual(endTime)
+          })
         })
 
         it('Deve criar um BookingSlot do tipo ENTRY_TIME com sucesso', () => {
@@ -145,19 +121,17 @@ describe('BookingSlot', () => {
           const endTime = new Date(VALID_START_TIME)
 
           // Act
-          const result = validateAndCollect(
-            BookingSlot.create(VALID_SCREENING_UID, startTime, endTime, BookingType.ENTRY_TIME),
-            failures
-          )
+          const result = BookingSlot.create(VALID_SCREENING_UID, startTime, endTime, BookingType.ENTRY_TIME)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.type).toBe(BookingType.ENTRY_TIME)
-          expect(result.bookingUID).toBeDefined()
-          expect(result.screeningUID).toBe(VALID_SCREENING_UID)
-          expect(result.durationInMinutes).toBe(minutes)
-          expect(result.startTime).toEqual(startTime)
-          expect(result.endTime).toEqual(endTime)
+          expect(result).toBeValidResultMatching<BookingSlot>((b) => {
+            expect(b.type).toBe(BookingType.ENTRY_TIME)
+            expect(b.bookingUID).toBeDefined()
+            expect(b.screeningUID).toBe(VALID_SCREENING_UID)
+            expect(b.durationInMinutes).toBe(minutes)
+            expect(b.startTime).toEqual(startTime)
+            expect(b.endTime).toEqual(endTime)
+          })
         })
       })
 
@@ -236,15 +210,10 @@ describe('BookingSlot', () => {
               }
 
               // Act
-              const result = validateAndCollect(
-                BookingSlot.create(input.screeningUID, input.startTime, input.endTime, input.type),
-                failures
-              )
+              const result = BookingSlot.create(input.screeningUID, input.startTime, input.endTime, input.type)
 
               // Assert
-              expect(result).toBeNull()
-              expect(failures.length).toBe(1)
-              expect(failures[0].code).toBe(expectedCode)
+              expect(result).toBeInvalidResultWithSingleFailure(expectedCode)
             })
           })
         })
@@ -358,15 +327,10 @@ describe('BookingSlot', () => {
               }
 
               // Act
-              const result = validateAndCollect(
-                BookingSlot.create(input.screeningUID, input.startTime, input.endTime, input.type),
-                failures
-              )
+              const result = BookingSlot.create(input.screeningUID, input.startTime, input.endTime, input.type)
 
               // Assert
-              expect(result).toBeNull()
-              expect(failures.length).toBe(1)
-              expect(failures[0].code).toBe(expectedCode)
+              expect(result).toBeInvalidResultWithSingleFailure(expectedCode)
             })
           })
         })
@@ -442,7 +406,7 @@ describe('BookingSlot', () => {
             // Act & Assert
             expect(() =>
               BookingSlot.hydrate(datas.bookingUID, datas.screeningUID, datas.startTime, datas.endTime, datas.type)
-            ).toThrow(TechnicalError)
+            ).toThrowTechnicalError()
           })
         })
       })

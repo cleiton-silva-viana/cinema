@@ -3,10 +3,9 @@ import { ScreeningUID } from '../../../screening/aggregate/value-object/screenin
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { Validate } from '@shared/validator/validate'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { isNull } from '@shared/validator/validator'
 import { TechnicalError } from '@shared/error/technical.error'
 import { FailureFactory } from '@shared/failure/failure.factory'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 /**
  * Define os tipos de agendamento possíveis para uma sala de cinema.
@@ -135,16 +134,20 @@ export class BookingSlot {
 
     Validate.date({ startTime }, failures)
       .isRequired()
-      .isAfter(now, FailureCode.DATE_CANNOT_BE_PAST)
+      .isAfter(now, () => FailureFactory.DATE_CANNOT_BE_PAST('startTime'))
       .then(() => {
-        Validate.date({ endTime }, failures).isRequired().isAfter(startTime, FailureCode.DATE_WITH_INVALID_SEQUENCE)
+        Validate.date({ endTime }, failures)
+          .isRequired()
+          .isAfter(startTime, () =>
+            FailureFactory.DATE_WITH_INVALID_SEQUENCE(startTime.toISOString(), endTime?.toISOString() || 'N/D')
+          )
       })
 
     Validate.string({ type }, failures)
       .isRequired()
       .isInEnum(BookingType)
       .when(type === BookingType.SCREENING || type === BookingType.EXIT_TIME || type === BookingType.ENTRY_TIME, () => {
-        if (isNull(screeningUID)) failures.push(FailureFactory.MISSING_REQUIRED_DATA('screening'))
+        if (isNullOrUndefined(screeningUID)) failures.push(FailureFactory.MISSING_REQUIRED_DATA('screening'))
       })
 
     return failures.length === 0
@@ -171,7 +174,7 @@ export class BookingSlot {
   }
 
   public equals(other: BookingSlot): boolean {
-    if (isNull(other)) return false
+    if (isNullOrUndefined(other)) return false
     if (!(other instanceof BookingSlot)) return false
     return other.bookingUID === this.bookingUID
   }
