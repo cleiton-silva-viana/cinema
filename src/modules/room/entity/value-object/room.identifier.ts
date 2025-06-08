@@ -5,6 +5,7 @@ import { TechnicalError } from '@shared/error/technical.error'
 
 export class RoomIdentifier {
   private static readonly MIN_VALUE = 1
+
   private static readonly MAX_VALUE = 100
 
   private constructor(public readonly value: number) {}

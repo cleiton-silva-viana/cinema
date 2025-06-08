@@ -1,17 +1,9 @@
 import { RoomIdentifier } from './room.identifier'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@shared/error/technical.error'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 
 describe('RoomIdentifier', () => {
   describe('create', () => {
-    let failures: SimpleFailure[] = []
-
-    beforeEach(() => {
-      failures = []
-    })
-
     describe('casos de sucesso', () => {
       const successCase = [
         {
@@ -27,11 +19,12 @@ describe('RoomIdentifier', () => {
       successCase.forEach(({ scenario, input }) => {
         it(scenario, () => {
           // Act
-          const result = validateAndCollect(RoomIdentifier.create(input), failures)
+          const result = RoomIdentifier.create(input)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.value).toBe(input)
+          expect(result).toBeValidResultMatching<RoomIdentifier>((r) => {
+            expect(r.value).toBe(input)
+          })
         })
       })
     })
@@ -58,12 +51,10 @@ describe('RoomIdentifier', () => {
       successCase.forEach(({ scenario, input, code }) => {
         it(scenario, () => {
           // Act
-          const result = validateAndCollect(RoomIdentifier.create(input), failures)
+          const result = RoomIdentifier.create(input)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures.length).toBe(1)
-          expect(failures[0].code).toBe(code)
+          expect(result).toBeInvalidResultWithSingleFailure(code)
         })
       })
     })
