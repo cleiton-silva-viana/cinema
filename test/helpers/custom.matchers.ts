@@ -17,6 +17,7 @@ declare global {
       toBeValidResultMatching<T>(predicate: (value: T) => boolean | void): R
       toBeInvalidResult(): R
       toBeInvalidResultWithSingleFailure(expectedCode: FailureCode): R
+      toBeInvalidResultWithFailureCount(expectedCount: number): R
       toThrowTechnicalError(): R
       toHaveTechnicalErrorCode(expectedCode: FailureCode): R
     }
@@ -265,6 +266,57 @@ function toBeInvalidResultWithSingleFailure(received: Result<any>, expectedCode:
 }
 
 /**
+ * Matcher para verificar se um Result é inválido e contém uma quantidade específica de falhas
+ */
+function toBeInvalidResultWithFailureCount(received: Result<any>, expectedCount: number) {
+  if (received.isValid()) {
+    return {
+      message: () =>
+        matcherHint('.toBeInvalidResultWithFailureCount', 'received', 'expectedCount') +
+        '\n\n' +
+        'Expected Result to be invalid with ' +
+        expectedCount +
+        ' failure(s), but Result was valid with value:\n' +
+        '  ' +
+        printReceived(received.value),
+      pass: false,
+    }
+  }
+
+  const failures = received.failures
+  const actualCount = failures.length
+  const pass = actualCount === expectedCount
+
+  if (pass) {
+    return {
+      message: () =>
+        matcherHint('.not.toBeInvalidResultWithFailureCount', 'received', 'expectedCount') +
+        '\n\n' +
+        'Expected Result not to have ' +
+        expectedCount +
+        ' failure(s), but it did\n' +
+        'Received failures: ' +
+        printReceived(failures.map((f) => f.code)),
+      pass: true,
+    }
+  } else {
+    return {
+      message: () =>
+        matcherHint('.toBeInvalidResultWithFailureCount', 'received', 'expectedCount') +
+        '\n\n' +
+        'Expected Result to have ' +
+        expectedCount +
+        ' failure(s), but got ' +
+        actualCount +
+        ' failure(s)\n' +
+        'Received failures: ' +
+        printReceived(failures.map((f) => f.code)),
+      pass: false,
+    }
+  }
+}
+
+/**
  * Matcher para verificar se um valor é uma instância de TechnicalError.
  * Útil para testar se uma função lança um TechnicalError.
  */
@@ -339,5 +391,6 @@ export function setupCustomMatchers() {
     toBeValidResultMatching,
     toBeValidResultWithValue,
     toBeInvalidResultWithSingleFailure,
+    toBeInvalidResultWithFailureCount,
   })
 }
