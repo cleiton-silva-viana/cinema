@@ -1,8 +1,8 @@
 import { failure, Result, success } from '@shared/result/result'
 import { Validate } from '@shared/validator/validate'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@shared/error/technical.error'
-import { ensureNotNull } from '@shared/validator/common.validators'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
+import { FailureFactory } from '@shared/failure/failure.factory'
 
 /**
  * Representa um assento em uma sala de cinema.
@@ -18,6 +18,7 @@ import { ensureNotNull } from '@shared/validator/common.validators'
  */
 export class Seat {
   private static readonly MIN_VALUE_ALLOWED = 1
+
   private static readonly MAX_VALUE_ALLOWED = 250
 
   /**
@@ -52,12 +53,12 @@ export class Seat {
 
     Validate.string({ column: columnUpper }, failures)
       .isRequired()
-      .matchesPattern(/^[A-Za-z]$/, FailureCode.SEAT_WITH_INVALID_COLUMN_IDENTIFIER)
+      .matchesPattern(/^[A-Za-z]$/, () => FailureFactory.SEAT_WITH_INVALID_COLUMN_IDENTIFIER(column, row.toString()))
 
     Validate.number({ row }, failures)
       .isRequired()
-      .isInteger(FailureCode.SEAT_WITH_INVALID_ROW_NUMBER, { row })
-      .isPositive(FailureCode.SEAT_WITH_INVALID_ROW_NUMBER, { row })
+      .isInteger(() => FailureFactory.SEAT_WITH_INVALID_ROW_NUMBER(row.toString()))
+      .isPositive(() => FailureFactory.SEAT_WITH_INVALID_ROW_NUMBER(row.toString()))
       .isInRange(Seat.MIN_VALUE_ALLOWED, Seat.MAX_VALUE_ALLOWED)
 
     return failures.length > 0 ? failure(failures) : success(new Seat(columnUpper, row, preferential))

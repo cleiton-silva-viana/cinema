@@ -1,17 +1,9 @@
 import { Seat } from './seat'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 
 describe('Seat', () => {
   describe('Métodos Estáticos', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => {
-        failures = []
-      })
-
       describe('Cenários de sucesso', () => {
         const successCases = [
           {
@@ -49,14 +41,14 @@ describe('Seat', () => {
         successCases.forEach(({ column, row, preferential, scenario }) => {
           it(`deve criar um assento válido: ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(Seat.create(column, row, preferential), failures)
+            const result = Seat.create(column, row, preferential)
 
             // Assert
-            expect(result).toBeDefined()
-            expect(result).toBeInstanceOf(Seat)
-            expect(result.column).toBe(column.trim().toUpperCase())
-            expect(result.row).toBe(row)
-            expect(result.preferential).toBe(preferential)
+            expect(result).toBeValidResultMatching<Seat>((s) => {
+              expect(s.column).toBe(column.trim().toUpperCase())
+              expect(s.row).toBe(row)
+              expect(s.preferential).toBe(preferential)
+            })
           })
         })
       })
@@ -68,28 +60,31 @@ describe('Seat', () => {
               column: null as any,
               row: 10,
               scenario: 'coluna nula',
-              field: 'column',
             },
             {
               column: 'A',
               row: null as any,
               scenario: 'fileira nula',
-              field: 'row',
             },
           ]
 
-          failureCases.forEach(({ scenario, column, row, field }) => {
+          failureCases.forEach(({ scenario, column, row }) => {
             it(`deve falhar quando ${scenario}`, () => {
               // Act
-              const result = validateAndCollect(Seat.create(column, row, true), failures)
+              const result = Seat.create(column, row, true)
 
               // Assert
-              expect(result).toBeNull()
-              expect(failures.length).toBe(1)
-              expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
-              expect(failures[0].details?.field).toBe(field)
+              expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
             })
           })
+        })
+
+        it('Deve acumular erros com sucesso', () => {
+          // Act
+          const result = Seat.create(null as any, null as any, true)
+
+          // Assert
+          expect(result).toBeInvalidResultWithFailureCount(2)
         })
 
         describe('Validação da coluna', () => {
@@ -111,12 +106,10 @@ describe('Seat', () => {
           failureCases.forEach(({ scenario, column }) => {
             it(`deve falhar quando a ${scenario}`, () => {
               // Act
-              const result = validateAndCollect(Seat.create(column, 2, false), failures)
+              const result = Seat.create(column, 2, false)
 
               // Assert
-              expect(result).toBeNull()
-              expect(failures[0].code).toBe(FailureCode.SEAT_WITH_INVALID_COLUMN_IDENTIFIER)
-              expect(failures[0].details?.field).toBe('column')
+              expect(result).toBeInvalidResultWithSingleFailure(FailureCode.SEAT_WITH_INVALID_COLUMN_IDENTIFIER)
             })
           })
         })
@@ -148,22 +141,20 @@ describe('Seat', () => {
           failureCases.forEach(({ row, scenario, errorCode }) => {
             it(`deve falhar quando a ${scenario}`, () => {
               // Act
-              const result = validateAndCollect(Seat.create('L', row, false), failures)
+              const result = Seat.create('L', row, false)
 
               // Assert
-              expect(result).toBeNull()
-              expect(failures[0].code).toBe(errorCode)
+              expect(result).toBeInvalidResultWithSingleFailure(errorCode)
             })
           })
         })
 
         it('deve falhar quando a fileira não é um valor numérico', () => {
           // Act
-          const result = validateAndCollect(Seat.create('H', 'abc' as any, false), failures)
+          const result = Seat.create('H', 'abc' as any, false)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures.length).toBe(1)
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.SEAT_WITH_INVALID_ROW_NUMBER)
         })
       })
     })
