@@ -72,11 +72,35 @@ export const failure = (errors: SimpleFailure | ReadonlyArray<SimpleFailure>): R
 }
 
 /**
+ * Combina dois resultados em um único Result com inferência de tipos precisa.
+ */
+export function combine<T1, T2>(results: readonly [Result<T1>, Result<T2>]): Result<[T1, T2]>
+
+/**
+ * Combina três resultados em um único Result com inferência de tipos precisa.
+ */
+export function combine<T1, T2, T3>(results: readonly [Result<T1>, Result<T2>, Result<T3>]): Result<[T1, T2, T3]>
+
+/**
+ * Combina quatro resultados em um único Result com inferência de tipos precisa.
+ */
+export function combine<T1, T2, T3, T4>(
+  results: readonly [Result<T1>, Result<T2>, Result<T3>, Result<T4>]
+): Result<[T1, T2, T3, T4]>
+
+/**
+ * Combina cinco resultados em um único Result com inferência de tipos precisa.
+ */
+export function combine<T1, T2, T3, T4, T5>(
+  results: readonly [Result<T1>, Result<T2>, Result<T3>, Result<T4>, Result<T5>]
+): Result<[T1, T2, T3, T4, T5]>
+
+/**
  * Combina múltiplos resultados (Result) de um array em um único Result.
  * Se todos os resultados forem SUCCESS, retorna um SUCCESS contendo um array com os valores de cada resultado.
  * Se um ou mais resultados forem FAILURE, retorna um FAILURE contendo todas as falhas coletadas.
- * @template T Um array de instâncias de Result.
- * @param results Os resultados a serem combinados.
+ * @template T Um array de tipos Result.
+ * @param results O array de resultados a serem combinados.
  * @returns Um Result que é SUCCESS com um array de valores ou FAILURE com um array de falhas.
  */
 export function combine<T extends ReadonlyArray<Result<unknown>>>(

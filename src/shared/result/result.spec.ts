@@ -97,7 +97,7 @@ describe('combine', () => {
     const r2 = success('hello')
     const r3 = success(true)
 
-    const combined = combine([ r1, r2, r3 ])
+    const combined = combine([r1, r2, r3])
 
     expect(combined.isValid()).toBe(true)
     if (combined.isValid()) {
@@ -110,7 +110,7 @@ describe('combine', () => {
     const r2 = failure({ code: FailureCode.MISSING_REQUIRED_DATA, details: { field: 'name' } })
     const r3 = success(true)
 
-    const combined = combine([ r1, r2, r3 ])
+    const combined = combine([r1, r2, r3])
 
     expect(combined.isInvalid()).toBe(true)
     if (combined.isInvalid()) {
@@ -123,7 +123,7 @@ describe('combine', () => {
     const r2 = failure({ code: FailureCode.INVALID_ENUM_VALUE_COUNT, details: { field: 'name' } })
     const r3 = failure({ code: FailureCode.INVALID_ENUM_VALUE, details: { id: '123' } })
 
-    const combined = combine([ r1, r2, r3 ])
+    const combined = combine([r1, r2, r3])
 
     expect(combined.isInvalid()).toBe(true)
     if (combined.isInvalid()) {
