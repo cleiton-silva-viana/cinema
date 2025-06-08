@@ -1,8 +1,8 @@
 import { TechnicalError } from '@shared//error/technical.error'
 import { failure, Result, success } from '@shared//result/result'
 import { Validate } from '@shared//validator/validate'
-import { ensureNotNull, parseToEnum, validateAndCollect } from '@shared//validator/common.validators'
-import { isNull } from '@shared/validator/validator'
+import {ensureNotNull, parseToEnum} from "@shared/validator/utils/validation.helpers";
+import {isNullOrUndefined} from "@shared/validator/utils/validation";
 
 /**
  * Tipos de tela suportados pelo cinema
@@ -75,8 +75,13 @@ export class Screen {
       .isInteger()
       .isInRange(Screen.MIN_SIZE_IN_METERS, Screen.MAX_SIZE_IN_METERS)
 
-    const typeParsed = validateAndCollect(parseToEnum('screen_type', type.trim(), ScreenType), failures)
+    const typeParsedResult = parseToEnum('screen_type', type.trim(), ScreenType)
+    if (typeParsedResult.isInvalid()) {
+      failures.push(...typeParsedResult.failures)
+      return failure(failures)
+    }
 
+    const typeParsed = typeParsedResult.value
     return failures.length > 0 ? failure(failures) : success(new Screen(size, typeParsed))
   }
 
@@ -106,7 +111,7 @@ export class Screen {
    * @returns true se as telas forem iguais em valor, false caso contrário
    */
   public equals(other: Screen): boolean {
-    if (isNull(other)) return false
+    if (isNullOrUndefined(other)) return false
     if (!other || !(other instanceof Screen)) return false
     return this.size === other.size && this.type === other.type
   }

@@ -1,20 +1,12 @@
-import {Screen} from './screen'
-import {FailureCode} from '@shared/failure/failure.codes.enum'
-import {SimpleFailure} from '@shared/failure/simple.failure.type'
-import {validateAndCollect} from '@shared/validator/common.validators'
-import {TechnicalError} from "@shared/error/technical.error";
+import { Screen } from './screen'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { TechnicalError } from '@shared/error/technical.error'
 
 describe('Screen', () => {
   const VALID_SIZE = 20
 
   describe('Métodos Estáticos', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => {
-        failures = []
-      })
-
       describe('telas válidas', () => {
         const successCases = [
           {
@@ -57,12 +49,13 @@ describe('Screen', () => {
         successCases.forEach(({ size, type, scenario }) => {
           it(`deve criar uma tela ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(Screen.create(size, type), failures)
+            const result = Screen.create(size, type)
 
             // Assert
-            expect(result).toBeDefined()
-            expect(result.size).toBe(size)
-            expect(result.type).toBe(type.trim().toUpperCase())
+            expect(result).toBeValidResultMatching<Screen>(s => {
+              expect(s.size).toBe(size)
+              expect(s.type).toBe(type.trim().toUpperCase())
+            })
           })
         })
       })
@@ -110,11 +103,10 @@ describe('Screen', () => {
         failureCases.forEach(({ size, type, scenario, errorCode }) => {
           it(`deve rejeitar uma tela ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(Screen.create(size, type as unknown as string), failures)
+            const result = Screen.create(size, type as unknown as string)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(errorCode)
+            expect(result).toBeInvalidResultWithSingleFailure(errorCode)
           })
         })
       })
@@ -134,65 +126,64 @@ describe('Screen', () => {
         expect(() => Screen.hydrate(null as any, '2D')).toThrow(TechnicalError)
         expect(() => Screen.hydrate(30, null as any)).toThrow(TechnicalError)
       })
-
     })
     describe('Métodos de Instância', () => {
       describe('equals', () => {
         it('deve retornar true para telas com mesmo tamanho e tipo', () => {
-        // Arrange
+          // Arrange
           const screen1 = Screen.hydrate(VALID_SIZE, '2D')
           const screen2 = Screen.hydrate(VALID_SIZE, '2D')
 
-        // Act
+          // Act
           const result = screen1.equals(screen2)
 
-        // Assert
+          // Assert
           expect(result).toBe(true)
         })
 
         it('deve retornar false para telas com tamanhos diferentes', () => {
-        // Arrange
+          // Arrange
           const screen1 = Screen.hydrate(VALID_SIZE, '2D')
           const screen2 = Screen.hydrate(VALID_SIZE + 5, '2D')
 
-        // Act
+          // Act
           const result = screen1.equals(screen2)
 
-        // Assert
+          // Assert
           expect(result).toBe(false)
         })
 
         it('deve retornar false para telas com tipos diferentes', () => {
-        // Arrange
+          // Arrange
           const screen1 = Screen.hydrate(VALID_SIZE, '2D')
           const screen2 = Screen.hydrate(VALID_SIZE, '3D')
 
-        // Act
+          // Act
           const result = screen1.equals(screen2)
 
-        // Assert
+          // Assert
           expect(result).toBe(false)
         })
 
         it('deve retornar false quando comparado com null', () => {
-        // Arrange
+          // Arrange
           const screen = Screen.hydrate(VALID_SIZE, '2D')
 
-        // Act
+          // Act
           const result = screen.equals(null as any)
 
-        // Assert
+          // Assert
           expect(result).toBe(false)
         })
 
         it('deve retornar false quando comparado com undefined', () => {
-        // Arrange
+          // Arrange
           const screen = Screen.hydrate(VALID_SIZE, '2D')
 
-        // Act
+          // Act
           const result = screen.equals(undefined as any)
 
-        // Assert
+          // Assert
           expect(result).toBe(false)
         })
       })
