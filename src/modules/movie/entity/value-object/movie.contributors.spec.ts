@@ -2,8 +2,6 @@ import { MovieContributors } from './movie.contributors'
 import { IMovieContributorInput, MovieContributor, PersonRole } from './movie.contributor'
 import { PersonUID } from '@modules/person/entity/value-object/person.uid'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 
 describe('MovieContributors', () => {
   const createValidContributor = (role: PersonRole = PersonRole.ACTOR): IMovieContributorInput => ({
@@ -21,23 +19,20 @@ describe('MovieContributors', () => {
 
   describe('Static Methods', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => (failures = []))
-
       it('deve criar uma coleção válida de contribuidores', () => {
         // Arrange
         const validContributors = createValidContributors()
 
         // Act
-        const result = validateAndCollect(MovieContributors.create(validContributors), failures)
+        const result = MovieContributors.create(validContributors)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.count).toBe(validContributors.length)
-        expect(result.roles).toContain(PersonRole.DIRECTOR)
-        expect(result.roles).toContain(PersonRole.ACTOR)
-        expect(result.roles).toContain(PersonRole.ACTRESS)
+        expect(result).toBeValidResultMatching<MovieContributors>((m) => {
+          expect(m.count).toBe(validContributors.length)
+          expect(m.roles).toContain(PersonRole.DIRECTOR)
+          expect(m.roles).toContain(PersonRole.ACTOR)
+          expect(m.roles).toContain(PersonRole.ACTRESS)
+        })
       })
 
       it('deve aceitar instâncias de MovieContributor', () => {
@@ -46,29 +41,28 @@ describe('MovieContributors', () => {
         const contributor = MovieContributor.hydrate(validInput)
 
         // Act
-        const result = validateAndCollect(MovieContributors.create([contributor]), failures)
+        const result = MovieContributors.create([contributor])
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.count).toBe(1)
+        expect(result).toBeValidResultMatching<MovieContributors>((m) => {
+          expect(m.count).toBe(1)
+        })
       })
 
       it('deve falhar se não houver contribuidores', () => {
         // Act
-        const result = validateAndCollect(MovieContributors.create([]), failures)
+        const result = MovieContributors.create([])
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_MISSING_CONTRIBUTORS)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_MISSING_CONTRIBUTORS)
       })
 
       it('deve falhar se a entrada for null', () => {
         // Act
-        const result = validateAndCollect(MovieContributors.create(null as any), failures)
+        const result = MovieContributors.create(null as any)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_MISSING_CONTRIBUTORS)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_MISSING_CONTRIBUTORS)
       })
 
       it('deve falhar se não houver diretor', () => {
@@ -79,11 +73,10 @@ describe('MovieContributors', () => {
         ]
 
         // Act
-        const result = validateAndCollect(MovieContributors.create(contributorsWithoutDirector), failures)
+        const result = MovieContributors.create(contributorsWithoutDirector)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_DIRECTOR_REQUIRED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_DIRECTOR_REQUIRED)
       })
 
       it('deve falhar se algum contribuidor for inválido', () => {
@@ -94,11 +87,10 @@ describe('MovieContributors', () => {
         }
 
         // Act
-        const result = validateAndCollect(MovieContributors.create([invalidContributor]), failures)
+        const result = MovieContributors.create([invalidContributor])
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
       })
     })
 

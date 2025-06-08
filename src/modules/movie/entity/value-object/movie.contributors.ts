@@ -1,10 +1,8 @@
 import { IMovieContributorInput, MovieContributor, PersonRole } from './movie.contributor'
-import { failure, Result, success } from '@shared/result/result'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { combine, failure, Result, success } from '@shared/result/result'
 import { TechnicalError } from '@shared/error/technical.error'
-import { isNull } from '@shared/validator/validator'
 import { FailureFactory } from '@shared/failure/failure.factory'
-import { validateAndCollect } from '@shared/validator/common.validators'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 /**
  * Value object que representa todos os contribuidores de um filme,
@@ -64,9 +62,7 @@ export class MovieContributors {
    * @returns Result<MovieContributors> contendo a instância criada ou falhas de validação
    */
   public static create(contributors: MovieContributor[] | IMovieContributorInput[]): Result<MovieContributors> {
-    const failures: SimpleFailure[] = []
-
-    if (isNull(contributors) || contributors.length === 0)
+    if (isNullOrUndefined(contributors) || contributors.length === 0)
       return failure(FailureFactory.MOVIE_MISSING_CONTRIBUTORS('N/D'))
 
     const processedContributors: MovieContributor[] = []
@@ -78,13 +74,16 @@ export class MovieContributors {
     }
 
     if (!isInstanceOfMovieContributor) {
-      for (const contributor of contributors as IMovieContributorInput[]) {
-        const result = validateAndCollect(MovieContributor.create(contributor), failures)
-        if (result) processedContributors.push(result)
-      }
-    }
+      const results: Result<MovieContributor>[] = []
 
-    if (failures.length > 0) return failure(failures)
+      for (const contributor of contributors as IMovieContributorInput[])
+        results.push(MovieContributor.create(contributor))
+
+      const result = combine(results)
+      if (result.isInvalid()) return result
+
+      processedContributors.push(...result.value)
+    }
 
     const hasDirector = processedContributors.some((contributor) => contributor.role === PersonRole.DIRECTOR)
 
