@@ -24,6 +24,44 @@ interface IBaseResult<V> {
    * Se verdadeiro, o TypeScript inferirá o tipo como IFailure dentro do bloco condicional.
    */
   isInvalid(): this is IFailure
+
+  /**
+   * Aplica uma função de transformação ao valor se o resultado for um sucesso.
+   * Se for uma falha, retorna a falha inalterada.
+   */
+  map<U>(fn: (value: V) => U): Result<U>
+
+  /**
+   * Aplica uma função que retorna um Result ao valor se o resultado for um sucesso.
+   * Se for uma falha, retorna a falha inalterada.
+   * Evita o aninhamento de Result<Result<U>>.
+   */
+  flatMap<U>(fn: (value: V) => Result<U>): Result<U>
+
+  /**
+   * Aplica uma função de transformação baseada no estado do resultado.
+   * Se for sucesso, aplica onSuccess; se for falha, aplica onFailure.
+   */
+  fold<U>(onSuccess: (value: V) => U, onFailure: (failures: ReadonlyArray<SimpleFailure>) => U): U
+
+  /**
+   * Aplica uma função de transformação assíncrona ao valor se o resultado for um sucesso.
+   * Se for uma falha, retorna a falha inalterada.
+   */
+  mapAsync<U>(fn: (value: V) => Promise<U>): Promise<Result<U>>
+
+  /**
+   * Aplica uma função assíncrona que retorna um Result ao valor se o resultado for um sucesso.
+   * Se for uma falha, retorna a falha inalterada.
+   * Evita o aninhamento de Promise<Result<Result<U>>>.
+   */
+  flatMapAsync<U>(fn: (value: V) => Promise<Result<U>>): Promise<Result<U>>
+
+  /**
+   * Executa uma função com efeito colateral (side-effect) se o resultado for um sucesso.
+   * Retorna o Result original, permitindo encadeamento.
+   */
+  tap(fn: (value: V) => void): Result<V>
 }
 
 /**
@@ -49,6 +87,25 @@ export const success = <V>(value: V): Result<V> => ({
   isInvalid(): this is IFailure {
     return false
   },
+  map<U>(fn: (value: V) => U): Result<U> {
+    return success(fn(this.value))
+  },
+  flatMap<U>(fn: (value: V) => Result<U>): Result<U> {
+    return fn(this.value)
+  },
+  fold<U>(onSuccess: (value: V) => U, onFailure: (failures: ReadonlyArray<SimpleFailure>) => U): U {
+    return onSuccess(this.value)
+  },
+  async mapAsync<U>(fn: (value: V) => Promise<U>): Promise<Result<U>> {
+    return success(await fn(this.value))
+  },
+  async flatMapAsync<U>(fn: (value: V) => Promise<Result<U>>): Promise<Result<U>> {
+    return fn(this.value)
+  },
+  tap(fn: (value: V) => void): Result<V> {
+    fn(this.value)
+    return this
+  },
 })
 
 /**
@@ -68,8 +125,65 @@ export const failure = (errors: SimpleFailure | ReadonlyArray<SimpleFailure>): R
     isInvalid(): this is IFailure {
       return true
     },
+    map<U>(fn: (value: never) => U): Result<U> {
+      return this as any
+    },
+    flatMap<U>(fn: (value: never) => Result<U>): Result<U> {
+      return this as any
+    },
+    fold<U>(onSuccess: (value: never) => U, onFailure: (failures: ReadonlyArray<SimpleFailure>) => U): U {
+      return onFailure(this.failures)
+    },
+    async mapAsync<U>(fn: (value: never) => Promise<U>): Promise<Result<U>> {
+      return this as any
+    },
+    async flatMapAsync<U>(fn: (value: never) => Promise<Result<U>>): Promise<Result<U>> {
+      return this as any
+    },
+    tap(fn: (value: never) => void): Result<never> {
+      return this
+    },
   }
 }
+
+/**
+ * Função utilitária para aplicar uma transformação assíncrona ao valor de um Result.
+ * Se o Result for um sucesso, aplica a função `fn` ao valor.
+ * Se o Result for uma falha, a falha é propagada.
+ * @param fn Função de transformação assíncrona.
+ * @returns Uma função que recebe um Result e retorna uma Promise de Result transformado.
+ */
+const mapAsync =
+  <T, U>(fn: (value: T) => Promise<U>) =>
+  async (result: Result<T>): Promise<Result<U>> => {
+    return result.mapAsync(fn)
+  }
+
+/**
+ * Função utilitária para aplicar uma transformação assíncrona que retorna um Result.
+ * Se o Result original for um sucesso, aplica a função `fn` ao valor.
+ * Se o Result original for uma falha, a falha é propagada.
+ * Útil para encadear operações assíncronas que podem falhar.
+ * @param fn Função de transformação assíncrona que retorna um Result.
+ * @returns Uma função que recebe um Result e retorna uma Promise de Result transformado e achatado.
+ */
+const flatMapAsync =
+  <T, U>(fn: (value: T) => Promise<Result<U>>) =>
+  async (result: Result<T>): Promise<Result<U>> => {
+    return result.flatMapAsync(fn)
+  }
+
+/**
+ * Função utilitária para executar um efeito colateral (side-effect) com o valor de um Result, se for sucesso.
+ * O Result original é retornado, permitindo o encadeamento de outras operações.
+ * @param fn Função a ser executada com o valor de sucesso.
+ * @returns Uma função que recebe um Result e retorna o mesmo Result.
+ */
+const tap =
+  <T>(fn: (value: T) => void) =>
+  (result: Result<T>): Result<T> => {
+    return result.tap(fn)
+  }
 
 /**
  * Combina dois resultados em um único Result com inferência de tipos precisa.
@@ -161,3 +275,46 @@ export function combine<T extends ReadonlyArray<Result<unknown>> | Record<string
 
   throw new TechnicalError(FailureFactory.INVALID_COMBINE_INPUT())
 }
+
+/**
+ * Função utilitária Transformar o valor de sucesso com a função fornecida, mantendo o erro inalterado se for uma falha.
+ * @param fn Função de transformação a ser aplicada ao valor
+ * @returns Uma função que aceita um Result e retorna um Result transformado
+ * @example
+ * result.map(customer => customer.name) // retorna um Result<string>
+ */
+const map =
+  <T, U>(fn: (value: T) => U) =>
+  (result: Result<T>): Result<U> => {
+    return result.map(fn)
+  }
+
+/**
+ * Função que permite que transformar e retornar outro Result, "achata" o resultado para evitar Result<Result<U, E>, E>.
+ * @param fn Função que retorna um Result a ser aplicada ao valor
+ * @returns Uma função que aceita um Result e retorna um Result achatado
+ * @example
+ * result.flatMap(customer => customer.updateName(newName))
+ */
+const flatMap =
+  <T, U>(fn: (value: T) => Result<U>) =>
+  (result: Result<T>): Result<U> => {
+    return result.flatMap(fn)
+  }
+
+/**
+ * Combina os casos de sucesso e falha em um único valor, aplicando a função apropriada.
+ * @param onSuccess Função a ser aplicada em caso de sucesso
+ * @param onFailure Função a ser aplicada em caso de falha
+ * @returns Uma função que aceita um Result e retorna o valor transformado
+ * @example
+ * result.fold(
+ *   (onFailure) => ({ status: 500, body: { onFailure } }),
+ *   (customer) => ({ status: 200, body: { customer } })
+ * )
+ */
+const fold =
+  <T, U>(onSuccess: (value: T) => U, onFailure: (failures: ReadonlyArray<SimpleFailure>) => U) =>
+  (result: Result<T>): U => {
+    return result.fold(onSuccess, onFailure)
+  }
