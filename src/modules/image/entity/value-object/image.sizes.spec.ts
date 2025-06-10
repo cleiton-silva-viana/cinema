@@ -1,8 +1,6 @@
 import { faker } from '@faker-js/faker'
 import { ICreateImageSizesInput, ImageSizes } from './image.sizes'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 import { TechnicalError } from '@shared/error/technical.error'
 
 describe('ImageSizes', () => {
@@ -13,21 +11,16 @@ describe('ImageSizes', () => {
   }
 
   describe('create', () => {
-    let failures: SimpleFailure[]
-
-    beforeEach(() => {
-      failures = []
-    })
-
     it('deve retornar uma instância de ImageSizes com sucesso', () => {
       // Act
-      const result = validateAndCollect(ImageSizes.create(sizes), failures)
+      const result = ImageSizes.create(sizes)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.small).toBe(sizes.small)
-      expect(result.normal).toBe(sizes.normal)
-      expect(result.large).toBe(sizes.large)
+      expect(result).toBeValidResultMatching<ImageSizes>((i) => {
+        expect(i.small).toBe(sizes.small)
+        expect(i.normal).toBe(sizes.normal)
+        expect(i.large).toBe(sizes.large)
+      })
     })
 
     describe('deve retornar um erro quando os tamanhos são inválidos', () => {
@@ -35,7 +28,7 @@ describe('ImageSizes', () => {
         {
           sizes: null,
           scenario: 'quando o objeto sizes é nulo',
-          errorCode: FailureCode.MISSING_REQUIRED_DATA,
+          code: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
           sizes: {
@@ -44,7 +37,7 @@ describe('ImageSizes', () => {
             large: sizes.large,
           },
           scenario: 'quando há uma URL vazia',
-          errorCode: FailureCode.STRING_CANNOT_BE_EMPTY,
+          code: FailureCode.STRING_CANNOT_BE_EMPTY,
         },
 
         {
@@ -54,18 +47,17 @@ describe('ImageSizes', () => {
             large: null,
           },
           scenario: 'quando há uma URL nula',
-          errorCode: FailureCode.MISSING_REQUIRED_DATA,
+          code: FailureCode.MISSING_REQUIRED_DATA,
         },
       ]
 
-      failureCases.forEach(({ sizes, scenario, errorCode }) => {
+      failureCases.forEach(({ sizes, scenario, code }) => {
         it(`deve rejeitar tamanhos de imagem ${scenario}`, () => {
           // Act
-          const result = validateAndCollect(ImageSizes.create(sizes as ICreateImageSizesInput), failures)
+          const result = ImageSizes.create(sizes as ICreateImageSizesInput)
 
           // Assert
-          expect(result).toBeNull()
-          expect(failures[0].code).toBe(errorCode)
+          expect(result).toBeInvalidResultWithSingleFailure(code)
         })
       })
     })
