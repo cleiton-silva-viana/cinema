@@ -1,8 +1,7 @@
 import { ImageDescription } from './image.description'
 import { faker } from '@faker-js/faker/.'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 describe('ImageDescription', () => {
   const validPtDescription = 'Descrição da Imagem com tamanho válido'
@@ -14,12 +13,6 @@ describe('ImageDescription', () => {
 
   describe('ImageDescription', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => {
-        failures = []
-      })
-
       describe('deve retornar uma instância de ImageDescription com sucesso', () => {
         const successCases = [
           {
@@ -48,11 +41,14 @@ describe('ImageDescription', () => {
         successCases.forEach(({ contents, scenario }) => {
           it(`deve aceitar uma descrição ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(ImageDescription.create(contents), failures)
+            const result = ImageDescription.create(contents)
 
             // Assert
-            expect(result).toBeDefined()
-            expect(result).toBeInstanceOf(ImageDescription)
+            expect(result).toBeValidResultMatching<ImageDescription>((i) => {
+              expect(i).toBeInstanceOf(ImageDescription)
+              expect(i.content(SupportedLanguageEnum.PT)).toBe(contents[0].text)
+              expect(i.content(SupportedLanguageEnum.EN)).toBe(contents[1].text)
+            })
           })
         })
       })
@@ -65,7 +61,7 @@ describe('ImageDescription', () => {
               { language: 'en', text: validEnDescription },
             ],
             scenario: 'com menos que o tamanho mínimo',
-            errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
+            code: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
           },
           {
             contents: [
@@ -73,7 +69,7 @@ describe('ImageDescription', () => {
               { language: 'en', text: tooLongDescription },
             ],
             scenario: 'com mais que o tamanho máximo',
-            errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
+            code: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
           },
           {
             contents: [
@@ -81,18 +77,17 @@ describe('ImageDescription', () => {
               { language: 'en', text: descriptionWithValidCharacters },
             ],
             scenario: 'com caracteres inválidos na descrição',
-            errorCode: FailureCode.STRING_INVALID_FORMAT,
+            code: FailureCode.STRING_WITH_INVALID_FORMAT,
           },
         ]
 
-        failureCases.forEach(({ contents, scenario, errorCode }) => {
+        failureCases.forEach(({ contents, scenario, code }) => {
           it(`deve rejeitar uma descrição ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(ImageDescription.create(contents), failures)
+            const result = ImageDescription.create(contents)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(errorCode)
+            expect(result).toBeInvalidResultWithSingleFailure(code)
           })
         })
       })

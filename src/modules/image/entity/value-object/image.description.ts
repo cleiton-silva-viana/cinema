@@ -1,6 +1,6 @@
-import { MultilingualContent } from '@shared/value-object/multilingual-content'
+import { LanguageContent } from '@shared/value-object/language-content/language.content'
 
-export class ImageDescription extends MultilingualContent {
+export class ImageDescription extends LanguageContent {
   protected static readonly MIN_LENGTH: number = 8
 
   protected static readonly MAX_LENGTH: number = 240
