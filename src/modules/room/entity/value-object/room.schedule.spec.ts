@@ -4,8 +4,7 @@ import { IRoomBookingData, RoomSchedule } from './room.schedule'
 import { ScreeningUID } from '../../../screening/aggregate/value-object/screening.uid'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@shared/error/technical.error'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
+import { CreateTestRoomSchedule } from '@test/builder/room.schedule.builder'
 
 describe('RoomSchedule', () => {
   const createFutureDate = (minutes: number, hours: number, days: number = 10): Date => {
@@ -98,7 +97,6 @@ describe('RoomSchedule', () => {
 
   describe('Instance Methods', () => {
     let instance: RoomSchedule
-    let failures: SimpleFailure[]
     const SCREENING_UID_1 = ScreeningUID.create()
     const START_TIME_1 = createFutureDate(0, 10) // 10:00
     const END_TIME_1 = createFutureDate(0, 12) // 12:00
@@ -108,24 +106,25 @@ describe('RoomSchedule', () => {
     const END_TIME_2 = createFutureDate(0, 15) // 15:00
 
     beforeEach(() => {
-      failures = []
-
-      instance = RoomSchedule.hydrate([
-        {
-          bookingUID: v4(),
-          screeningUID: SCREENING_UID_1.value,
-          startTime: START_TIME_1,
-          endTime: END_TIME_1,
-          type: BookingType.SCREENING,
-        },
-        {
-          bookingUID: v4(),
-          screeningUID: SCREENING_UID_2.value,
-          startTime: START_TIME_2,
-          endTime: END_TIME_2,
-          type: BookingType.SCREENING,
-        },
-      ])
+      instance = CreateTestRoomSchedule(
+        [
+          {
+            bookingUID: v4(),
+            screeningUID: SCREENING_UID_1.value,
+            startTime: START_TIME_1,
+            endTime: END_TIME_1,
+            type: BookingType.SCREENING,
+          },
+          {
+            bookingUID: v4(),
+            screeningUID: SCREENING_UID_2.value,
+            startTime: START_TIME_2,
+            endTime: END_TIME_2,
+            type: BookingType.SCREENING,
+          },
+        ],
+        2
+      )
     })
 
     const emptySchedule = RoomSchedule.create()
@@ -151,15 +150,11 @@ describe('RoomSchedule', () => {
         ]
         successCases.forEach(({ scenario, startTime, endTime }) => {
           it(scenario, () => {
-            // Arrange
-            const failures: SimpleFailure[] = []
-
             // Act
-            const available = instance.isAvailable(startTime, endTime, failures)
+            const available = instance.isAvailable(startTime, endTime)
 
             // Assert
-            expect(available).toBe(true)
-            expect(failures).toHaveLength(0)
+            expect(available).toBeValidResult()
           })
         })
       })
@@ -218,16 +213,11 @@ describe('RoomSchedule', () => {
 
         invalidCases.forEach(({ scenario, startTime, endTime, expectedFailure }) => {
           it(`deve retornar falso e adicionar falha se ${scenario}`, () => {
-            // Arrange
-            const failures: SimpleFailure[] = []
-
             // Act
-            const available = instance.isAvailable(startTime, endTime, failures)
+            const available = instance.isAvailable(startTime, endTime)
 
             // Assert
-            expect(available).toBe(false)
-            expect(failures).toHaveLength(1)
-            expect(failures[0].code).toBe(expectedFailure)
+            expect(available).toBeInvalidResultWithSingleFailure(expectedFailure)
           })
         })
       })
@@ -240,15 +230,13 @@ describe('RoomSchedule', () => {
           const emptyBookings = RoomSchedule.create()
 
           // Act
-          const result = validateAndCollect(
-            emptyBookings.addBooking(SCREENING_UID_1, START_TIME_1, END_TIME_1, BookingType.SCREENING),
-            failures
-          )
+          const result = emptyBookings.addBooking(SCREENING_UID_1, START_TIME_1, END_TIME_1, BookingType.SCREENING)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.getAllBookingsData()).toHaveLength(1)
-          expect(result.findScreeningData(SCREENING_UID_1)).toBeDefined()
+          expect(result).toBeValidResultMatching<RoomSchedule>((r) => {
+            expect(r.getAllBookingsData()).toHaveLength(1)
+            expect(r.findScreeningData(SCREENING_UID_1)).toBeDefined()
+          })
         })
 
         it('deve adicionar múltiplos bookings e mantê-los ordenados', () => {
@@ -263,27 +251,23 @@ describe('RoomSchedule', () => {
           const endTime2 = createFutureDate(0, 12) // 12:00
 
           // Act
-          let schedule = validateAndCollect(
-            emptySchedule.addBooking(screeningUID1, startTime1, endTime1, BookingType.SCREENING),
-            failures
-          )
-          schedule = validateAndCollect(
-            schedule.addBooking(screeningUID2, startTime2, endTime2, BookingType.CLEANING),
-            failures
-          )
-          const bookings = schedule.getAllBookingsData()
+          let scheduleResult = emptySchedule.addBooking(screeningUID1, startTime1, endTime1, BookingType.SCREENING)
 
-          // Assert
-          expect(failures.length).toBe(0)
-          expect(bookings).toHaveLength(2)
-          expect(bookings[0].screeningUID?.value).toBe(screeningUID2.value)
-          expect(bookings[0].startTime).toEqual(startTime2)
-          expect(bookings[0].endTime).toEqual(endTime2)
-          expect(bookings[0].type).toBe(BookingType.CLEANING)
-          expect(bookings[1].screeningUID).toEqual(screeningUID1)
-          expect(bookings[1].startTime).toEqual(startTime1)
-          expect(bookings[1].endTime).toEqual(endTime1)
-          expect(bookings[1].type).toBe(BookingType.SCREENING)
+          expect(scheduleResult).toBeValidResultMatching<RoomSchedule>((r) => {
+            scheduleResult = r.addBooking(screeningUID2, startTime2, endTime2, BookingType.CLEANING)
+          })
+          expect(scheduleResult).toBeValidResultMatching<RoomSchedule>((r) => {
+            const bookings = r.getAllBookingsData()
+            expect(bookings).toHaveLength(2)
+            expect(bookings[0].screeningUID?.value).toBe(screeningUID2.value)
+            expect(bookings[0].startTime).toEqual(startTime2)
+            expect(bookings[0].endTime).toEqual(endTime2)
+            expect(bookings[0].type).toBe(BookingType.CLEANING)
+            expect(bookings[1].screeningUID).toEqual(screeningUID1)
+            expect(bookings[1].startTime).toEqual(startTime1)
+            expect(bookings[1].endTime).toEqual(endTime1)
+            expect(bookings[1].type).toBe(BookingType.SCREENING)
+          })
         })
 
         it('deve permitir adicionar booking do tipo CLEANING sem screeningUID', () => {
@@ -292,17 +276,15 @@ describe('RoomSchedule', () => {
           const validEndTime = createFutureDate(0, 18)
 
           // Act
-          const result = validateAndCollect(
-            emptySchedule.addBooking(null, validStartTime, validEndTime, BookingType.CLEANING),
-            failures
-          )
+          const result = emptySchedule.addBooking(null, validStartTime, validEndTime, BookingType.CLEANING)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.getAllBookingsData()).toHaveLength(1)
-          const booking = result.getAllBookingsData()[0]
-          expect(booking.screeningUID).toBeNull()
-          expect(booking.type).toBe(BookingType.CLEANING)
+          expect(result).toBeValidResultMatching<RoomSchedule>((r) => {
+            expect(r.getAllBookingsData()).toHaveLength(1)
+            const booking = r.getAllBookingsData()[0]
+            expect(booking.screeningUID).toBeNull()
+            expect(booking.type).toBe(BookingType.CLEANING)
+          })
         })
       })
 
@@ -366,14 +348,10 @@ describe('RoomSchedule', () => {
             }
 
             // Act
-            const result = validateAndCollect(
-              instance.addBooking(params.screeningUID, params.startTime, params.endTime, params.type),
-              failures
-            )
+            const result = instance.addBooking(params.screeningUID, params.startTime, params.endTime, params.type)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(code)
+            expect(result).toBeInvalidResultWithSingleFailure(code)
           })
         })
       })
@@ -382,13 +360,14 @@ describe('RoomSchedule', () => {
     describe('removeScreening', () => {
       it('deve remover um booking existente', () => {
         // Act
-        const result = validateAndCollect(instance.removeScreening(SCREENING_UID_1), failures)
+        const result = instance.removeScreening(SCREENING_UID_1)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.getAllBookingsData()).toHaveLength(1)
-        expect(result.findScreeningData(SCREENING_UID_1)).toBeUndefined()
-        expect(result.findScreeningData(SCREENING_UID_2)).toBeDefined()
+        expect(result).toBeValidResultMatching<RoomSchedule>((r) => {
+          expect(r.getAllBookingsData()).toHaveLength(1)
+          expect(r.findScreeningData(SCREENING_UID_1)).toBeUndefined()
+          expect(r.findScreeningData(SCREENING_UID_2)).toBeDefined()
+        })
       })
 
       it('deve retornar falha ao tentar remover um booking inexistente', () => {
@@ -396,12 +375,10 @@ describe('RoomSchedule', () => {
         const nonExistentUID = ScreeningUID.create()
 
         // Act
-        const result = validateAndCollect(instance.removeScreening(nonExistentUID), failures)
+        const result = instance.removeScreening(nonExistentUID)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.BOOKING_NOT_FOUND_FOR_SCREENING)
-        expect(instance.getAllBookingsData()).toHaveLength(2) // Schedule remains unchanged
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.BOOKING_NOT_FOUND_FOR_SCREENING)
       })
     })
 
@@ -435,14 +412,15 @@ describe('RoomSchedule', () => {
             const initialLength = instance.getAllBookingsData().length
 
             // Act
-            const result = validateAndCollect(instance.removeBookingByUID(bookingUIDToRemove()), failures)
+            const result = instance.removeBookingByUID(bookingUIDToRemove())
 
             // Assert
-            expect(result).toBeDefined()
-            const newBookings = result.getAllBookingsData()
-            expect(newBookings).toHaveLength(initialLength - 1)
-            expect(newBookings[0].bookingUID).toBe(remainingBookingUID())
-            expect(newBookings[0].bookingUID).not.toBe(bookingUIDToRemove())
+            expect(result).toBeValidResultMatching<RoomSchedule>((r) => {
+              const newBookings = r.getAllBookingsData()
+              expect(newBookings).toHaveLength(initialLength - 1)
+              expect(newBookings[0].bookingUID).toBe(remainingBookingUID())
+              expect(newBookings[0].bookingUID).not.toBe(bookingUIDToRemove())
+            })
           })
         })
       })
@@ -453,12 +431,10 @@ describe('RoomSchedule', () => {
         const initialLength = instance.getAllBookingsData().length
 
         // Act
-        const result = validateAndCollect(instance.removeBookingByUID(nonExistentUID), failures)
+        const result = instance.removeBookingByUID(nonExistentUID)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.BOOKING_NOT_FOUND_IN_ROOM)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.BOOKING_NOT_FOUND_IN_ROOM)
         expect(instance.getAllBookingsData()).toHaveLength(initialLength)
       })
     })

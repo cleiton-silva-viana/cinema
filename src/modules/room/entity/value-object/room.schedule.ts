@@ -2,12 +2,12 @@ import { ScreeningUID } from '../../../screening/aggregate/value-object/screenin
 import { BookingSlot, BookingType } from './booking.slot'
 import { failure, Result, success } from '@shared/result/result'
 import { TechnicalError } from '@shared/error/technical.error'
-import { isNull } from '@shared/validator/validator'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { Validate } from '@shared/validator/validate'
-import { ensureNotNull, validateAndCollect } from '@shared/validator/common.validators'
 import { FailureFactory } from '@shared/failure/failure.factory'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { DateUtils } from '@shared/utils/date.utils'
 
 /**
  * Interface para os dados brutos de um agendamento, usada para hidratação e serialização.
@@ -257,21 +257,16 @@ export class RoomSchedule {
    *
    * @param requestedStartTime Data e hora de início solicitada
    * @param requestedEndTime Data e hora de término solicitada
-   * @param failures Array opcional para armazenar as falhas encontradas durante a validação
    * @returns true se o período estiver disponível, false caso contrário
    */
-  public isAvailable(requestedStartTime: Date, requestedEndTime: Date, failures: SimpleFailure[] = []): boolean {
-    const init = failures.length
-    failures.push(...ensureNotNull({ requestedStartTime, requestedEndTime }))
+  public isAvailable(requestedStartTime: Date, requestedEndTime: Date): Result<true> {
+    const failures: SimpleFailure[] = ensureNotNull({ requestedStartTime, requestedEndTime })
+    if (failures.length > 0) return failure(failures)
 
-    if (failures.length > init) return false
-
-    if (!this._validateTimeSequence(requestedStartTime, requestedEndTime, failures)) return false
-    if (!this._validateOperatingHours(requestedStartTime, failures)) return false
-    if (!this._validateMinuteInterval(requestedStartTime, failures)) return false
-    if (!this._checkBookingOverlap(requestedStartTime, requestedEndTime, failures)) return false
-
-    return true
+    return this._validateTimeSequence(requestedStartTime, requestedEndTime)
+      .flatMap(() => this._validateOperatingHours(requestedStartTime))
+      .flatMap(() => this._validateMinuteInterval(requestedStartTime))
+      .flatMap(() => this._checkBookingOverlap(requestedStartTime, requestedEndTime))
   }
 
   /**
@@ -296,25 +291,19 @@ export class RoomSchedule {
     endTime: Date,
     type: BookingType
   ): Result<RoomSchedule> {
-    const failures = ensureNotNull({ startTime, endTime, type })
-    if (failures.length > 0) return failure(failures)
+    return this._validateRequiredField({ startTime, endTime, type })
+      .flatMap(() => this._addBookingValidation(screeningUID, type))
+      .flatMap(() => this.isAvailable(startTime, endTime))
+      .flatMap(() => BookingSlot.create(screeningUID, startTime, endTime, type))
+      .map((bookingSlot) =>
+        [...this.bookings, bookingSlot].sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+      )
+      .map((newBookings) => new RoomSchedule(newBookings))
+  }
 
-    Validate.string({ type }, failures)
-      .isRequired()
-      .when(type === BookingType.SCREENING || type === BookingType.EXIT_TIME, () => {
-        if (isNull(screeningUID)) failures.push(FailureFactory.MISSING_REQUIRED_DATA('screeningUID'))
-      })
-    if (failures.length > 0) return failure(failures)
-
-    const isAvailable = this.isAvailable(startTime, endTime, failures)
-    if (!isAvailable) return failure(failures)
-
-    const bookingSlot = validateAndCollect(BookingSlot.create(screeningUID, startTime, endTime, type), failures)
-    if (failures.length > 0) return failure(failures)
-
-    const newBookings = [...this.bookings, bookingSlot].sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
-
-    return success(new RoomSchedule(newBookings))
+  private _validateRequiredField(fields: Record<string, any>): Result<true> {
+    const failures = ensureNotNull(fields)
+    return failures.length > 0 ? failure(failures) : success(true)
   }
 
   /**
@@ -334,7 +323,7 @@ export class RoomSchedule {
     const updatedBookings = this.bookings.filter((booking) => !(booking.bookingUID === bookingUID))
 
     return updatedBookings.length === initLength
-      ? failure({ code: FailureCode.BOOKING_NOT_FOUND_IN_ROOM })
+      ? failure(FailureFactory.BOOKING_NOT_FOUND_IN_ROOM())
       : success(new RoomSchedule(updatedBookings))
   }
 
@@ -411,7 +400,7 @@ export class RoomSchedule {
    * @returns Array de slots livres com startTime e endTime, ordenados cronologicamente
    */
   public getFreeSlotsForDate(date: Date, minMinutes: number): Array<{ startTime: Date; endTime: Date }> {
-    if (isNull(date) || isNull(minMinutes) || minMinutes <= 0) return []
+    if (isNullOrUndefined(date) || isNullOrUndefined(minMinutes) || minMinutes <= 0) return []
 
     const dayStart = new Date(date)
     dayStart.setHours(RoomSchedule.DEFAULT_OPERATING_START_HOUR, 0, 0, 0)
@@ -429,70 +418,75 @@ export class RoomSchedule {
    * Verifica se a data de término é posterior à data de início.
    * @param startTime Data e hora de início
    * @param endTime Data e hora de término
-   * @param failures Array para armazenar as falhas
    * @returns true se a sequência for válida, false caso contrário
    */
-  private _validateTimeSequence(startTime: Date, endTime: Date, failures: SimpleFailure[]): boolean {
-    if (endTime <= startTime) {
-      failures.push(FailureFactory.DATE_WITH_INVALID_SEQUENCE(startTime.toISOString(), endTime.toISOString()))
-      return false
-    }
-    return true
+  private _validateTimeSequence(startTime: Date, endTime: Date): Result<true> {
+    return endTime <= startTime
+      ? failure(FailureFactory.DATE_WITH_INVALID_SEQUENCE(startTime.toISOString(), endTime.toISOString()))
+      : success(true)
   }
 
   /**
    * Verifica se o horário de início está dentro do período de funcionamento do cinema.
    * @param startTime Data e hora de início
-   * @param failures Array para armazenar as falhas
    * @returns true se estiver dentro do horário de funcionamento, false caso contrário
    */
-  private _validateOperatingHours(startTime: Date, failures: SimpleFailure[]): boolean {
+  private _validateOperatingHours(startTime: Date): Result<true> {
     const startHour = startTime.getHours()
     if (startHour < RoomSchedule.DEFAULT_OPERATING_START_HOUR || startHour >= RoomSchedule.DEFAULT_OPERATING_END_HOUR) {
-      failures.push(
+      return failure(
         FailureFactory.ROOM_OPERATING_HOURS_VIOLATION(
           startTime.getHours().toString(),
           RoomSchedule.DEFAULT_OPERATING_START_HOUR.toString(),
           RoomSchedule.DEFAULT_OPERATING_END_HOUR.toString()
         )
       )
-      return false
     }
-    return true
+    return success(true)
   }
 
   /**
    * Verifica se o minuto de início está em um intervalo permitido (múltiplos de 5).
    * @param startTime Data e hora de início
-   * @param failures Array para armazenar as falhas
    * @returns true se o minuto estiver em um intervalo permitido, false caso contrário
    */
-  private _validateMinuteInterval(startTime: Date, failures: SimpleFailure[]): boolean {
+  private _validateMinuteInterval(startTime: Date): Result<true> {
     const startMinute = startTime.getMinutes()
     if (!RoomSchedule.ALLOWED_MINUTE_INTERVALS.includes(startMinute)) {
-      failures.push(FailureFactory.BOOKING_WITH_INVAlID_TIME_INTERVAL(startTime.getTime().toString()))
-      return false
+      return failure(
+        FailureFactory.BOOKING_WITH_INVAlID_TIME_INTERVAL(
+          DateUtils.formatDateToISOString(startTime),
+          RoomSchedule.ALLOWED_MINUTE_INTERVALS
+        )
+      )
     }
-    return true
+    return success(true)
   }
 
   /**
    * Verifica se há sobreposição com outras reservas existentes.
    * @param requestedStartTime Data e hora de início solicitada
    * @param requestedEndTime Data e hora de término solicitada
-   * @param failures Array para armazenar as falhas
    * @returns true se não houver sobreposição, false caso contrário
    */
-  private _checkBookingOverlap(requestedStartTime: Date, requestedEndTime: Date, failures: SimpleFailure[]): boolean {
+  private _checkBookingOverlap(requestedStartTime: Date, requestedEndTime: Date): Result<true> {
     for (const booking of this.bookings) {
       const hasOverlap = requestedStartTime < booking.endTime && requestedEndTime > booking.startTime
-      if (hasOverlap) {
-        failures.push(
+      if (hasOverlap)
+        return failure(
           FailureFactory.ROOM_NOT_AVAILABLE_FOR_PERIOD(requestedStartTime.toISOString(), requestedEndTime.toISOString())
         )
-        return false
-      }
     }
-    return true
+    return success(true)
+  }
+
+  private _addBookingValidation(screeningUID: ScreeningUID | null, type: BookingType): Result<true> {
+    const failures: SimpleFailure[] = []
+    Validate.string({ type }, failures)
+      .isRequired()
+      .when(type === BookingType.SCREENING || type === BookingType.EXIT_TIME, () => {
+        if (isNullOrUndefined(screeningUID)) failures.push(FailureFactory.MISSING_REQUIRED_DATA('screeningUID'))
+      })
+    return failures.length > 0 ? failure(failures) : success(true)
   }
 }
