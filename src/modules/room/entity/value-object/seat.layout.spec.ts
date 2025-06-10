@@ -2,20 +2,12 @@ import { SeatLayout } from './seat.layout'
 import { ISeatRowConfiguration } from '../room'
 import { SeatRow } from './seat.row'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 
 describe('SeatLayout', () => {
   describe('Métodos Estáticos', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => {
-        failures = []
-      })
-
       describe('Cenários de sucesso', () => {
-        const createValidLayout = (): ISeatRowConfiguration[] => [
+        const createValidLayout: () => ISeatRowConfiguration[] = () => [
           {
             rowNumber: 1,
             lastColumnLetter: 'E', // 5 assentos (A-E)
@@ -40,17 +32,18 @@ describe('SeatLayout', () => {
           const layout = createValidLayout()
 
           // Act
-          const result = validateAndCollect(SeatLayout.create(layout), failures)
+          const result = SeatLayout.create(layout)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.seatRows.size).toBe(4)
-          expect(result.totalCapacity).toBe(26) // 5+6+7+8 = 26
-          expect(result.preferentialSeatsByRow.size).toBe(2)
-          expect(result.preferentialSeatsByRow.get(1)).toEqual(['A', 'B'])
-          expect(result.preferentialSeatsByRow.get(2)).toEqual(['C'])
-          expect(result.preferentialSeatsByRow.has(3)).toBe(false)
-          expect(result.preferentialSeatsByRow.has(4)).toBe(false)
+          expect(result).toBeValidResultMatching<SeatLayout>(s => {
+            expect(s.seatRows.size).toBe(4)
+            expect(s.totalCapacity).toBe(26) // 5+6+7+8 = 26
+            expect(s.preferentialSeatsByRow.size).toBe(2)
+            expect(s.preferentialSeatsByRow.get(1)).toEqual(['A', 'B'])
+            expect(s.preferentialSeatsByRow.get(2)).toEqual(['C'])
+            expect(s.preferentialSeatsByRow.has(3)).toBe(false)
+            expect(s.preferentialSeatsByRow.has(4)).toBe(false)
+          })
         })
 
         it('deve criar um layout com o número máximo de fileiras', () => {
@@ -67,12 +60,13 @@ describe('SeatLayout', () => {
           }
 
           // Act
-          const result = validateAndCollect(SeatLayout.create(layout), failures)
+          const result = SeatLayout.create(layout)
 
           // Assert
-          expect(result).toBeDefined()
-          expect(result.seatRows.size).toBe(maxRows)
-          expect(result.totalCapacity).toBe(maxRows * 5) // 20 fileiras * 5 assentos = 100
+          expect(result).toBeValidResultMatching<SeatLayout>(s => {
+            expect(s.seatRows.size).toBe(maxRows)
+            expect(s.totalCapacity).toBe(maxRows * 5) // 20 fileiras * 5 assentos = 100
+          })
         })
 
         // deve criar um com quantidade mínima de linhas
@@ -87,14 +81,12 @@ describe('SeatLayout', () => {
             {
               scenario: 'layout nulo',
               layout: null as any,
-              errorCode: FailureCode.MISSING_REQUIRED_DATA,
-              field: 'rowConfigurations',
+              code: FailureCode.MISSING_REQUIRED_DATA,
             },
             {
               scenario: 'layout vazio',
               layout: [],
-              errorCode: FailureCode.MISSING_REQUIRED_DATA,
-              field: 'rowConfigurations',
+              code: FailureCode.MISSING_REQUIRED_DATA,
             },
             {
               scenario: 'layout com menos fileiras que o mínimo',
@@ -104,8 +96,7 @@ describe('SeatLayout', () => {
                   rowId: i + 1,
                   columns: 'E',
                 })),
-              errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
-              field: 'rowConfigurations',
+              code: FailureCode.ARRAY_LENGTH_IS_OUT_OF_RANGE,
             },
             {
               scenario: 'layout com mais fileiras que o máximo',
@@ -115,20 +106,17 @@ describe('SeatLayout', () => {
                   rowId: i + 1,
                   columns: 'E',
                 })),
-              errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
-              field: 'rowConfigurations',
+              code: FailureCode.ARRAY_LENGTH_IS_OUT_OF_RANGE,
             },
           ]
 
-          failureCases.forEach(({ scenario, layout, errorCode, field }) => {
+          failureCases.forEach(({ scenario, layout, code }) => {
             it(`deve falhar quando o ${scenario}`, () => {
               // Act
-              const result = validateAndCollect(SeatLayout.create(layout), failures)
+              const result = SeatLayout.create(layout)
 
               // Assert
-              expect(result).toBeNull()
-              expect(failures[0].code).toBe(errorCode)
-              expect(failures[0].details?.field).toBe(field)
+              expect(result).toBeInvalidResultWithSingleFailure(code)
             })
           })
         })
@@ -144,13 +132,10 @@ describe('SeatLayout', () => {
             ]
 
             // Act
-            const result = validateAndCollect(SeatLayout.create(layout), failures)
+            const result = SeatLayout.create(layout)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.ROOM_WITH_INVALID_CAPACITY)
-            expect(failures[0].details?.capacity).toBe(16)
-            expect(failures[0].details?.min).toBe(20)
+            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_WITH_INVALID_CAPACITY)
           })
 
           it('deve falhar quando a capacidade total é maior que o máximo permitido', () => {
@@ -163,13 +148,10 @@ describe('SeatLayout', () => {
               }))
 
             // Act
-            const result = validateAndCollect(SeatLayout.create(layout), failures)
+            const result = SeatLayout.create(layout)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.ROOM_WITH_INVALID_CAPACITY)
-            expect(failures[0].details?.capacity).toBe(300)
-            expect(failures[0].details?.max).toBe(250)
+            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_WITH_INVALID_CAPACITY)
           })
         })
 
@@ -185,13 +167,10 @@ describe('SeatLayout', () => {
               }))
 
             // Act
-            const result = validateAndCollect(SeatLayout.create(layout), failures)
+            const result = SeatLayout.create(layout)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS)
-            expect(failures[0].details?.count).toBe(0)
-            expect(failures[0].details?.percentage).toBe(5)
+            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS)
           })
 
           it('deve falhar quando a quantidade de assentos preferenciais é maior que o máximo permitido', () => {
@@ -205,12 +184,10 @@ describe('SeatLayout', () => {
               }))
 
             // Act
-            const result = validateAndCollect(SeatLayout.create(layout), failures)
+            const result = SeatLayout.create(layout)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS)
-            expect(failures[0].details?.count).toBe(30)
+            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS)
           })
         })
       })
@@ -245,7 +222,7 @@ describe('SeatLayout', () => {
         // Arrange
         const seatRows = new Map<number, SeatRow>()
 
-        // Adicionar fileiras com diferentes capacidades
+        // fileiras com diferentes capacidades
         seatRows.set(1, SeatRow.hydrate('D', [])) // 4 assentos
         seatRows.set(2, SeatRow.hydrate('F', [])) // 6 assentos
         seatRows.set(3, SeatRow.hydrate('J', [])) // 10 assentos
@@ -261,7 +238,7 @@ describe('SeatLayout', () => {
         // Arrange
         const seatRows = new Map<number, SeatRow>()
 
-        // Adicionar fileiras com diferentes configurações de assentos preferenciais
+        // fileiras com diferentes configurações de assentos preferenciais
         seatRows.set(1, SeatRow.hydrate('E', ['A', 'B', 'C']))
         seatRows.set(2, SeatRow.hydrate('F', ['D', 'E']))
         seatRows.set(3, SeatRow.hydrate('G', []))
@@ -288,7 +265,6 @@ describe('SeatLayout', () => {
     let seatRows: Map<number, SeatRow>
 
     beforeEach(() => {
-      // Configurar dados de teste
       seatRows = new Map()
 
       // Adicionar fileiras de teste

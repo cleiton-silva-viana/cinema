@@ -3,8 +3,8 @@ import { SeatRow } from './seat.row'
 import { failure, Result, success } from '@shared/result/result'
 import { Validate } from '@shared/validator/validate'
 import { TechnicalError } from '@shared/error/technical.error'
-import { ensureNotNull, validateAndCollect } from '@shared/validator/common.validators'
 import { FailureFactory } from '@shared/failure/failure.factory'
+import {ensureNotNull} from "@shared/validator/utils/validation.helpers";
 
 export class SeatLayout {
   private static readonly MINIMUM_ROW_COUNT = 4
@@ -35,40 +35,15 @@ export class SeatLayout {
    * @returns Resultado contendo a instância de SeatLayout ou falhas de validação
    */
   public static create(rowConfigurations: ISeatRowConfiguration[]): Result<SeatLayout> {
-    const failures = ensureNotNull({ rowConfigurations })
-    if (failures.length > 0) return failure(failures)
+   // validate input
+    const result = SeatLayout._validateRowConfigurations(rowConfigurations)
+    if (result.isInvalid()) return result
 
-    Validate.array({ rowConfigurations }, failures)
-      .isRequired()
-      .isNotEmpty()
-      .hasLengthBetween(SeatLayout.MINIMUM_ROW_COUNT, SeatLayout.MAXIMUM_ROW_COUNT)
-    if (failures.length > 0) return failure(failures)
-
-    const seatRowsMap = new Map<number, SeatRow>()
-    const preferentialSeatsByRow = new Map<number, string[]>()
-    let totalPreferentialSeatsCount = 0
-    let roomCapacity = 0
-
-    for (const r of rowConfigurations) {
-      const seatRow = validateAndCollect(
-        SeatRow.create(r.rowNumber, r.lastColumnLetter, r?.preferentialSeatLetters),
-        failures
-      )
-      if (seatRow === null) continue
-
-      if (seatRow.preferentialSeatLetters.length > 0) {
-        totalPreferentialSeatsCount += seatRow.preferentialSeatLetters.length
-        preferentialSeatsByRow.set(r.rowNumber, [...seatRow.preferentialSeatLetters])
-      }
-
-      roomCapacity += seatRow.capacity
-      seatRowsMap.set(r.rowNumber, seatRow)
-    }
+    // criando ...
+    const { seatRowsMap, preferentialSeatsByRow, roomCapacity, totalPreferentialSeatsCount } = SeatLayout._createSeatRowMap(rowConfigurations)
 
     if (roomCapacity < this.MINIMUM_ROOM_CAPACITY || roomCapacity > this.MAXIMUM_ROOM_CAPACITY)
-      failures.push(
-        FailureFactory.ROOM_WITH_INVALID_CAPACITY(roomCapacity, this.MINIMUM_ROOM_CAPACITY, this.MAXIMUM_ROOM_CAPACITY)
-      )
+      return failure(FailureFactory.ROOM_WITH_INVALID_CAPACITY(roomCapacity, this.MINIMUM_ROOM_CAPACITY, this.MAXIMUM_ROOM_CAPACITY))
 
     const minRequiredPreferentialSeats = Math.ceil((roomCapacity * this.MINIMUM_PREFERENTIAL_PERCENTAGE) / 100)
     const maxAllowedPreferentialSeats = Math.floor((roomCapacity * this.MAXIMUM_PREFERENTIAL_PERCENTAGE) / 100)
@@ -77,16 +52,9 @@ export class SeatLayout {
       totalPreferentialSeatsCount < minRequiredPreferentialSeats ||
       totalPreferentialSeatsCount > maxAllowedPreferentialSeats
     )
-      failures.push(
-        FailureFactory.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS(
-          totalPreferentialSeatsCount,
-          this.MINIMUM_PREFERENTIAL_PERCENTAGE
-        )
-      )
+      return failure(FailureFactory.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS(totalPreferentialSeatsCount, this.MINIMUM_PREFERENTIAL_PERCENTAGE))
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(new SeatLayout(seatRowsMap, preferentialSeatsByRow, roomCapacity))
+    return success(new SeatLayout(seatRowsMap, preferentialSeatsByRow, roomCapacity))
   }
 
   /**
@@ -134,5 +102,40 @@ export class SeatLayout {
   public isPreferentialSeat(rowNumber: number, seatColumn: string): boolean {
     const row = this.seatRows.get(rowNumber)
     return row !== undefined && row.isPreferentialSeat(seatColumn)
+  }
+
+  private static _validateRowConfigurations(config: ISeatRowConfiguration[]): Result<true> {
+    const failures = ensureNotNull({ config })
+    if (failures.length > 0) return failure(failures)
+
+    Validate.array({ config }, failures)
+        .isRequired()
+        .isNotEmpty()
+        .hasLengthBetween(SeatLayout.MINIMUM_ROW_COUNT, SeatLayout.MAXIMUM_ROW_COUNT)
+    return (failures.length > 0)
+        ? failure(failures)
+        : success(true)
+  }
+
+  private static _createSeatRowMap(rowConfigurations: ISeatRowConfiguration[]) {
+    const seatRowsMap = new Map<number, SeatRow>()
+    const preferentialSeatsByRow = new Map<number, string[]>()
+    let roomCapacity = 0
+    let totalPreferentialSeatsCount = 0
+
+    for (const r of rowConfigurations) {
+      const seatRowResult = SeatRow.create(r.rowNumber, r.lastColumnLetter, r?.preferentialSeatLetters)
+
+      seatRowResult.map(seatRow => {
+        if (seatRow.preferentialSeatLetters.length > 0) {
+          totalPreferentialSeatsCount += seatRow.preferentialSeatLetters.length
+          preferentialSeatsByRow.set(r.rowNumber, [...seatRow.preferentialSeatLetters])
+        }
+        roomCapacity += seatRow.capacity
+        seatRowsMap.set(r.rowNumber, seatRow)
+      })
+    }
+
+    return { seatRowsMap, preferentialSeatsByRow, roomCapacity, totalPreferentialSeatsCount }
   }
 }
