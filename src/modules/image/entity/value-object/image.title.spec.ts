@@ -1,8 +1,7 @@
 import { faker } from '@faker-js/faker/.'
 import { ImageTitle } from './image.title'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 
 describe('ImageTitle', () => {
   const validPtTitle = 'Título da Imagem com tamanho válido'
@@ -14,12 +13,6 @@ describe('ImageTitle', () => {
 
   describe('ImageTitle', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => {
-        failures = []
-      })
-
       describe('deve retornar uma instância de ImageTitle com sucesso', () => {
         const successCases = [
           {
@@ -48,11 +41,14 @@ describe('ImageTitle', () => {
         successCases.forEach(({ contents, scenario }) => {
           it(`deve aceitar um título ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(ImageTitle.create(contents), failures)
+            const result = ImageTitle.create(contents)
 
             // Assert
-            expect(result).toBeDefined()
-            expect(result).toBeInstanceOf(ImageTitle)
+            expect(result).toBeValidResultMatching<ImageTitle>((i) => {
+              expect(i).toBeInstanceOf(ImageTitle)
+              expect(i.content(SupportedLanguageEnum.PT)).toBe(contents[0].text)
+              expect(i.content(SupportedLanguageEnum.EN)).toBe(contents[1].text)
+            })
           })
         })
       })
@@ -65,7 +61,7 @@ describe('ImageTitle', () => {
               { language: 'en', text: validEnTitle },
             ],
             scenario: 'com menos que o tamanho mínimo',
-            errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
+            code: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
           },
           {
             contents: [
@@ -73,7 +69,7 @@ describe('ImageTitle', () => {
               { language: 'en', text: tooLongTitle },
             ],
             scenario: 'com mais que o tamanho máximo',
-            errorCode: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
+            code: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
           },
           {
             contents: [
@@ -81,18 +77,17 @@ describe('ImageTitle', () => {
               { language: 'en', text: titleWithValidCharacters },
             ],
             scenario: 'com caracteres inválidos no título',
-            errorCode: FailureCode.STRING_INVALID_FORMAT,
+            code: FailureCode.STRING_WITH_INVALID_FORMAT,
           },
         ]
 
-        failureCases.forEach(({ contents, scenario, errorCode }) => {
+        failureCases.forEach(({ contents, scenario, code }) => {
           it(`deve rejeitar um título ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(ImageTitle.create(contents), failures)
+            const result = ImageTitle.create(contents)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(errorCode)
+            expect(result).toBeInvalidResultWithSingleFailure(code)
           })
         })
       })
