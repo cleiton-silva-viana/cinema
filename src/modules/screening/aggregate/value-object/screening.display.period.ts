@@ -1,7 +1,7 @@
 import { failure, Result, success } from '@shared/result/result'
-import { ensureNotNull } from '@shared/validator/common.validators'
 import { FailureFactory } from '@shared/failure/failure.factory'
 import { TechnicalError } from '@shared/error/technical.error'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
 
 /** Define os possíveis estados de exibição baseados no tempo. */
 export enum ScreeningStatus {
@@ -30,6 +30,7 @@ export class ScreeningDisplayPeriod {
   ) {}
 
   private static readonly PAST_DATE_TOLERANCE_MS = 5 * 60 * 1000
+
   /**
    * Cria uma nova instância de ScreeningDisplayPeriod.
    */
@@ -57,13 +58,16 @@ export class ScreeningDisplayPeriod {
   }
 
   /**
-   * Retorna o status atual da exibição baseado no tempo.
+   * Retorna o status da exibição baseado em um tempo fornecido.
+   * @param now O momento atual para basear o cálculo do status.
    */
-  get screeningStatus(): ScreeningStatus {
-    const now = new Date()
+  public getScreeningStatus(now: Date): ScreeningStatus {
+    const currentTime = now.getTime()
+    const periodStartTime = this.startsIn.getTime()
+    const periodEndTime = this.endsIn.getTime()
 
-    if (now < this.startsIn) return ScreeningStatus.PRESALE
-    if (now >= this.startsIn && now <= this.endsIn) return ScreeningStatus.SHOWING
+    if (currentTime < periodStartTime) return ScreeningStatus.PRESALE
+    if (currentTime <= periodEndTime) return ScreeningStatus.SHOWING
     return ScreeningStatus.ENDED
   }
 
@@ -75,10 +79,11 @@ export class ScreeningDisplayPeriod {
   }
 
   /**
-   * Verifica se a exibição está disponível para reservas.
+   * Verifica se a exibição está disponível para reservas baseado em um tempo fornecido.
    * Só permite reservas durante o período de pré-venda.
+   * @param now O momento atual para basear a verificação.
    */
-  get isAvailableForBooking(): boolean {
-    return this.screeningStatus === ScreeningStatus.PRESALE
+  public isAvailableForBooking(now: Date): boolean {
+    return this.getScreeningStatus(now) === ScreeningStatus.PRESALE
   }
 }
