@@ -4,10 +4,10 @@ import { PersonUID } from '../entity/value-object/person.uid'
 import { Inject, Injectable } from '@nestjs/common'
 import { PERSON_REPOSITORY } from '../constant/person.constant'
 import { failure, Result, success } from '@shared/result/result'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { ResourceTypesEnum } from '@shared/constant/resource.types'
-import { ensureNotNull } from '@shared/validator/common.validators'
 import { IPersonApplicationService } from '@modules/person/service/person.application.service.interface'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 /**
  * Serviço de Domínio responsável por operações relacionadas a pessoas no sistema.
@@ -36,11 +36,8 @@ export class PersonApplicationService implements IPersonApplicationService {
     if (personUidResult.isInvalid()) return personUidResult
 
     const person = await this.repository.findById(personUidResult.value)
-    return !person
-      ? failure({
-          code: FailureCode.RESOURCE_NOT_FOUND,
-          details: { resource: ResourceTypesEnum.PERSON },
-        })
+    return isNullOrUndefined(person)
+      ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypesEnum.PERSON, uid))
       : success(person)
   }
 
@@ -76,16 +73,13 @@ export class PersonApplicationService implements IPersonApplicationService {
    * @returns Result contendo a instância de pessoa atualizada ou falhas de validação
    */
   public async update(uid: string, name?: string, birthDate?: Date): Promise<Result<Person>> {
-    const failures = ensureNotNull({ uid })
-    if (failures.length > 0) return failure(failures)
-
     const findResult = await this.findById(uid)
     if (findResult.isInvalid()) return findResult
+
     const person = findResult.value
-
     const updateResult = person.update({ name, birthDate })
-    if (updateResult.isInvalid()) return updateResult
 
+    if (updateResult.isInvalid()) return updateResult
     const personSaved = await this.repository.update(person.uid, updateResult.value)
     return success(personSaved)
   }
@@ -95,7 +89,6 @@ export class PersonApplicationService implements IPersonApplicationService {
     if (findResult.isInvalid()) return findResult
 
     await this.repository.delete(findResult.value.uid)
-
     return success(null)
   }
 }

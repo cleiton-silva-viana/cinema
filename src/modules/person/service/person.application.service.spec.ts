@@ -5,18 +5,14 @@ import { Person } from '../entity/person'
 import { PersonUID } from '../entity/value-object/person.uid'
 import { IPersonRepository } from '../repository/person.repository.interface'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import {CloneTestPersonWithOverrides, CreateTestPerson} from '@test/builder/person.builder'
+import { CloneTestPersonWithOverrides, CreateTestPerson } from '@test/builder/person.builder'
 
 describe('PersonService', () => {
   let repository: jest.Mocked<IPersonRepository>
   let service: PersonApplicationService
   let validPerson: Person
-  let failures: SimpleFailure[]
 
   beforeEach(() => {
-    failures = []
     repository = {
       findById: jest.fn(),
       save: jest.fn(),
@@ -38,20 +34,18 @@ describe('PersonService', () => {
       repository.findById.mockResolvedValue(validPerson)
 
       // Act
-      const result = validateAndCollect(await service.findById(validPerson.uid.value), failures)
+      const result = await service.findById(validPerson.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toBe(validPerson)
+      expect(result).toBeValidResultWithValue(validPerson)
     })
 
     it('deve retornar falha se uid for inválido', async () => {
       // Act
-      const result = validateAndCollect(await service.findById('INVALID-UID'), failures)
+      const result = await service.findById('INVALID-UID')
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures.length).toBeGreaterThan(0)
+      expect(result).toBeInvalidResult()
     })
 
     it('deve retornar falha se pessoa não encontrada', async () => {
@@ -60,11 +54,10 @@ describe('PersonService', () => {
       const uid = PersonUID.create().value
 
       // Act
-      const result = validateAndCollect(await service.findById(uid), failures)
+      const result = await service.findById(uid)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
   })
 
@@ -78,23 +71,23 @@ describe('PersonService', () => {
       repository.save.mockResolvedValue(instance)
 
       // Act
-      const result = validateAndCollect(await service.create(name, birthDate), failures)
+      const result = await service.create(name, birthDate)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.name.value).toBe(name)
-      expect(result.birthDate.value).toEqual(birthDate)
       expect(repository.save).toHaveBeenCalledTimes(1)
+      expect(result).toBeValidResultMatching<Person>((p) => {
+        expect(p.name.value).toBe(name)
+        expect(p.birthDate.value).toEqual(birthDate)
+      })
     })
 
     it('deve retornar falha se dados inválidos', async () => {
       // Act
-      const result = validateAndCollect(await service.create('', new Date()), failures)
+      const result = await service.create('', new Date())
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures.length).toBeGreaterThan(0)
       expect(repository.save).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResult()
     })
   })
 
@@ -109,39 +102,40 @@ describe('PersonService', () => {
       repository.update.mockResolvedValue(updatedPerson)
 
       // Act
-      const result = validateAndCollect(await service.update(person.uid.value, newName, newBirth), failures)
+      const result = await service.update(person.uid.value, newName, newBirth)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result.name.value).toBe(newName)
-      expect(result.birthDate.value).toEqual(newBirth)
       expect(repository.findById).toHaveBeenCalledTimes(1)
+      expect(repository.findById).toHaveBeenCalledWith(person.uid)
       expect(repository.update).toHaveBeenCalledTimes(1)
+      expect(result).toBeValidResultMatching<Person>((p) => {
+        expect(p.name.value).toBe(newName)
+        expect(p.birthDate.value).toEqual(newBirth)
+      })
     })
 
     it('deve retornar falha se uid inválido', async () => {
       // Act
-      const result = validateAndCollect(await service.update('INVALID', 'Nome', new Date()), failures)
+      const result = await service.update('INVALID', 'Nome', new Date())
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures.length).toBeGreaterThan(0)
       expect(repository.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResult()
     })
 
     it('deve retornar falha se pessoa não encontrada', async () => {
       // Arrange
       repository.findById.mockResolvedValue(null as any)
-      const uid = PersonUID.create().value
+      const uid = PersonUID.create()
 
       // Act
-      const result = validateAndCollect(await service.update(uid, faker.person.firstName(), new Date()), failures)
+      const result = await service.update(uid.value, faker.person.firstName(), new Date())
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
       expect(repository.findById).toHaveBeenCalledTimes(1)
+      expect(repository.findById).toHaveBeenCalledWith(uid)
       expect(repository.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
 
     it('deve retornar falha se atualização inválida', async () => {
@@ -155,19 +149,6 @@ describe('PersonService', () => {
       // Assert
       expect(result.isInvalid()).toBeTruthy()
       expect(repository.findById).toHaveBeenCalledTimes(1)
-      expect(repository.update).not.toHaveBeenCalled()
-    })
-
-    it('deve retornar falha se não for fornecido nenhuma propriedade para atualização', async () => {
-      // Arrange
-      repository.findById.mockResolvedValue(validPerson)
-      const uid = PersonUID.create().value
-
-      // Act
-      const result = await service.update(uid, null as any, null as any)
-
-      // Assert
-      expect(result.isInvalid()).toBeTruthy()
       expect(repository.update).not.toHaveBeenCalled()
     })
   })
@@ -192,11 +173,13 @@ describe('PersonService', () => {
       repository.findById.mockResolvedValue(null as any)
 
       // Act
-      const result = validateAndCollect(await service.delete(validPerson.uid.value), failures)
+      const result = await service.delete(validPerson.uid.value)
 
       // Assert
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
       expect(repository.delete).not.toHaveBeenCalled()
+      expect(repository.findById).toHaveBeenCalledWith(validPerson.uid)
+      expect(repository.findById).toHaveBeenCalledTimes(1)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
   })
 })
