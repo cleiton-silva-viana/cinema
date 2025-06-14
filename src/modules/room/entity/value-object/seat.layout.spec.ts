@@ -2,6 +2,7 @@ import { SeatLayout } from './seat.layout'
 import { ISeatRowConfiguration } from '../room'
 import { SeatRow } from './seat.row'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { CreateTestSeatLayout } from '@test/builder/seat.layout.builder'
 
 describe('SeatLayout', () => {
   describe('Métodos Estáticos', () => {
@@ -35,7 +36,7 @@ describe('SeatLayout', () => {
           const result = SeatLayout.create(layout)
 
           // Assert
-          expect(result).toBeValidResultMatching<SeatLayout>(s => {
+          expect(result).toBeValidResultMatching<SeatLayout>((s) => {
             expect(s.seatRows.size).toBe(4)
             expect(s.totalCapacity).toBe(26) // 5+6+7+8 = 26
             expect(s.preferentialSeatsByRow.size).toBe(2)
@@ -63,7 +64,7 @@ describe('SeatLayout', () => {
           const result = SeatLayout.create(layout)
 
           // Assert
-          expect(result).toBeValidResultMatching<SeatLayout>(s => {
+          expect(result).toBeValidResultMatching<SeatLayout>((s) => {
             expect(s.seatRows.size).toBe(maxRows)
             expect(s.totalCapacity).toBe(maxRows * 5) // 20 fileiras * 5 assentos = 100
           })
@@ -170,7 +171,9 @@ describe('SeatLayout', () => {
             const result = SeatLayout.create(layout)
 
             // Assert
-            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS)
+            expect(result).toBeInvalidResultWithSingleFailure(
+              FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS
+            )
           })
 
           it('deve falhar quando a quantidade de assentos preferenciais é maior que o máximo permitido', () => {
@@ -187,7 +190,9 @@ describe('SeatLayout', () => {
             const result = SeatLayout.create(layout)
 
             // Assert
-            expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS)
+            expect(result).toBeInvalidResultWithSingleFailure(
+              FailureCode.ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS
+            )
           })
         })
       })
@@ -262,22 +267,13 @@ describe('SeatLayout', () => {
 
   describe('Métodos de Instancia', () => {
     let instance: SeatLayout
-    let seatRows: Map<number, SeatRow>
 
     beforeEach(() => {
-      seatRows = new Map()
-
-      // Adicionar fileiras de teste
-      const row1 = SeatRow.hydrate('E', ['A', 'B']) // Fileira 1: A-E, com A e B preferenciais
-      const row2 = SeatRow.hydrate('F', ['C']) // Fileira 2: A-F, com C preferencial
-      const row3 = SeatRow.hydrate('G', []) // Fileira 3: A-G, sem preferenciais
-
-      seatRows.set(1, row1)
-      seatRows.set(2, row2)
-      seatRows.set(3, row3)
-
-      // Criar instância para testes usando o novo método hydrate
-      instance = SeatLayout.hydrate(seatRows)
+      instance = CreateTestSeatLayout([
+        { rowNumber: 1, lastColumnLetter: 'E', preferentialSeatLetters: ['A', 'B'] },
+        { rowNumber: 2, lastColumnLetter: 'F', preferentialSeatLetters: ['C'] },
+        { rowNumber: 3, lastColumnLetter: 'G', preferentialSeatLetters: [] },
+      ])
     })
 
     describe('hasSeat', () => {
