@@ -1,25 +1,20 @@
 import { MovieDuration } from './movie.duration'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { validateAndCollect } from '@shared/validator/common.validators'
 
 describe('MovieDuration', () => {
   describe('Static Methods', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => (failures = []))
-
       it('deve criar uma instância válida com duração dentro dos limites', () => {
         // Arrange
         const minutes = 120 // 2 horas
 
         // Act
-        const result = validateAndCollect(MovieDuration.create(minutes), failures)
+        const result = MovieDuration.create(minutes)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.minutes).toBe(minutes)
+        expect(result).toBeValidResultMatching<MovieDuration>((m) => {
+          expect(m.minutes).toBe(minutes)
+        })
       })
 
       it('deve criar uma instância válida com duração mínima permitida', () => {
@@ -27,11 +22,12 @@ describe('MovieDuration', () => {
         const minutes = MovieDuration.MIN_DURATION
 
         // Act
-        const result = validateAndCollect(MovieDuration.create(minutes), failures)
+        const result = MovieDuration.create(minutes)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.minutes).toBe(minutes)
+        expect(result).toBeValidResultMatching<MovieDuration>((m) => {
+          expect(m.minutes).toBe(minutes)
+        })
       })
 
       it('deve criar uma instância válida com duração máxima permitida', () => {
@@ -39,11 +35,12 @@ describe('MovieDuration', () => {
         const minutes = MovieDuration.MAX_DURATION
 
         // Act
-        const result = validateAndCollect(MovieDuration.create(minutes), failures)
+        const result = MovieDuration.create(minutes)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.minutes).toBe(minutes)
+        expect(result).toBeValidResultMatching<MovieDuration>((m) => {
+          expect(m.minutes).toBe(minutes)
+        })
       })
 
       it('deve falhar ao criar com duração nula', () => {
@@ -51,12 +48,10 @@ describe('MovieDuration', () => {
         const minutes = null as unknown as number
 
         // Act
-        const result = validateAndCollect(MovieDuration.create(minutes), failures)
+        const result = MovieDuration.create(minutes)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
       })
 
       it('deve falhar ao criar com duração menor que o mínimo permitido', () => {
@@ -64,12 +59,10 @@ describe('MovieDuration', () => {
         const minutes = MovieDuration.MIN_DURATION - 1
 
         // Act
-        const result = validateAndCollect(MovieDuration.create(minutes), failures)
+        const result = MovieDuration.create(minutes)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.MOVIE_WITH_DURATION_TOO_SHORT)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_WITH_DURATION_TOO_SHORT)
       })
 
       it('deve falhar ao criar com duração maior que o máximo permitido', () => {
@@ -77,12 +70,10 @@ describe('MovieDuration', () => {
         const minutes = MovieDuration.MAX_DURATION + 1
 
         // Act
-        const result = validateAndCollect(MovieDuration.create(minutes), failures)
+        const result = MovieDuration.create(minutes)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures).toHaveLength(1)
-        expect(failures[0].code).toBe(FailureCode.MOVIE_WITH_DURATION_TOO_LONG)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_WITH_DURATION_TOO_LONG)
       })
     })
 

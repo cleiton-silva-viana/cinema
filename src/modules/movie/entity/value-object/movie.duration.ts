@@ -1,9 +1,9 @@
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { TechnicalError } from '@shared/error/technical.error'
-import { isNull } from '@shared/validator/validator'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { Validate } from '@shared/validator/validate'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 /**
  * Value Object que representa a duração de um filme em minutos.
@@ -52,8 +52,12 @@ export class MovieDuration {
     Validate.number({ minutes }, failures)
       .isRequired()
       .isInteger()
-      .isAtLeast(MovieDuration.MIN_DURATION, FailureCode.MOVIE_WITH_DURATION_TOO_SHORT) // verificar
-      .isAtMost(MovieDuration.MAX_DURATION, FailureCode.MOVIE_WITH_DURATION_TOO_LONG) // verificar
+      .isAtLeast(MovieDuration.MIN_DURATION, () =>
+        FailureFactory.MOVIE_WITH_DURATION_TOO_SHORT(minutes, MovieDuration.MIN_DURATION)
+      )
+      .isAtMost(MovieDuration.MAX_DURATION, () =>
+        FailureFactory.MOVIE_WITH_DURATION_TOO_LONG(minutes, MovieDuration.MAX_DURATION)
+      )
 
     return failures.length > 0 ? failure(failures) : success(new MovieDuration(minutes))
   }
@@ -67,7 +71,7 @@ export class MovieDuration {
    * @throws TechnicalError com código NULL_ARGUMENT se minutes for nulo
    */
   public static hydrate(minutes: number): MovieDuration {
-    TechnicalError.if(isNull(minutes), FailureCode.MISSING_REQUIRED_DATA)
+    TechnicalError.if(isNullOrUndefined(minutes), () => FailureFactory.MISSING_REQUIRED_DATA('duration'))
     return new MovieDuration(minutes)
   }
 
