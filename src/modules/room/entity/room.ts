@@ -1,23 +1,15 @@
-import { failure, Result, success } from "../../../shared/result/result";
-import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
-import { Screen } from "./value-object/screen";
-import { Validate } from "../../../shared/validator/validate";
-import { isNull } from "../../../shared/validator/validator";
-import { TechnicalError } from "../../../shared/error/technical.error";
-import { FailureCode } from "../../../shared/failure/failure.codes.enum";
-import { RoomUID } from "./value-object/room.uid";
-import { RoomIdentifier } from "./value-object/room.identifier";
-import { SeatLayout } from "./value-object/seat.layout";
-import { SeatRow } from "./value-object/seat.row";
-import { IRoomBookingData, RoomSchedule } from "./value-object/room.schedule";
-import { ScreeningUID } from "../../screening/aggregate/value-object/screening.uid";
-import { BookingSlot, BookingType } from "./value-object/booking.slot";
-import {
-  collectNullFields,
-  ensureNotNull,
-  parseToEnum,
-  validateAndCollect,
-} from "../../../shared/validator/common.validators";
+import { Screen } from './value-object/screen'
+import { RoomUID } from './value-object/room.uid'
+import { RoomIdentifier } from './value-object/room.identifier'
+import { SeatLayout } from './value-object/seat.layout'
+import { SeatRow } from './value-object/seat.row'
+import { IRoomBookingData, RoomSchedule } from './value-object/room.schedule'
+import { BookingSlot, BookingType } from './value-object/booking.slot'
+import { ScreeningUID } from '../../screening/aggregate/value-object/screening.uid'
+import { combine, failure, Result, success } from '@shared/result/result'
+import { TechnicalError } from '@shared/error/technical.error'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { ensureNotNull, hydrateEnum, parseToEnum } from '@shared/validator/utils/validation.helpers'
 
 /**
  * Interface que define os parâmetros necessários para criar uma sala de cinema.
@@ -28,10 +20,10 @@ import {
  * @property status - Status inicial da sala
  */
 export interface ICreateRoomInput {
-  identifier: number;
-  seatConfig: ISeatRowConfiguration[];
-  screen: ICreateScreenInput;
-  status: string;
+  identifier: number
+  seatConfig: ISeatRowConfiguration[]
+  screen: ICreateScreenInput
+  status: string
 }
 
 /**
@@ -45,17 +37,15 @@ export interface ICreateRoomInput {
  * @property status - Status atual da sala
  */
 export interface IHydrateRoomInput {
-  roomUID: string;
-  identifier: number;
-  layout: {
-    seatRows: Array<ISeatRowConfiguration>;
-  };
+  roomUID: string
+  identifier: number
+  layout: Array<ISeatRowConfiguration>
   screen: {
-    size: number;
-    type: string;
-  };
-  schedule: Array<IRoomBookingData>;
-  status: string;
+    size: number
+    type: string
+  }
+  schedule: Array<IRoomBookingData>
+  status: string
 }
 
 /**
@@ -63,9 +53,9 @@ export interface IHydrateRoomInput {
  */
 export interface ICreateScreenInput {
   /** Tamanho da tela em metros */
-  size: number;
+  size: number
   /** Tipo da tela (2D, 3D, 2D_3D) */
-  type: string;
+  type: string
 }
 
 /**
@@ -74,13 +64,13 @@ export interface ICreateScreenInput {
  */
 export interface ISeatRowConfiguration {
   /** Identificador da linha (ex: '1', '2', '3') */
-  rowNumber: number;
+  rowNumber: number
   /** A letra da última coluna, ou seja, o último assento desta linha
    * exemplo: ao passarmos uma letra 'D', consideramos que os assentos são de A até D
    */
-  lastColumnLetter: string;
+  lastColumnLetter: string
   /** Letras dos assentos preferenciais nesta linha (ex: ['A', 'B']) */
-  preferentialSeatLetters?: string[];
+  preferentialSeatLetters?: string[]
 }
 
 /**
@@ -88,9 +78,9 @@ export interface ISeatRowConfiguration {
  */
 export enum RoomAdministrativeStatus {
   /** Sala disponível para agendamento de sessões */
-  AVAILABLE = "AVAILABLE",
+  AVAILABLE = 'AVAILABLE',
   /** Sala reservada para um evento específico */
-  CLOSED = "CLOSED",
+  CLOSED = 'CLOSED',
 }
 
 /**
@@ -105,13 +95,13 @@ export enum RoomAdministrativeStatus {
  */
 export class Room {
   /** Tempo de higienização da sala em minutos após cada exibição */
-  private static readonly DEFAULT_CLEANING_TIME_IN_MINUTES = 30;
+  private static readonly DEFAULT_CLEANING_TIME_IN_MINUTES = 30
 
   /** Tempo em minutos para os clientes entrarem na sala antes do início da exibição */
-  private static readonly DEFAULT_ENTRY_TIME_IN_MINUTES = 15;
+  private static readonly DEFAULT_ENTRY_TIME_IN_MINUTES = 15
 
   /** Tempo em minutos para os clientes saírem da sala após o término da exibição */
-  private static readonly DEFAULT_EXIT_TIME_IN_MINUTES = 15;
+  private static readonly DEFAULT_EXIT_TIME_IN_MINUTES = 15
 
   /**
    * Construtor privado para garantir que instâncias sejam criadas apenas através dos métodos factory.
@@ -129,7 +119,7 @@ export class Room {
     private readonly _layout: SeatLayout,
     private readonly _screen: Screen,
     private readonly _schedule: RoomSchedule,
-    public readonly status: RoomAdministrativeStatus,
+    public readonly status: RoomAdministrativeStatus
   ) {}
 
   /**
@@ -149,48 +139,28 @@ export class Room {
    * @returns Result<Room> contendo a instância de Room ou falhas de validação
    */
   public static create(params: ICreateRoomInput): Result<Room> {
-    const failures = ensureNotNull({ params });
-    if (failures.length > 0) return failure(failures);
+    const failures = ensureNotNull({ params })
+    if (failures.length > 0) return failure(failures)
 
-    failures.push(
-      ...ensureNotNull({
-        identifier: params.identifier,
-        seatConfig: params.seatConfig,
-        screen: params.screen,
-        status: params.status,
-      }),
-    );
-    if (failures.length > 0) return failure(failures);
+    const { identifier, seatConfig, screen, status } = params
 
-    const status = validateAndCollect(
-      parseToEnum(params.status, RoomAdministrativeStatus),
-      failures,
-    );
-    const identifier = validateAndCollect(
-      RoomIdentifier.create(params.identifier),
-      failures,
-    );
-    const screen = validateAndCollect(
-      Screen.create(params.screen.size, params.screen.type),
-      failures,
-    );
-    const layout = validateAndCollect(
-      SeatLayout.create(params.seatConfig),
-      failures,
-    );
+    failures.push(...ensureNotNull({ identifier, seatConfig, screen, status }))
+    if (failures.length > 0) return failure(failures)
+
+    const result = combine({
+      statusVO: parseToEnum('room_status', params.status, RoomAdministrativeStatus),
+      identifierVO: RoomIdentifier.create(params.identifier),
+      screenVO: Screen.create(params.screen.size, params.screen.type),
+      layoutVO: SeatLayout.create(params.seatConfig),
+    })
+
+    if (result.isInvalid()) return failure(result.failures)
+
+    const { identifierVO, statusVO, screenVO, layoutVO } = result.value
 
     return failures.length > 0
       ? failure(failures)
-      : success(
-          new Room(
-            RoomUID.create(),
-            identifier,
-            layout,
-            screen,
-            RoomSchedule.create(),
-            status,
-          ),
-        );
+      : success(new Room(RoomUID.create(), identifierVO, layoutVO, screenVO, RoomSchedule.create(), statusVO))
   }
 
   /**
@@ -205,27 +175,13 @@ export class Room {
    * @returns Instância de Room
    */
   public static hydrate(params: IHydrateRoomInput): Room {
-    let fields = collectNullFields({ params });
-    TechnicalError.if(fields.length > 0, FailureCode.MISSING_REQUIRED_DATA, {
-      fields,
-    });
+    TechnicalError.validateRequiredFields({ params })
 
-    TechnicalError.if(
-      isNull(params.status),
-      FailureCode.MISSING_REQUIRED_DATA,
-      {
-        fields,
-      },
-    );
-
-    const seatRowsMap = new Map<number, SeatRow>();
-    params.layout.seatRows.forEach((rowData) => {
-      const seatRow = SeatRow.hydrate(
-        rowData.lastColumnLetter,
-        rowData.preferentialSeatLetters,
-      );
-      seatRowsMap.set(rowData.rowNumber, seatRow);
-    });
+    const seatRowsMap = new Map<number, SeatRow>()
+    params.layout.forEach((rowData) => {
+      const seatRow = SeatRow.hydrate(rowData.lastColumnLetter, rowData.preferentialSeatLetters)
+      seatRowsMap.set(rowData.rowNumber, seatRow)
+    })
 
     return new Room(
       RoomUID.hydrate(params.roomUID),
@@ -233,8 +189,97 @@ export class Room {
       SeatLayout.hydrate(seatRowsMap),
       Screen.hydrate(params.screen.size, params.screen.type),
       RoomSchedule.hydrate(params.schedule),
-      params.status as RoomAdministrativeStatus,
-    );
+      hydrateEnum({ room_status: params.status }, RoomAdministrativeStatus)
+    )
+  }
+
+  /**
+   * Retorna o tamanho da tela.
+   */
+  get screenSize(): number {
+    return this._screen.size
+  }
+
+  /**
+   * Retorna o tipo da tela.
+   */
+  get screenType(): string {
+    return this._screen.type
+  }
+
+  /**
+   * Retorna a capacidade total de assentos da sala.
+   */
+  get totalSeatsCapacity(): number {
+    return this._layout.totalCapacity
+  }
+
+  /**
+   * Retorna a quantidade de assentos preferenciais da sala.
+   */
+  get preferentialSeatsCount(): number {
+    let counter = 0
+    this._layout.preferentialSeatsByRow.forEach((row) => (counter += row.length))
+    return counter
+  }
+
+  /**
+   * Retorna informações detalhadas sobre o layout de assentos da sala.
+   *
+   * @returns Objeto contendo:
+   * - rows: número total de fileiras
+   * - totalSeats: capacidade total de assentos
+   * - preferentialSeats: quantidade de assentos preferenciais
+   * - rowsInfo: informações detalhadas de cada fileira
+   */
+  get seatLayoutInfo(): {
+    rows: number
+    totalSeats: number
+    preferentialSeats: number
+    rowsInfo: Array<{
+      rowNumber: number
+      seats: number
+      preferentialSeats: string[]
+    }>
+  } {
+    const rowsInfo: Array<{
+      rowNumber: number
+      seats: number
+      preferentialSeats: string[]
+    }> = []
+
+    this._layout.seatRows.forEach((row, rowNumber) => {
+      rowsInfo.push({
+        rowNumber,
+        seats: row.capacity,
+        preferentialSeats: this._layout.preferentialSeatsByRow.get(rowNumber) || [],
+      })
+    })
+
+    return {
+      rows: this._layout.seatRows.size,
+      totalSeats: this._layout.totalCapacity,
+      preferentialSeats: this._layout.preferentialSeatsCount,
+      rowsInfo,
+    }
+  }
+
+  get layout(): SeatLayout {
+    return this._layout
+  }
+
+  /**
+   * Calcula o tempo total necessário para uma exibição, incluindo entrada, filme, saída e limpeza.
+   * @param durationInMinutes - A duração do filme em minutos
+   * @returns O tempo total em minutos
+   */
+  public static calculateTotalScreeningTime(durationInMinutes: number): number {
+    return (
+      durationInMinutes +
+      Room.DEFAULT_ENTRY_TIME_IN_MINUTES +
+      Room.DEFAULT_EXIT_TIME_IN_MINUTES +
+      Room.DEFAULT_CLEANING_TIME_IN_MINUTES
+    )
   }
 
   /**
@@ -252,31 +297,16 @@ export class Room {
    * @returns Result<Room> contendo a sala atualizada ou uma lista de falhas de validação
    */
   public changeStatus(status: string): Result<Room> {
-    const failures: SimpleFailure[] = [];
-    const newStatus = validateAndCollect(
-      parseToEnum(status, RoomAdministrativeStatus),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
+    const newStatusResult = parseToEnum('room_status', status, RoomAdministrativeStatus)
+    if (newStatusResult.isInvalid()) return newStatusResult
+    const newStatus = newStatusResult.value
 
-    if (
-      newStatus === RoomAdministrativeStatus.CLOSED &&
-      this._schedule.getAllBookingsData().length > 0
-    )
-      return failure({ code: FailureCode.ROOM_HAS_FUTURE_BOOKINGS });
+    if (newStatus === RoomAdministrativeStatus.CLOSED && this._schedule.getAllBookingsData().length > 0)
+      return failure(FailureFactory.ROOM_HAS_FUTURE_BOOKINGS())
 
     return this.status === newStatus
       ? success(this)
-      : success(
-          new Room(
-            this.uid,
-            this.identifier,
-            this._layout,
-            this._screen,
-            this._schedule,
-            newStatus,
-          ),
-        );
+      : success(new Room(this.uid, this.identifier, this._layout, this._screen, this._schedule, newStatus))
   }
 
   /**
@@ -289,94 +319,35 @@ export class Room {
    * @param durationInMinutes - A duração do filme em minutos
    * @returns Result<Room> - Uma nova instância de Room com o agendamento adicionado
    */
-  public addScreening(
-    screeningUID: ScreeningUID,
-    startTime: Date,
-    durationInMinutes: number,
-  ): Result<Room> {
-    const failures = ensureNotNull({
-      screeningUID,
-      startTime,
-      durationInMinutes,
-    });
-    if (failures.length > 0) return failure(failures);
+  public addScreening(screeningUID: ScreeningUID, startTime: Date, durationInMinutes: number): Result<Room> {
+    const failures = ensureNotNull({ screeningUID, startTime, durationInMinutes })
+    if (failures.length > 0) return failure(failures)
 
-    const isAvailable = validateAndCollect(
-      this.isPeriodAvailable(startTime, durationInMinutes),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
-    if (!isAvailable)
-      return failure({ code: FailureCode.ROOM_PERIOD_UNAVAILABLE });
+    const isAvailable = this.isPeriodAvailable(startTime, durationInMinutes)
+    if (isAvailable.isInvalid()) return isAvailable
 
-    const entryTime = Room.calculateEndTime(
-      startTime,
-      Room.DEFAULT_ENTRY_TIME_IN_MINUTES,
-    );
-    const showTime = Room.calculateEndTime(entryTime, durationInMinutes);
-    const exitTime = Room.calculateEndTime(
-      showTime,
-      Room.DEFAULT_EXIT_TIME_IN_MINUTES,
-    );
-    const cleaningTime = Room.calculateEndTime(
-      exitTime,
-      Room.DEFAULT_CLEANING_TIME_IN_MINUTES,
-    );
+    let entryTime = Room.calculateEndTime(startTime, Room.DEFAULT_ENTRY_TIME_IN_MINUTES)
+    let showTime: Date
+    let exitTime: Date
+    let cleaningTime: Date
 
-    const roomWithStartTimeScheduled = validateAndCollect(
-      this._schedule.addBooking(
-        screeningUID,
-        startTime,
-        entryTime,
-        BookingType.ENTRY_TIME,
-      ),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
-
-    const roomWithEntryTimeScheduled = validateAndCollect(
-      roomWithStartTimeScheduled.addBooking(
-        screeningUID,
-        entryTime,
-        showTime,
-        BookingType.SCREENING,
-      ),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
-
-    const roomWithExitTimeScheduled = validateAndCollect(
-      roomWithEntryTimeScheduled.addBooking(
-        screeningUID,
-        showTime,
-        exitTime,
-        BookingType.EXIT_TIME,
-      ),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
-
-    const roomWithCleaningTimeScheduled = validateAndCollect(
-      roomWithExitTimeScheduled.addBooking(
-        screeningUID,
-        exitTime,
-        cleaningTime,
-        BookingType.CLEANING,
-      ),
-      failures,
-    );
-    if (failures.length > 0) return failure(failures);
-
-    return success(
-      new Room(
-        this.uid,
-        this.identifier,
-        this._layout,
-        this._screen,
-        roomWithCleaningTimeScheduled,
-        this.status,
-      ),
-    );
+    return this._schedule
+      .addBooking(screeningUID, startTime, entryTime, BookingType.ENTRY_TIME)
+      .flatMap((room) => {
+        showTime = Room.calculateEndTime(entryTime, durationInMinutes)
+        return room.addBooking(screeningUID, entryTime, showTime, BookingType.SCREENING)
+      })
+      .flatMap((room) => {
+        exitTime = Room.calculateEndTime(showTime, Room.DEFAULT_EXIT_TIME_IN_MINUTES)
+        return room.addBooking(screeningUID, showTime, exitTime, BookingType.EXIT_TIME)
+      })
+      .flatMap((room) => {
+        cleaningTime = Room.calculateEndTime(exitTime, Room.DEFAULT_CLEANING_TIME_IN_MINUTES)
+        return room.addBooking(screeningUID, exitTime, cleaningTime, BookingType.CLEANING)
+      })
+      .map((room) => {
+        return this.withUpdate({ schedule: room })
+      })
   }
 
   /**
@@ -386,36 +357,14 @@ export class Room {
    * @param durationInMinutes - A duração da manutenção em minutos
    * @returns Result<Room> - Uma nova instância de Room com o agendamento de manutenção adicionado
    */
-  public scheduleMaintenance(
-    startTime: Date,
-    durationInMinutes: number,
-  ): Result<Room> {
-    const failures = ensureNotNull({ startTime, durationInMinutes });
-    if (failures.length > 0) return failure(failures);
+  public scheduleMaintenance(startTime: Date, durationInMinutes: number): Result<Room> {
+    const failures = ensureNotNull({ startTime, durationInMinutes })
+    if (failures.length > 0) return failure(failures)
 
-    const endTime = Room.calculateEndTime(startTime, durationInMinutes);
-    const roomWithMaintenanceScheduled = validateAndCollect(
-      this._schedule.addBooking(
-        null,
-        startTime,
-        endTime,
-        BookingType.MAINTENANCE,
-      ),
-      failures,
-    );
+    const endTime = Room.calculateEndTime(startTime, durationInMinutes)
+    const result = this._schedule.addBooking(null, startTime, endTime, BookingType.MAINTENANCE)
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(
-          new Room(
-            this.uid,
-            this.identifier,
-            this._layout,
-            this._screen,
-            roomWithMaintenanceScheduled,
-            this.status,
-          ),
-        );
+    return result.isInvalid() ? result : success(this.withUpdate({ schedule: result.value }))
   }
 
   /**
@@ -426,31 +375,14 @@ export class Room {
    * @param durationInMinutes - A duração da higienização em minutos
    * @returns Result<Room> - Uma nova instância de Room com o agendamento de higienização adicionado
    */
-  public scheduleCleaning(
-    startTime: Date,
-    durationInMinutes: number,
-  ): Result<Room> {
-    const failures = ensureNotNull({ startTime, durationInMinutes });
-    if (failures.length > 0) return failure(failures);
+  public scheduleCleaning(startTime: Date, durationInMinutes: number): Result<Room> {
+    const failures = ensureNotNull({ startTime, durationInMinutes })
+    if (failures.length > 0) return failure(failures)
 
-    const endTime = Room.calculateEndTime(startTime, durationInMinutes);
-    const roomWithCleaningTimeScheduled = validateAndCollect(
-      this._schedule.addBooking(null, startTime, endTime, BookingType.CLEANING),
-      failures,
-    );
+    const endTime = Room.calculateEndTime(startTime, durationInMinutes)
+    const result = this._schedule.addBooking(null, startTime, endTime, BookingType.CLEANING)
 
-    return failures.length > 0
-      ? failure(failures)
-      : success(
-          new Room(
-            this.uid,
-            this.identifier,
-            this._layout,
-            this._screen,
-            roomWithCleaningTimeScheduled,
-            this.status,
-          ),
-        );
+    return result.isInvalid() ? result : success(this.withUpdate({ schedule: result.value }))
   }
 
   /**
@@ -458,20 +390,8 @@ export class Room {
    * Retorna uma nova instância de Room com o agendamento removido.
    */
   public removeBookingByUID(bookingUID: string): Result<Room> {
-    const newScheduleResult = this._schedule.removeBookingByUID(bookingUID);
-
-    return newScheduleResult.isInvalid()
-      ? failure(newScheduleResult.failures)
-      : success(
-          new Room(
-            this.uid,
-            this.identifier,
-            this._layout,
-            this._screen,
-            newScheduleResult.value,
-            this.status,
-          ),
-        );
+    const result = this._schedule.removeBookingByUID(bookingUID)
+    return result.isInvalid() ? result : success(this.withUpdate({ schedule: result.value }))
   }
 
   /**
@@ -480,20 +400,8 @@ export class Room {
    * Retorna uma nova instância de Room com os agendamentos removidos.
    */
   public removeScreening(screeningUID: ScreeningUID): Result<Room> {
-    let newScheduleResult = this._schedule.removeScreening(screeningUID);
-
-    return newScheduleResult.isInvalid()
-      ? newScheduleResult
-      : success(
-          new Room(
-            this.uid,
-            this.identifier,
-            this._layout,
-            this._screen,
-            newScheduleResult.value,
-            this.status,
-          ),
-        );
+    const result = this._schedule.removeScreening(screeningUID)
+    return result.isInvalid() ? result : success(this.withUpdate({ schedule: result.value }))
   }
 
   /**
@@ -508,163 +416,56 @@ export class Room {
    * @param durationInMinutes - A duração do filme em minutos
    * @returns Result<boolean> - Resultado indicando se o período está disponível
    */
-  public isPeriodAvailable(
-    startTime: Date,
-    durationInMinutes: number,
-  ): Result<boolean> {
-    const failures = ensureNotNull({ startTime, durationInMinutes });
-    if (failures.length > 0) return failure(failures);
+  public isPeriodAvailable(startTime: Date, durationInMinutes: number): Result<true> {
+    const failures = ensureNotNull({ startTime, durationInMinutes })
+    if (failures.length > 0) return failure(failures)
 
     const totalDuration =
       durationInMinutes +
       Room.DEFAULT_ENTRY_TIME_IN_MINUTES +
       Room.DEFAULT_EXIT_TIME_IN_MINUTES +
-      Room.DEFAULT_CLEANING_TIME_IN_MINUTES;
+      Room.DEFAULT_CLEANING_TIME_IN_MINUTES
 
-    const endTime = Room.calculateEndTime(startTime, totalDuration);
+    const endTime = Room.calculateEndTime(startTime, totalDuration)
 
-    const result = this._schedule.isAvailable(startTime, endTime, failures);
-    return failures.length > 0 ? failure(failures) : success(result);
+    const result = this._schedule.isAvailable(startTime, endTime)
+    return result.isInvalid() ? result : success(true)
   }
 
   /**
    * Retorna os horários livres para uma data específica, considerando uma duração mínima.
    */
-  public getFreeSlotsForDate(
-    date: Date,
-    minMinutes: number,
-  ): Array<{ startTime: Date; endTime: Date }> {
-    return this._schedule.getFreeSlotsForDate(date, minMinutes);
-  }
-
-  /**
-   * Calcula o tempo total necessário para uma exibição, incluindo entrada, filme, saída e limpeza.
-   * @param durationInMinutes - A duração do filme em minutos
-   * @returns O tempo total em minutos
-   */
-  public static calculateTotalScreeningTime(durationInMinutes: number): number {
-    return (
-      durationInMinutes +
-      Room.DEFAULT_ENTRY_TIME_IN_MINUTES +
-      Room.DEFAULT_EXIT_TIME_IN_MINUTES +
-      Room.DEFAULT_CLEANING_TIME_IN_MINUTES
-    );
+  public getFreeSlotsForDate(date: Date, minMinutes: number): Array<{ startTime: Date; endTime: Date }> {
+    return this._schedule.getFreeSlotsForDate(date, minMinutes)
   }
 
   /**
    * Retorna todos os agendamentos da sala.
    */
   public getAllBookings(): Array<BookingSlot> {
-    return this._schedule.getAllBookingsData();
+    return this._schedule.getAllBookingsData()
   }
 
   /**
    * Busca um agendamento específico pelo UID do agendamento.
    */
   public findBookingDataByUID(bookingUID: string): BookingSlot | undefined {
-    return this._schedule.findBookingDataByUID(bookingUID);
+    return this._schedule.findBookingDataByUID(bookingUID)
   }
 
   /**
    * Busca um agendamento específico pelo UID da sessão.
    */
-  public findScreeningData(
-    screeningUID: ScreeningUID,
-  ): BookingSlot | undefined {
-    return this._schedule.findScreeningData(screeningUID);
+  public findScreeningData(screeningUID: ScreeningUID): BookingSlot | undefined {
+    return this._schedule.findScreeningData(screeningUID)
   }
 
   public hasSeat(number: number, column: string): boolean {
-    return this._layout.hasSeat(number, column);
+    return this._layout.hasSeat(number, column)
   }
 
   public isPreferentialSeat(rowNumber: number, letter: string): boolean {
-    return this._layout.isPreferentialSeat(rowNumber, letter);
-  }
-
-  /**
-   * Retorna o tamanho da tela.
-   */
-  get screenSize(): number {
-    return this._screen.size;
-  }
-
-  /**
-   * Retorna o tipo da tela.
-   */
-  get screenType(): string {
-    return this._screen.type;
-  }
-
-  /**
-   * Retorna a capacidade total de assentos da sala.
-   */
-  get totalSeatsCapacity(): number {
-    return this._layout.totalCapacity;
-  }
-
-  /**
-   * Retorna a quantidade de assentos preferenciais da sala.
-   */
-  get preferentialSeatsCount(): number {
-    let counter = 0;
-    this._layout.preferentialSeatsByRow.forEach(
-      (row) => (counter += row.length),
-    );
-    return counter;
-  }
-
-  /**
-   * Retorna informações detalhadas sobre o layout de assentos da sala.
-   *
-   * @returns Objeto contendo:
-   * - rows: número total de fileiras
-   * - totalSeats: capacidade total de assentos
-   * - preferentialSeats: quantidade de assentos preferenciais
-   * - rowsInfo: informações detalhadas de cada fileira
-   */
-  get seatLayoutInfo(): {
-    rows: number;
-    totalSeats: number;
-    preferentialSeats: number;
-    rowsInfo: Array<{
-      rowNumber: number;
-      seats: number;
-      preferentialSeats: string[];
-    }>;
-  } {
-    const rowsInfo: Array<{
-      rowNumber: number;
-      seats: number;
-      preferentialSeats: string[];
-    }> = [];
-
-    this._layout.seatRows.forEach((row, rowNumber) => {
-      rowsInfo.push({
-        rowNumber,
-        seats: row.capacity,
-        preferentialSeats:
-          this._layout.preferentialSeatsByRow.get(rowNumber) || [],
-      });
-    });
-
-    return {
-      rows: this._layout.seatRows.size,
-      totalSeats: this._layout.totalCapacity,
-      preferentialSeats: this._layout.preferentialSeatsCount,
-      rowsInfo,
-    };
-  }
-
-  get layout(): SeatLayout {
-    return this._layout;
-  }
-
-  /**
-   * Converte minutos em milissegundos
-   */
-  private static minutesToMilliseconds(minutes: number): number {
-    return minutes * 60 * 1000;
+    return this._layout.isPreferentialSeat(rowNumber, letter)
   }
 
   /**
@@ -676,12 +477,28 @@ export class Room {
    * @returns Date - A data e hora de término calculada
    * @private
    */
-  private static calculateEndTime(
-    startTime: Date,
-    durationInMinutes: number,
-  ): Date {
-    return new Date(
-      startTime.getTime() + Room.minutesToMilliseconds(durationInMinutes),
-    );
+  private static calculateEndTime(startTime: Date, durationInMinutes: number): Date {
+    const date = new Date(startTime)
+    date.setMinutes(date.getMinutes() + durationInMinutes)
+    return date
+  }
+
+  private withUpdate(
+    input: Partial<{
+      identifier: RoomIdentifier
+      layout: SeatLayout
+      screen: Screen
+      schedule: RoomSchedule
+      status: RoomAdministrativeStatus
+    }>
+  ): Room {
+    return new Room(
+      this.uid,
+      input.identifier || this.identifier,
+      input.layout || this._layout,
+      input.screen || this._screen,
+      input.schedule || this._schedule,
+      input.status || this.status
+    )
   }
 }

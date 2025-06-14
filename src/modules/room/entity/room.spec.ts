@@ -1,828 +1,594 @@
-import {
-  ICreateRoomInput,
-  ICreateScreenInput,
-  IHydrateRoomInput,
-  ISeatRowConfiguration,
-  Room,
-  RoomAdministrativeStatus,
-} from "./room";
-import { FailureCode } from "../../../shared/failure/failure.codes.enum";
-import { TechnicalError } from "../../../shared/error/technical.error";
-import { ScreeningUID } from "../../screening/aggregate/value-object/screening.uid";
-import { BookingType } from "./value-object/booking.slot";
-import { v4 } from "uuid";
-import { SimpleFailure } from "../../../shared/failure/simple.failure.type";
-import { busboyExceptions } from "@nestjs/platform-express/multer/multer/multer.constants";
-import { validateAndCollect } from "../../../shared/validator/common.validators";
+import { v4 } from 'uuid'
+import { ICreateRoomInput, IHydrateRoomInput, ISeatRowConfiguration, Room, RoomAdministrativeStatus } from './room'
+import { BookingType } from './value-object/booking.slot'
+import { ScreeningUID } from '../../screening/aggregate/value-object/screening.uid'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { TechnicalError } from '@shared/error/technical.error'
+import { CreateTestRoom } from '@test/builder/room.builder'
 
 function createDate(day: number, hour: number, minutes: number = 0): Date {
-  const date = new Date();
-  date.setDate(date.getDate() + day);
-  date.setHours(hour);
-  date.setMinutes(minutes);
-  return date;
+  const date = new Date()
+  date.setDate(date.getDate() + day)
+  date.setHours(hour)
+  date.setMinutes(minutes)
+  return date
 }
 
-describe("Room", () => {
-  const createValidSeatConfig = (): ISeatRowConfiguration[] => [
-    {
-      rowNumber: 1,
-      lastColumnLetter: "E", // 5 assentos (A-E)
-      preferentialSeatLetters: ["A", "B"],
-    },
-    {
-      rowNumber: 2,
-      lastColumnLetter: "F", // 6 assentos (A-F)
-      preferentialSeatLetters: ["C"],
-    },
-    {
-      rowNumber: 3,
-      lastColumnLetter: "G", // 7 assentos (A-G)
-    },
-    {
-      rowNumber: 4,
-      lastColumnLetter: "H", // 8 assentos (A-H)
-    },
-  ];
+describe('Room', () => {
+  const layout = [
+    { rowNumber: 1, lastColumnLetter: 'E', preferentialSeatLetters: ['A', 'B'] }, // 5
+    { rowNumber: 2, lastColumnLetter: 'F', preferentialSeatLetters: ['C', 'D'] }, // 6
+    { rowNumber: 3, lastColumnLetter: 'G', preferentialSeatLetters: [] }, // 7
+    { rowNumber: 4, lastColumnLetter: 'H', preferentialSeatLetters: [] }, // 8
+  ]
 
-  const createValidScreenInput = (): ICreateScreenInput => ({
+  const screen = {
     size: 20,
-    type: "2D",
-  });
+    type: '2D',
+  }
 
-  describe("Métodos Estáticos", () => {
-    describe("create", () => {
-      let failures: SimpleFailure[];
-
-      beforeEach(() => {
-        failures = [];
-      });
-
-      const PARAMS: ICreateRoomInput = {
+  describe('Métodos Estáticos', () => {
+    describe('create', () => {
+      const params: ICreateRoomInput = {
         identifier: 1,
-        seatConfig: createValidSeatConfig(),
-        screen: createValidScreenInput(),
+        seatConfig: layout,
+        screen: screen,
         status: RoomAdministrativeStatus.AVAILABLE,
-      };
+      }
 
-      it("deve criar uma sala válida com valores mínimos", () => {
+      it('deve criar uma sala válida com valores mínimos', () => {
         // Act
-        const result = validateAndCollect(Room.create(PARAMS), failures);
+        const result = Room.create(params)
 
         // Assert
-        expect(result).toBeDefined();
-        expect(result.identifier.value).toBe(PARAMS.identifier);
-        expect(result.status).toBe(RoomAdministrativeStatus.AVAILABLE);
-        expect(result.seatLayoutInfo.totalSeats).toBe(26); // 5+6+7+8 = 26
-      });
+        expect(result).toBeValidResultMatching<Room>((room) => {
+          expect(room.identifier.value).toBe(params.identifier)
+          expect(room.status).toBe(RoomAdministrativeStatus.AVAILABLE)
+          expect(room.seatLayoutInfo.totalSeats).toBe(26) // 5+6+7+8 = 26
+        })
+      })
 
-      describe("deve falhar quando os dados de entrada são inválidos", () => {
+      describe('deve falhar quando os dados de entrada são inválidos', () => {
         const testCases = [
           {
-            scenario: "configuração de assentos for vazia",
-            input: { seatConfig: [] as ISeatRowConfiguration[] },
-            errorCode: FailureCode.MISSING_REQUIRED_DATA,
+            scenario: 'configuração de assentos for vazia',
+            overrides: { seatConfig: [] as ISeatRowConfiguration[] },
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "identificador for inválido",
-            input: { identifier: -1 },
-            errorCode: FailureCode.VALUE_OUT_OF_RANGE,
+            scenario: 'identificador for inválido',
+            overrides: { identifier: -1 },
+            code: FailureCode.VALUE_OUT_OF_RANGE,
           },
           {
-            scenario: "status for inválido",
-            input: { status: "INVALID_STATUS" },
-            errorCode: FailureCode.INVALID_ENUM_VALUE,
+            scenario: 'status for inválido',
+            overrides: { status: 'INVALID_STATUS' },
+            code: FailureCode.INVALID_ENUM_VALUE,
           },
           {
-            scenario: "configuração de tela for inválida",
-            input: { screen: { size: -10, type: "2d" } },
-            errorCode: FailureCode.VALUE_OUT_OF_RANGE,
+            scenario: 'configuração de tela for inválida',
+            overrides: { screen: { size: -10, type: '2d' } },
+            code: FailureCode.VALUE_OUT_OF_RANGE,
           },
           {
-            scenario: "configuração de assentos tem fileiras com zero colunas",
-            input: {
+            scenario: 'configuração de assentos tem fileiras com zero colunas',
+            overrides: {
               seatConfig: [
                 {
                   rowNumber: 1,
-                  lastColumnLetter: "",
+                  lastColumnLetter: '',
                 },
               ],
             },
-            errorCode: FailureCode.LENGTH_OUT_OF_RANGE,
+            code: FailureCode.ARRAY_LENGTH_IS_OUT_OF_RANGE,
           },
-        ];
+        ]
 
-        testCases.forEach(({ scenario, input, errorCode }) => {
+        testCases.forEach(({ scenario, overrides, code }) => {
           it(scenario, () => {
             // Arrange
-            const params: ICreateRoomInput = { ...PARAMS, ...input };
+            const input: ICreateRoomInput = { ...params, ...overrides }
 
             // Act
-            const result = validateAndCollect(Room.create(params), failures);
+            const result = Room.create(input)
 
             // Assert
-            expect(result).toBeNull();
-            expect(failures[0].code).toBe(errorCode);
-            //  expect(result.failures.some(failure => failure.code === errorCode)).toBe(true); // <<<
-          });
-        });
-      });
-    });
+            expect(result).toBeInvalidResultWithSingleFailure(code)
+          })
+        })
+      })
+    })
 
-    describe("hydrate", () => {
-      const PARAMS: IHydrateRoomInput = {
-        roomUID: "room-123",
+    describe('hydrate', () => {
+      const params: IHydrateRoomInput = {
+        roomUID: v4(),
         identifier: 1,
-        layout: {
-          seatRows: [
-            {
-              rowNumber: 1,
-              lastColumnLetter: "E", // 5
-              preferentialSeatLetters: [],
-            },
-            {
-              rowNumber: 2,
-              lastColumnLetter: "F", // 6
-              preferentialSeatLetters: [],
-            },
-            {
-              rowNumber: 3,
-              lastColumnLetter: "G", // 7
-              preferentialSeatLetters: [],
-            },
-          ],
-        },
+        layout: layout,
         schedule: [],
-        screen: {
-          size: 20,
-          type: "2D",
-        },
+        screen: screen,
         status: RoomAdministrativeStatus.AVAILABLE,
-      };
+      }
 
-      it("deve criar uma sala válida a partir de dados primitivos", () => {
-        // Arrange
-        const prefRow1 = ["A", "B"];
-        const prefRow2 = ["C", "D"];
-        const p = { ...PARAMS };
-        p.layout.seatRows[0].preferentialSeatLetters = prefRow1;
-        p.layout.seatRows[1].preferentialSeatLetters = prefRow2;
-
+      it('deve criar uma sala válida a partir de dados primitivos', () => {
         // Act
-        const room = Room.hydrate(p);
+        const room = Room.hydrate(params)
 
         // Assert
-        expect(room.identifier.value).toBe(p.identifier);
-        expect(room.status).toBe(p.status);
-        expect(room.seatLayoutInfo.rows).toBe(PARAMS.layout.seatRows.length);
-        expect(room.seatLayoutInfo.totalSeats).toBe(5 + 6 + 7);
-        expect(room.preferentialSeatsCount).toBe(4);
-      });
+        expect(room.identifier.value).toBe(params.identifier)
+        expect(room.status).toBe(params.status)
+        expect(room.seatLayoutInfo.rows).toBe(params.layout.length)
+        expect(room.seatLayoutInfo.totalSeats).toBe(26)
+        expect(room.preferentialSeatsCount).toBe(4)
+      })
 
-      it("deve lançar erro técnico quando o parâmetro `params` é um objeto nulo", () => {
-        expect(() => Room.hydrate(null as any)).toThrow(TechnicalError);
-      });
+      it('deve lançar erro técnico quando o parâmetro `params` é um objeto nulo', () => {
+        expect(() => Room.hydrate(null as any)).toThrow(TechnicalError)
+      })
 
-      describe("deve lançar erro técnico quando dados obrigatórios estiverem ausentes", () => {
+      describe('deve lançar erro técnico quando dados obrigatórios estiverem ausentes', () => {
         const failureCases = [
           {
-            scenario: "identifier é nulo",
-            params: { identifier: null as unknown as number },
+            scenario: 'identifier é nulo',
+            overrides: { identifier: null as unknown as number },
           },
           {
-            scenario: "room uid é nulo",
-            params: { roomUID: null as unknown as string },
+            scenario: 'room uid é nulo',
+            overrides: { roomUID: null as unknown as string },
           },
           {
-            scenario: "layout é nulo",
-            params: { layout: null as any },
+            scenario: 'layout é nulo',
+            overrides: { layout: null as any },
           },
           {
-            scenario: "screen é nulo",
-            params: { screen: null as any },
+            scenario: 'screen é nulo',
+            overrides: { screen: null as any },
           },
           {
-            scenario: "status é nulo",
-            params: { status: null as unknown as string },
+            scenario: 'status é nulo',
+            overrides: { status: null as unknown as string },
           },
-        ];
+        ]
 
-        failureCases.forEach(({ scenario, params }) => {
+        failureCases.forEach(({ scenario, overrides }) => {
           // Arrange
           it(scenario, () => {
-            const input = { ...PARAMS, ...params };
+            const input = { ...overrides, ...overrides }
 
             // Act & Assert
-            expect(() => Room.hydrate(input as any)).toThrow();
-          });
-        });
-      });
-    });
-  });
+            expect(() => Room.hydrate(input as any)).toThrow()
+          })
+        })
+      })
+    })
+  })
 
-  describe("Métodos de Instância", () => {
-    let room: Room;
-    let screeningUID: ScreeningUID;
-    let failures: SimpleFailure[];
-    const SCREENING_UID_1 = ScreeningUID.create();
-    const BOOKING_UID_FOR_SCREENING_1 = v4();
-    const BOOKING_UID_FOR_CLEANING = v4();
+  describe('Métodos de Instância', () => {
+    let room: Room
 
-    const PARAMS_WITH_SCHEDULE: IHydrateRoomInput = {
-      roomUID: "room-123",
-      identifier: 1,
-      layout: {
-        seatRows: [
-          {
-            rowNumber: 1,
-            lastColumnLetter: "E",
-            preferentialSeatLetters: ["A", "B"],
-          },
-          {
-            rowNumber: 2,
-            lastColumnLetter: "F",
-            preferentialSeatLetters: ["C"],
-          },
-          {
-            rowNumber: 3,
-            lastColumnLetter: "G",
-            preferentialSeatLetters: [],
-          },
-        ],
+    const schedule = [
+      {
+        screeningUID: ScreeningUID.create().value,
+        type: BookingType.SCREENING,
+        bookingUID: v4(),
+        startTime: createDate(10, 10),
+        endTime: createDate(10, 12),
       },
-      schedule: [
-        {
-          screeningUID: SCREENING_UID_1.value,
-          type: BookingType.SCREENING,
-          bookingUID: BOOKING_UID_FOR_SCREENING_1,
-          startTime: createDate(10, 10),
-          endTime: createDate(10, 12),
-        },
-        {
-          screeningUID: SCREENING_UID_1.value,
-          type: BookingType.CLEANING,
-          bookingUID: BOOKING_UID_FOR_CLEANING,
-          startTime: createDate(10, 12),
-          endTime: createDate(10, 12, 30),
-        },
-      ],
-      screen: {
-        size: 20,
-        type: "2D",
+      {
+        screeningUID: null,
+        type: BookingType.CLEANING,
+        bookingUID: v4(),
+        startTime: createDate(10, 12),
+        endTime: createDate(10, 12, 30),
       },
-      status: RoomAdministrativeStatus.AVAILABLE,
-    };
-    const PARAMS_WITHOUT_SCHEDULE: IHydrateRoomInput = {
-      roomUID: "room-123",
-      identifier: 1,
-      layout: {
-        seatRows: [
-          {
-            rowNumber: 1,
-            lastColumnLetter: "E",
-            preferentialSeatLetters: ["A", "B"],
-          },
-          {
-            rowNumber: 2,
-            lastColumnLetter: "F",
-            preferentialSeatLetters: ["C"],
-          },
-          {
-            rowNumber: 3,
-            lastColumnLetter: "G",
-            preferentialSeatLetters: [],
-          },
-        ],
-      },
-      schedule: [],
-      screen: {
-        size: 20,
-        type: "2D",
-      },
-      status: RoomAdministrativeStatus.AVAILABLE,
-    };
+    ]
 
-    beforeEach(() => {
-      failures = [];
-      room = Room.hydrate(PARAMS_WITH_SCHEDULE);
-      screeningUID = ScreeningUID.create();
-    });
+    beforeEach(() => (room = CreateTestRoom({ schedule })))
 
-    describe("changeStatus", () => {
-      describe("casos de sucesso", () => {
+    describe('changeStatus', () => {
+      describe('casos de sucesso', () => {
         const successCases = [
           {
-            scenario: "deve alterar o status da sala de AVAILABLE para CLOSE",
+            scenario: 'deve alterar o status da sala de AVAILABLE para CLOSE',
             initialStatus: RoomAdministrativeStatus.AVAILABLE,
             newStatus: RoomAdministrativeStatus.CLOSED,
           },
           {
-            scenario: "deve alterar o status da sala de CLOSE para AVAILABLE",
+            scenario: 'deve alterar o status da sala de CLOSE para AVAILABLE',
             initialStatus: RoomAdministrativeStatus.CLOSED,
             newStatus: RoomAdministrativeStatus.AVAILABLE,
           },
-        ];
+        ]
 
         successCases.forEach(({ scenario, initialStatus, newStatus }) => {
           it(scenario, () => {
-            // Arrange
-            const p = { ...PARAMS_WITHOUT_SCHEDULE };
-            p.status = initialStatus;
-            const instance = Room.hydrate(p);
+            // Arrange - Usando CreateTestRoom com status específico
+            const instance = CreateTestRoom({ status: initialStatus })
 
             // Act
-            const result = validateAndCollect(
-              instance.changeStatus(newStatus),
-              failures,
-            );
+            const result = instance.changeStatus(newStatus)
 
             // Assert
-            expect(result).toBeDefined();
-            expect(result.status).toBe(newStatus);
-          });
-        });
-      });
+            expect(result).toBeValidResultMatching<Room>((updatedRoom) => {
+              expect(updatedRoom.status).toBe(newStatus)
+            })
+          })
+        })
+      })
 
-      describe("casos de falha", () => {
-        const nullCases = [
-          {
-            scenario: "deve falhar quando novo status for um valor nulo",
-            status: null as any,
-            expectedErrorCode: FailureCode.INVALID_ENUM_VALUE,
-          },
-          {
-            scenario: "deve falhar quando novo status for um valor indefinido",
-            status: undefined as any,
-            expectedErrorCode: FailureCode.INVALID_ENUM_VALUE,
-          },
-          {
-            scenario: "deve falhar ao tentar alterar para um status inválido",
-            status: "INVALID_STATUS",
-            expectedErrorCode: FailureCode.INVALID_ENUM_VALUE,
-          },
-        ];
-        nullCases.forEach(({ scenario, status, expectedErrorCode }) => {
-          it(scenario, () => {
-            // Act
-            const result = validateAndCollect(
-              room.changeStatus(status),
-              failures,
-            );
+      describe('casos de falha', () => {
+        describe('deve falhar quando algum dado obrigatório for nulo ou indefinido', () => {
+          const nullCases = [
+            {
+              scenario: 'deve falhar quando novo status for um valor nulo',
+              status: null as any,
+              code: FailureCode.INVALID_ENUM_VALUE,
+            },
+            {
+              scenario: 'deve falhar quando novo status for um valor indefinido',
+              status: undefined as any,
+              code: FailureCode.INVALID_ENUM_VALUE,
+            },
+            {
+              scenario: 'deve falhar ao tentar alterar para um status inválido',
+              status: 'INVALID_STATUS',
+              code: FailureCode.INVALID_ENUM_VALUE,
+            },
+          ]
 
-            // Assert
-            expect(result).toBeNull();
-            expect(failures.length).toBeGreaterThan(0);
-            expect(failures[0].code).toBe(expectedErrorCode);
-          });
-        });
+          nullCases.forEach(({ scenario, status, code }) => {
+            it(scenario, () => {
+              // Act
+              const result = room.changeStatus(status)
 
-        it("deve falhar ao tentar fechar uma sala com bookings ativos", () => {
+              // Assert
+              expect(result).toBeInvalidResultWithSingleFailure(code)
+            })
+          })
+        })
+
+        it('deve falhar ao tentar fechar uma sala com bookings ativos', () => {
           // Arrange
-          const instance = Room.hydrate(PARAMS_WITH_SCHEDULE);
+          const instance = CreateTestRoom({ schedule })
 
           // Act
-          const result = validateAndCollect(
-            instance.changeStatus(RoomAdministrativeStatus.CLOSED),
-            failures,
-          );
+          const result = instance.changeStatus(RoomAdministrativeStatus.CLOSED)
 
           // Assert
-          expect(result).toBeNull();
-          expect(failures.length).toBeGreaterThan(0);
-          expect(failures[0].code).toBe(FailureCode.ROOM_HAS_FUTURE_BOOKINGS);
-        });
-      });
-    });
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_HAS_FUTURE_BOOKINGS)
+        })
+      })
+    })
 
-    describe("getSeatLayoutInfo", () => {
-      it("deve retornar informações detalhadas do layout", () => {
+    describe('getSeatLayoutInfo', () => {
+      it('deve retornar informações detalhadas do layout', () => {
         // Act
-        const info = room.seatLayoutInfo;
+        const info = room.seatLayoutInfo
 
         // Assert
-        expect(info.rows).toBe(3);
-        expect(info.totalSeats).toBe(18); // 5 + 6 + 7
-        expect(info.preferentialSeats).toBe(3); // 2 na primeira fileira + 1 na segunda
+        expect(info.rows).toBe(3)
+        expect(info.totalSeats).toBe(18) // 5 + 6 + 7 + 8
+        expect(info.preferentialSeats).toBe(3) // 1 em cada fileira
+      })
+    })
 
-        expect(info.rowsInfo).toHaveLength(3);
-        expect(info.rowsInfo[0]).toEqual({
-          rowNumber: 1,
-          seats: 5,
-          preferentialSeats: ["A", "B"],
-        });
-        expect(info.rowsInfo[1]).toEqual({
-          rowNumber: 2,
-          seats: 6,
-          preferentialSeats: ["C"],
-        });
-        expect(info.rowsInfo[2]).toEqual({
-          rowNumber: 3,
-          seats: 7,
-          preferentialSeats: [],
-        });
-      });
-    });
+    describe('addScreening', () => {
+      it('deve adicionar uma exibição com período de entrada, saída e higienização', () => {
+        // Arrange -
+        const screeningUID = ScreeningUID.create()
+        const startTime = createDate(11, 13) // daqui a 11 dias, as 13 horas
+        const duration = 140 // daqui a 11 dias, as 15:20
 
-    describe("addScreening", () => {
-      it("deve adicionar uma exibição com período de entrada, saída e higienização", () => {
+        // Act
+        const result = room.addScreening(screeningUID, startTime, duration)
+
+        // Assert
+        expect(result).toBeValidResultMatching<Room>((updatedRoom) => {
+          const bookings = updatedRoom.getAllBookings()
+          expect(bookings).toHaveLength(6) // já há dois agendamentos por padrão, + (entrada + exibição + saída + higienização) deste novo agendamento
+          expect(
+            bookings.some((b) => b.type === BookingType.SCREENING && b.screeningUID?.value === screeningUID.value)
+          ).toBe(true)
+          expect(
+            bookings.some((b) => b.type === BookingType.CLEANING && b.screeningUID?.value === screeningUID.value)
+          ).toBe(true)
+          expect(
+            bookings.some((b) => b.type === BookingType.ENTRY_TIME && b.screeningUID?.value === screeningUID.value)
+          ).toBe(true)
+          expect(
+            bookings.some((b) => b.type === BookingType.EXIT_TIME && b.screeningUID?.value === screeningUID.value)
+          ).toBe(true)
+        })
+      })
+
+      it('deve falhar ao tentar agendar quando houver conflitos de horários', () => {
         // Arrange
-        const instance = Room.hydrate(PARAMS_WITHOUT_SCHEDULE);
-        const screeningUID = ScreeningUID.create();
-        const startTime = createDate(11, 13); // Dia 11, 13:00
-        const duration = 140; // dia 11, 15:20
+        const startTime1 = createDate(10, 11) // 11:00 (conflito com agendamento existente)
+        const duration = 120 //  13:00
 
         // Act
-        const result = validateAndCollect(
-          instance.addScreening(screeningUID, startTime, duration),
-          failures,
-        );
+        const result = room.addScreening(ScreeningUID.create(), startTime1, duration)
 
         // Assert
-        expect(result).toBeDefined();
-        const bookings = result.getAllBookings();
-        expect(bookings.length).toBe(4); // (entrada + exibição + saída + higienização)
-        expect(
-          bookings.some(
-            (b) =>
-              b.type === BookingType.SCREENING &&
-              b.screeningUID.value === screeningUID.value,
-          ),
-        ).toBe(true);
-        expect(
-          bookings.some(
-            (b) =>
-              b.type === BookingType.CLEANING &&
-              b.screeningUID.value === screeningUID.value,
-          ),
-        ).toBe(true);
-        expect(
-          bookings.some(
-            (b) =>
-              b.type === BookingType.ENTRY_TIME &&
-              b.screeningUID.value === screeningUID.value,
-          ),
-        ).toBe(true);
-        expect(
-          bookings.some(
-            (b) =>
-              b.type === BookingType.EXIT_TIME &&
-              b.screeningUID.value === screeningUID.value,
-          ),
-        ).toBe(true);
-      });
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD)
+      })
 
-      it("deve falhar ao tentar agendar quando houver conflitos de horários", () => {
-        // Arrange
-        const startTime1 = createDate(10, 11); // 11:00 (conflito com agendamento existente)
-        const duration = 120; //  13:00
-
-        // Act
-        const result = validateAndCollect(
-          room.addScreening(ScreeningUID.create(), startTime1, duration),
-          failures,
-        );
-
-        // Assert
-        expect(result).toBeNull();
-        expect(failures[0].code).toBe(
-          FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
-        );
-      });
-
-      describe("deve falhar ao tentar agendar com parâmetros inválidos", () => {
+      describe('deve falhar ao tentar agendar com parâmetros inválidos', () => {
         const invalidCases = [
           {
-            scenario: "screeningUID nulo",
-            params: {
+            scenario: 'screeningUID nulo',
+            overrides: {
               screeningUID: null as any,
             },
             code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "screeningUID indefinido",
-            params: {
+            scenario: 'screeningUID indefinido',
+            overrides: {
               screeningUID: undefined as any,
             },
             code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "data de início nula",
-            params: {
+            scenario: 'data de início nula',
+            overrides: {
               startIn: null as any,
             },
             code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "duração nula",
-            params: {
+            scenario: 'duração nula',
+            overrides: {
               duration: null as any,
             },
             code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "duração é um número negativo",
-            params: {
+            scenario: 'duração é um número negativo',
+            overrides: {
               duration: -1,
             },
             code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
           },
-        ];
+        ]
 
-        invalidCases.forEach(({ scenario, params, code }) => {
+        invalidCases.forEach(({ scenario, overrides, code }) => {
           it(scenario, () => {
             // Arrange
             const input = {
-              screeningUID: screeningUID,
+              screeningUID: ScreeningUID.create(),
               startIn: createDate(11, 16),
               duration: 180,
-              ...params,
-            };
+              ...overrides,
+            }
 
             // Act
-            const result = validateAndCollect(
-              room.addScreening(
-                input.screeningUID,
-                input.startIn,
-                input.duration,
-              ),
-              failures,
-            );
+            const result = room.addScreening(input.screeningUID, input.startIn, input.duration)
 
             // Assert
-            expect(result).toBeNull();
-            expect(failures[0].code).toBe(code);
-          });
-        });
-      });
-    });
+            expect(result).toBeInvalidResultWithSingleFailure(code)
+          })
+        })
+      })
+    })
 
-    describe("scheduleMaintenance", () => {
-      it("deve agendar manutenção em período disponível", () => {
+    describe('scheduleMaintenance', () => {
+      it('deve agendar manutenção em período disponível', () => {
         // Arrange
-        const startTime = createDate(11, 15, 30); // Dia 10, 15:30
-        const duration = 30;
+        const startTime = createDate(11, 15, 30) // Dia 10, 15:30
+        const duration = 30
 
         // Act
-        const result = validateAndCollect(
-          room.scheduleMaintenance(startTime, duration),
-          failures,
-        );
+        const result = room.scheduleMaintenance(startTime, duration)
 
         // Assert
-        expect(result).toBeDefined();
-        const bookings = result.getAllBookings();
-        const maintenance = bookings.find(
-          (b) =>
-            b.type === BookingType.MAINTENANCE &&
-            b.startTime.getTime() === startTime.getTime(),
-        );
-        expect(maintenance).toBeDefined();
-        expect(maintenance.type).toBe(BookingType.MAINTENANCE);
-      });
+        expect(result).toBeValidResultMatching<Room>((updatedRoom) => {
+          const bookings = updatedRoom.getAllBookings()
+          const maintenance = bookings.find(
+            (b) => b.type === BookingType.MAINTENANCE && b.startTime.getTime() === startTime.getTime()
+          )
+          expect(maintenance).toBeDefined()
+          expect(maintenance?.type).toBe(BookingType.MAINTENANCE)
+        })
+      })
 
-      it("deve falhar ao tentar agendar manutenção em período indisponível", () => {
+      it('deve falhar ao tentar agendar manutenção em período indisponível', () => {
         // Arrange
-        const startTime = createDate(10, 11); // Conflito com agendamento existente
-        const duration = 60;
+        const startTime = createDate(10, 11) // Conflito com agendamento existente
+        const duration = 60
 
         // Act
-        const result = validateAndCollect(
-          room.scheduleMaintenance(startTime, duration),
-          failures,
-        );
+        const result = room.scheduleMaintenance(startTime, duration)
 
         // Assert
-        expect(result).toBeNull();
-        expect(failures[0].code).toBe(
-          FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
-        );
-      });
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD)
+      })
 
-      describe("deve falhar ao tentar agendar manutenção com parâmetros inválidos", () => {
+      describe('deve falhar ao tentar agendar manutenção com parâmetros inválidos', () => {
         const invalidCases = [
           {
-            scenario: "data de início nula",
+            scenario: 'data de início nula',
             startTime: null as any,
-            endTime: createDate(11, 16),
-            expectedCode: FailureCode.MISSING_REQUIRED_DATA,
+            duration: 140,
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "data de término nula",
+            scenario: 'duração nula',
             startTime: createDate(11, 13),
-            endTime: null as any,
-            expectedCode: FailureCode.MISSING_REQUIRED_DATA,
+            duration: null as any,
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "data de início posterior à data de término",
+            scenario: 'duração igual a zero',
             startTime: createDate(11, 16),
-            endTime: createDate(11, 13),
-            expectedCode: FailureCode.DATE_WITH_INVALID_SEQUENCE,
+            duration: 0,
+            code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
           },
-        ];
+        ]
 
-        invalidCases.forEach(
-          ({ scenario, startTime, endTime, expectedCode }) => {
-            it(scenario, () => {
-              // Act
-              const result = validateAndCollect(
-                room.scheduleMaintenance(startTime, endTime),
-                failures,
-              );
+        invalidCases.forEach(({ scenario, startTime, duration, code }) => {
+          it(scenario, () => {
+            // Act
+            const result = room.scheduleMaintenance(startTime, duration)
 
-              // Assert
-              expect(result).toBeNull();
-              expect(failures[0].code).toBe(expectedCode);
-            });
-          },
-        );
-      });
-    });
+            // Assert
+            expect(result).toBeInvalidResultWithSingleFailure(code)
+          })
+        })
+      })
+    })
 
-    describe("scheduleCleaning", () => {
-      it("agendamento com sucesso", () => {
+    describe('scheduleCleaning', () => {
+      it('agendamento com sucesso', () => {
         // Arrange
-        const startTime = createDate(11, 13, 30); // Dia 11, 13:30
-        const durationInMinutes = 30; // 30 minutos de limpeza
+        const startTime = createDate(11, 13, 30) // Dia 11, 13:30
+        const durationInMinutes = 30 // 30 minutos de limpeza
 
         // Act
-        const result = validateAndCollect(
-          room.scheduleCleaning(startTime, durationInMinutes),
-          failures,
-        );
+        const result = room.scheduleCleaning(startTime, durationInMinutes)
 
         // Assert
-        expect(result).toBeDefined();
-        const bookings = result.getAllBookings();
-        const cleaning = bookings.find(
-          (b) =>
-            b.type === BookingType.CLEANING &&
-            b.startTime.getTime() === startTime.getTime(),
-        );
-        expect(cleaning).toBeDefined();
-        expect(cleaning.type).toBe(BookingType.CLEANING);
-      });
+        expect(result).toBeValidResultMatching<Room>((updatedRoom) => {
+          const bookings = updatedRoom.getAllBookings()
+          const cleaning = bookings.find(
+            (b) => b.type === BookingType.CLEANING && b.startTime.getTime() === startTime.getTime()
+          )
+          expect(cleaning).toBeDefined()
+          expect(cleaning?.type).toBe(BookingType.CLEANING)
+        })
+      })
 
-      it("deve falhar ao tentar agendar limpeza em período indisponível", () => {
+      it('deve falhar ao tentar agendar limpeza em período indisponível', () => {
         // Arrange
-        const startTime = createDate(10, 11); // Conflito com agendamento existente
-        const durationInMinutes = 30; // 30 minutos de limpeza
+        const startTime = createDate(10, 11) // Conflito com agendamento existente
+        const durationInMinutes = 30 // 30 minutos de limpeza
 
         // Act
-        const result = validateAndCollect(
-          room.scheduleCleaning(startTime, durationInMinutes),
-          failures,
-        );
+        const result = room.scheduleCleaning(startTime, durationInMinutes)
 
         // Assert
-        expect(result).toBeNull();
-        expect(failures[0].code).toBe(
-          FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD,
-        );
-      });
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.ROOM_NOT_AVAILABLE_FOR_PERIOD)
+      })
 
-      describe("deve falhar ao tentar agendar limpeza com parâmetros inválidos", () => {
+      describe('deve falhar ao tentar agendar limpeza com parâmetros inválidos', () => {
         const invalidCases = [
           {
-            scenario: "data de início nula",
+            scenario: 'data de início nula',
             startTime: null as any,
             durationInMinutes: 30,
             expectedCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "duração nula",
+            scenario: 'duração nula',
             startTime: createDate(11, 13),
             durationInMinutes: null as any,
             expectedCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "duração negativa",
+            scenario: 'duração negativa',
             startTime: createDate(11, 13),
             durationInMinutes: -30,
             expectedCode: FailureCode.DATE_WITH_INVALID_SEQUENCE,
           },
-        ];
+        ]
 
-        invalidCases.forEach(
-          ({ scenario, startTime, durationInMinutes, expectedCode }) => {
-            it(scenario, () => {
-              // Act
-              const result = validateAndCollect(
-                room.scheduleCleaning(startTime, durationInMinutes),
-                failures,
-              );
+        invalidCases.forEach(({ scenario, startTime, durationInMinutes, expectedCode }) => {
+          it(scenario, () => {
+            // Act
+            const result = room.scheduleCleaning(startTime, durationInMinutes)
 
-              // Assert
-              expect(result).toBeNull();
-              expect(failures[0].code).toBe(expectedCode);
-            });
-          },
-        );
-      });
-    });
+            // Assert
+            expect(result).toBeInvalidResultWithSingleFailure(expectedCode)
+          })
+        })
+      })
+    })
 
-    describe("removeScreening", () => {
-      it("deve remover exibição e sua higienização", () => {
+    describe('removeScreening', () => {
+      it('deve remover exibição e sua higienização', () => {
         // Act
-        const result = validateAndCollect(
-          room.removeScreening(SCREENING_UID_1),
-          failures,
-        );
+        const result = room.removeScreening(ScreeningUID.hydrate(schedule[0].screeningUID!))
 
         // Assert
-        expect(result).toBeDefined();
-        expect(result.findBookingDataByUID(BOOKING_UID_FOR_SCREENING_1)).toBe(
-          undefined,
-        );
-        expect(result.getAllBookings().length).toBe(0);
-      });
+        expect(result).toBeValidResultMatching<Room>((r) => {
+          expect(r.findBookingDataByUID(schedule[0].bookingUID)).toBeUndefined()
+          expect(r.getAllBookings()).toHaveLength(1)
+        })
+      })
 
-      describe("cenários de falha", () => {
+      describe('cenários de falha', () => {
         const failureCases = [
           {
-            scenario: "deve falhar quando o screeningUID for nulo",
+            scenario: 'deve falhar quando o screeningUID for nulo',
             value: null as any,
             expectedCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "deve falhar quando o screeningUID for undefined",
+            scenario: 'deve falhar quando o screeningUID for undefined',
             value: undefined as any,
             expectedCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "deve falhar quando a exibição não existir",
+            scenario: 'deve falhar quando a exibição não existir',
             value: ScreeningUID.create(),
             expectedCode: FailureCode.BOOKING_NOT_FOUND_FOR_SCREENING,
           },
-        ];
+        ]
+
         failureCases.forEach(({ scenario, value, expectedCode }) => {
           it(scenario, () => {
             // Act
-            const result = validateAndCollect(
-              room.removeScreening(value),
-              failures,
-            );
+            const result = room.removeScreening(value)
 
             // Assert
-            expect(result).toBeNull();
-            expect(failures[0].code).toBe(expectedCode);
-          });
-        });
-      });
-    });
+            expect(result).toBeInvalidResultWithSingleFailure(expectedCode)
+          })
+        })
+      })
+    })
 
-    describe("removeBookingByUID", () => {
-      it("deve remover um booking pelo UID", () => {
+    describe('removeBookingByUID', () => {
+      it('deve remover um booking pelo UID', () => {
         // Act
-        const result = validateAndCollect(
-          room.removeBookingByUID(BOOKING_UID_FOR_SCREENING_1),
-          failures,
-        );
+        const result = room.removeBookingByUID(schedule[0].bookingUID)
 
         // Assert
-        expect(result).toBeDefined();
-        expect(
-          result.findBookingDataByUID(BOOKING_UID_FOR_SCREENING_1),
-        ).toBeUndefined();
-        const bookings = result.getAllBookings();
-        expect(bookings.length).toBe(1);
-        expect(bookings[0].bookingUID).toBe(BOOKING_UID_FOR_CLEANING);
-      });
+        expect(result).toBeValidResultMatching<Room>((updatedRoom) => {
+          expect(updatedRoom.findBookingDataByUID(schedule[0].bookingUID)).toBeUndefined()
+          const bookings = updatedRoom.getAllBookings()
+          expect(bookings).toHaveLength(1)
+          expect(bookings[0].bookingUID).toBe(schedule[1].bookingUID)
+        })
+      })
 
-      describe("deve falhar quando o bookingUID for inválido", () => {
-        // Arrange
+      describe('deve falhar quando o bookingUID for inválido', () => {
         const invalidCases = [
           {
-            scenario: "bookingUID nulo",
+            scenario: 'bookingUID nulo',
             bookingUID: null as any,
             expectedCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "bookingUID indefinido",
+            scenario: 'bookingUID indefinido',
             bookingUID: undefined as any,
             expectedCode: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
-            scenario: "bookingUID inexistente",
-            bookingUID: "booking-inexistente",
+            scenario: 'bookingUID inexistente',
+            bookingUID: 'booking-inexistente',
             expectedCode: FailureCode.BOOKING_NOT_FOUND_IN_ROOM,
           },
-        ];
+        ]
 
-        // Act & Assert
         invalidCases.forEach(({ scenario, bookingUID, expectedCode }) => {
           it(scenario, () => {
             // Act
-            const result = validateAndCollect(
-              room.removeBookingByUID(bookingUID),
-              failures,
-            );
+            const result = room.removeBookingByUID(bookingUID)
 
             // Assert
-            expect(result).toBeNull();
-            expect(failures[0].code).toBe(expectedCode);
-          });
-        });
-      });
-    });
-  });
-});
+            expect(result).toBeInvalidResultWithSingleFailure(expectedCode)
+          })
+        })
+      })
+    })
+  })
+})
