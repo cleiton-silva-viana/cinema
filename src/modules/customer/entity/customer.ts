@@ -1,11 +1,11 @@
-import {CustomerUID} from './value-object/customer.uid'
-import {Email} from './value-object/email'
-import {CPF} from './value-object/cpf'
-import {StudentCard} from './value-object/student-card'
-import {combine, failure, Result, success} from '@shared/result/result'
-import {TechnicalError} from '@shared/error/technical.error'
-import {BirthDate} from '@shared/value-object/birth.date'
-import {Name} from '@shared/value-object/name'
+import { CustomerUID } from './value-object/customer.uid'
+import { Email } from './value-object/email'
+import { CPF } from './value-object/cpf'
+import { StudentCard } from './value-object/student-card'
+import { combine, failure, Result, success } from '@shared/result/result'
+import { TechnicalError } from '@shared/error/technical.error'
+import { BirthDate } from '@shared/value-object/birth.date'
+import { Name } from '@shared/value-object/name'
 
 export interface IHydrateCustomerProps {
   uid: string
