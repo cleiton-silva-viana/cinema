@@ -2,10 +2,13 @@ import { Body, Controller, Delete, Get, HttpStatus, Inject, Param, Patch, Post }
 import { PersonResponseDTO } from './dto/response.person.dto'
 import { JsonApiResponse } from '@shared/response/json.api.response'
 import { IPersonApplicationService } from '@modules/person/service/person.application.service.interface'
-import { ensureNotNull } from '@shared/validator/common.validators'
 import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { PERSON_APPLICATION_SERVICE } from '@modules/person/constant/person.constant'
-import { ICreatePersonDTO, IUpdatePersonDTO } from '@modules/person/controller/dto/person.dto'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
+import { ICreatePersonDTO } from '@modules/person/controller/dto/create.person.dto'
+import { IUpdatePersonDTO } from '@modules/person/controller/dto/update.person.dto'
 
 /**
  * Controlador para operações relacionadas a pessoas no sistema.
@@ -38,10 +41,10 @@ export class PersonController {
   public async create(@Body() dto: ICreatePersonDTO): Promise<JsonApiResponse> {
     const response = new JsonApiResponse()
 
-    const failures = ensureNotNull({ dto })
-    if (failures.length > 0) return response.errors(failures)
+    if (isNullOrUndefined(dto)) return response.errors(FailureFactory.MISSING_REQUIRED_DATA('datas'))
 
     const result = await this.service.create(dto.name, new Date(dto.birthDate))
+
     return result.isInvalid()
       ? response.errors(result.failures)
       : response
@@ -55,10 +58,10 @@ export class PersonController {
    * PATCH /persons/:uid
    */
   @Patch(':uid')
-  public async update(@Param('uid') uid: string, @Body() dto: Partial<IUpdatePersonDTO>): Promise<JsonApiResponse> {
+  public async update(@Param('uid') uid: string, @Body() dto: IUpdatePersonDTO): Promise<JsonApiResponse> {
     const response = new JsonApiResponse()
 
-    const failures = ensureNotNull({ uid, dto })
+    const failures = ensureNotNull({ uid, datas: dto })
     if (failures.length > 0) return response.errors(failures)
 
     const result = await this.service.update(uid, dto?.name, dto?.birthDate)

@@ -10,7 +10,8 @@ import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { PersonApplicationService } from '@modules/person/service/person.application.service'
 import { CreateTestPerson, CreateTestPersonDTO } from '@test/builder/person.builder'
-import { ICreatePersonDTO, IUpdatePersonDTO } from './dto/person.dto'
+import { ICreatePersonDTO } from '@modules/person/controller/dto/create.person.dto'
+import { IUpdatePersonDTO } from '@modules/person/controller/dto/update.person.dto'
 
 describe('PersonController', () => {
   let controller: PersonController
