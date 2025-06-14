@@ -1,7 +1,8 @@
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { Validate } from '@shared/validator/validate'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { DateUtils } from '@shared/utils/date.utils'
 
 export class MovieFilterDateRange {
   private constructor(
@@ -32,7 +33,7 @@ export class MovieFilterDateRange {
 
     Validate.date({ startDate }, failures)
       .isRequired()
-      .isAfter(today, FailureCode.DATE_CANNOT_BE_PAST)
+      .isAfter(today, () => FailureFactory.DATE_CANNOT_BE_PAST('startDate'))
       .isBefore(maxFutureDate)
 
     if (failures.length === 0) {
@@ -41,7 +42,12 @@ export class MovieFilterDateRange {
 
       Validate.date({ endDate }, failures)
         .isRequired()
-        .isAfter(startDate, FailureCode.DATE_WITH_INVALID_SEQUENCE)
+        .isAfter(startDate, () =>
+          FailureFactory.DATE_WITH_INVALID_SEQUENCE(
+            DateUtils.formatDateToISOString(startDate),
+            DateUtils.formatDateToISOString(endDate)
+          )
+        )
         .isBefore(maxEndDate)
     }
 

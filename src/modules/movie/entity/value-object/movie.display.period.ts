@@ -5,7 +5,7 @@ import { Validate } from '@shared/validator/validate'
 import { isNullOrUndefined } from '@shared/validator/utils/validation'
 import { FailureFactory } from '@shared/failure/failure.factory'
 import { DateUtils } from '@shared/utils/date.utils'
-import {ensureNotNull} from "@shared/validator/utils/validation.helpers";
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
 
 /**
  * Enum que representa os possíveis estados de exibição de um filme
