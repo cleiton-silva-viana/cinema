@@ -1,10 +1,11 @@
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { Customer } from '../../entity/customer'
 
 /**
  * DTO para formatação da resposta de cliente no padrão JSON:API
+ * Implementa a estrutura padrão de resposta com id, type, attributes e links
  */
-export class ResponseCustomerDTO {
+export class CustomerResponseDTO {
   /**
    * Construtor privado para garantir imutabilidade
    * @param id Identificador único do cliente
@@ -30,17 +31,17 @@ export class ResponseCustomerDTO {
    * @param customer Entidade Customer
    * @returns DTO formatado no padrão JSON:API
    */
-  public static fromEntity(customer: Customer): ResponseCustomerDTO {
-    return new ResponseCustomerDTO(
+  public static fromEntity(customer: Customer): CustomerResponseDTO {
+    return new CustomerResponseDTO(
       customer.uid.value,
-      ResourceTypes.CUSTOMER,
+      ResourceTypesEnum.CUSTOMER,
       {
         name: customer.name.value,
         birthDate: customer.birthDate.value.toISOString().split('T')[0],
         email: customer.email.value,
       },
       {
-        self: `/${ResourceTypes.CUSTOMER}/${customer.uid.value}`,
+        self: `/${ResourceTypesEnum.CUSTOMER}/${customer.uid.value}`,
       }
     )
   }
