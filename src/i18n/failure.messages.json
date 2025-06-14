@@ -930,8 +930,8 @@
       "en": "Invalid Booking Type for Removal"
     },
     "template": {
-      "pt": "Agendamentos do tipo '{type:string}' não podem ser removidos diretamente. Apenas {allowed_types:string} são permitidos.",
-      "en": "Bookings of type '{type:string}' cannot be removed directly. Only {allowed_types:string} are allowed."
+      "pt": "Agendamentos do tipo '{type:string}' não podem ser removidos diretamente. Apenas {allowed_types:string[]} são permitidos.",
+      "en": "Bookings of type '{type:string}' cannot be removed directly. Only {allowed_types:string[]} are allowed."
     }
   },
   "BOOKING_WITH_INVALID_ACTIVITY_TYPE": {
@@ -941,8 +941,8 @@
       "en": "Invalid Activity Type"
     },
     "template": {
-      "pt": "O tipo de atividade '{type:string}' selecionado é inválido. Tipos permitidos: {allowed_types:string}.",
-      "en": "The selected activity type '{type:string}' is invalid. Allowed types: {allowed_types:string}."
+      "pt": "O tipo de atividade '{type:string}' selecionado é inválido. Tipos permitidos: {allowed_types:string[]}.",
+      "en": "The selected activity type '{type:string}' is invalid. Allowed types: {allowed_types:string[]}."
     }
   },
   "ROOM_WITH_INVALID_NUMBER_OF_PREFERENTIAL_SEATS": {
@@ -1592,6 +1592,17 @@
     "template": {
       "pt": "A função combine recebeu um tipo de entrada inválido. Esperado um array ou um objeto de Results.",
       "en": "The combine function received an invalid input type. Expected an array or an object of Results."
+    }
+  },
+  "ROOM_NUMBER_ALREADY_IN_USE": {
+    "status": 409,
+    "title": {
+      "pt": "Número da Sala Já em Uso",
+      "en": "Room Number Already In Use"
+    },
+    "template": {
+      "pt": "O número da sala '{roomNumber:number}' já está em uso. Por favor, escolha outro número.",
+      "en": "Room number '{roomNumber:number}' is already in use. Please choose another number."
     }
   }
 }
