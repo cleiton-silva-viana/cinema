@@ -1,10 +1,7 @@
 import { MovieDisplayPeriod, ScreeningStatus } from './movie.display.period'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 
 describe('MovieDisplayPeriod', () => {
-  // Datas para testes
   const ONE_DAY = 1000 * 60 * 60 * 24
   const NOW = new Date()
   const FUTURE_DATE = new Date(Date.now() + 10 * ONE_DAY) // 10 dias no futuro
@@ -23,10 +20,6 @@ describe('MovieDisplayPeriod', () => {
 
   describe('Métodos Estáticos', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
-
-      beforeEach(() => (failures = []))
-
       describe('períodos válidos', () => {
         const minEndDate = new Date(FUTURE_DATE.getTime() + 14 * ONE_DAY) // 14 dias exatos
         const midEndDate = new Date(FUTURE_DATE.getTime() + 20 * ONE_DAY) // 20 dias (intermediário)
@@ -53,13 +46,13 @@ describe('MovieDisplayPeriod', () => {
         successCases.forEach(({ startDate, endDate, scenario }) => {
           it(`deve criar um período de exibição ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(MovieDisplayPeriod.create(startDate, endDate), failures)
+            const result = MovieDisplayPeriod.create(startDate, endDate)
 
             // Assert
-            expect(result).toBeDefined()
-            expect(result).toBeInstanceOf(MovieDisplayPeriod)
-            expect(result.startDate).toBe(startDate)
-            expect(result.endDate).toBe(endDate)
+            expect(result).toBeValidResultMatching<MovieDisplayPeriod>((m) => {
+              expect(m.startDate).toBe(startDate)
+              expect(m.endDate).toBe(endDate)
+            })
           })
         })
       })
@@ -67,51 +60,50 @@ describe('MovieDisplayPeriod', () => {
       describe('deve retornar um erro quando o período é inválido', () => {
         const failureCases = [
           {
+            scenario: 'com data de início no passado',
             startDate: PAST_DATE,
             endDate: FAR_FUTURE_DATE,
-            scenario: 'com data de início no passado',
-            errorCode: FailureCode.DATE_CANNOT_BE_PAST,
+            code: FailureCode.DATE_CANNOT_BE_PAST,
           },
           {
+            scenario: 'com data de início nula',
             startDate: null as unknown as Date,
             endDate: FAR_FUTURE_DATE,
-            scenario: 'com data de início nula',
-            errorCode: FailureCode.MISSING_REQUIRED_DATA,
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
+            scenario: 'com data de término nula',
             startDate: FUTURE_DATE,
             endDate: null as unknown as Date,
-            scenario: 'com data de término nula',
-            errorCode: FailureCode.MISSING_REQUIRED_DATA,
+            code: FailureCode.MISSING_REQUIRED_DATA,
           },
           {
+            scenario: 'com data de término igual à data de início',
             startDate: FUTURE_DATE,
             endDate: FUTURE_DATE,
-            scenario: 'com data de término igual à data de início',
-            errorCode: FailureCode.DATE_WITH_INVALID_SEQUENCE,
+            code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
           },
           {
+            scenario: 'com data de término anterior ao mínimo (14 dias)',
             startDate: NOW,
             endDate: FUTURE_DATE,
-            scenario: 'com data de término anterior ao mínimo (14 dias)',
-            errorCode: FailureCode.DATE_WITH_INVALID_SEQUENCE,
+            code: FailureCode.DATE_WITH_INVALID_SEQUENCE,
           },
           {
+            scenario: 'com data de término muito distante',
             startDate: FUTURE_DATE,
             endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60), // 60 dias no futuro
-            scenario: 'com data de término muito distante',
-            errorCode: FailureCode.DATE_NOT_BEFORE_LIMIT,
+            code: FailureCode.DATE_NOT_BEFORE_LIMIT,
           },
         ]
 
-        failureCases.forEach(({ startDate, endDate, scenario, errorCode }) => {
+        failureCases.forEach(({ startDate, endDate, scenario, code }) => {
           it(`deve rejeitar um período ${scenario}`, () => {
             // Act
-            const result = validateAndCollect(MovieDisplayPeriod.create(startDate, endDate), failures)
+            const result = MovieDisplayPeriod.create(startDate, endDate)
 
             // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(errorCode)
+            expect(result).toBeInvalidResultWithSingleFailure(code)
           })
         })
       })

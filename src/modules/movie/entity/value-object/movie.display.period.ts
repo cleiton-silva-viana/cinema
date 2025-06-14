@@ -1,9 +1,11 @@
 import { failure, Result, success } from '@shared/result/result'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { TechnicalError } from '@shared/error/technical.error'
-import { isNull } from '@shared/validator/validator'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { Validate } from '@shared/validator/validate'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { DateUtils } from '@shared/utils/date.utils'
+import {ensureNotNull} from "@shared/validator/utils/validation.helpers";
 
 /**
  * Enum que representa os possíveis estados de exibição de um filme
@@ -126,14 +128,15 @@ export class MovieDisplayPeriod {
    * @returns Result<MovieDisplayPeriod> com sucesso ou falhas de validação
    */
   public static create(startDate: Date, endDate: Date): Result<MovieDisplayPeriod> {
-    const failures: SimpleFailure[] = []
+    const failures = ensureNotNull({ startDate, endDate })
+    if (failures.length > 0) return failure(failures)
 
     const maxStartDate = new Date()
     maxStartDate.setMonth(maxStartDate.getMonth() + MovieDisplayPeriod.MAX_START_DATE_MONTHS_AHEAD)
 
     Validate.date({ startDate }, failures)
       .isRequired()
-      .isAfter(MovieDisplayPeriod.MIN_DATE_FOR_DISPLAY_PERIOD, FailureCode.DATE_CANNOT_BE_PAST)
+      .isAfter(MovieDisplayPeriod.MIN_DATE_FOR_DISPLAY_PERIOD, () => FailureFactory.DATE_CANNOT_BE_PAST('startDate'))
       .isBefore(maxStartDate)
       .then(() => {
         const minEndDate = new Date(startDate.getTime())
@@ -144,7 +147,12 @@ export class MovieDisplayPeriod {
 
         Validate.date({ endDate }, failures)
           .isRequired()
-          .isAfter(minEndDate, FailureCode.DATE_WITH_INVALID_SEQUENCE)
+          .isAfter(minEndDate, () =>
+            FailureFactory.DATE_WITH_INVALID_SEQUENCE(
+              DateUtils.formatDateToISOString(startDate),
+              DateUtils.formatDateToISOString(endDate)
+            )
+          )
           .isBefore(maxEndDate)
       })
 
@@ -158,7 +166,7 @@ export class MovieDisplayPeriod {
    * @returns MovieDisplayPeriod
    */
   public static hydrate(startDate: Date, endDate: Date): MovieDisplayPeriod {
-    TechnicalError.if(isNull(startDate) || isNull(endDate), FailureCode.MISSING_REQUIRED_DATA)
+    TechnicalError.validateRequiredFields({ startDate, endDate })
     return new MovieDisplayPeriod(startDate, endDate)
   }
 
@@ -169,6 +177,8 @@ export class MovieDisplayPeriod {
    * @returns boolean indicando se está disponível no intervalo
    */
   public isAvailableInRange(rangeStart: Date, rangeEnd: Date): boolean {
-    return isNull(rangeStart) || isNull(rangeEnd) ? false : rangeStart <= this.endDate && rangeEnd >= this.startDate
+    return isNullOrUndefined(rangeStart) || isNullOrUndefined(rangeEnd)
+      ? false
+      : rangeStart <= this.endDate && rangeEnd >= this.startDate
   }
 }
