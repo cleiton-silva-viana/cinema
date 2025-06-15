@@ -21,14 +21,10 @@ describe('Image', () => {
         // Assert
         expect(result).toBeValidResultMatching<Image>((i) => {
           expect(i.uid).toBeDefined()
-          expect(i.title.content(SupportedLanguageEnum.PT)).toBe(params.title[SupportedLanguageEnum.PT].text)
-          expect(i.title.content(SupportedLanguageEnum.EN)).toBe(params.title[SupportedLanguageEnum.EN].text)
-          expect(i.description.content(SupportedLanguageEnum.PT)).toBe(
-            params.description[SupportedLanguageEnum.PT].text
-          )
-          expect(i.description.content(SupportedLanguageEnum.EN)).toBe(
-            params.description[SupportedLanguageEnum.EN].text
-          )
+          expect(i.title.content(SupportedLanguageEnum.PT)).toBe(params.title[0].text)
+          expect(i.title.content(SupportedLanguageEnum.EN)).toBe(params.title[1].text)
+          expect(i.description.content(SupportedLanguageEnum.PT)).toBe(params.description[0].text)
+          expect(i.description.content(SupportedLanguageEnum.EN)).toBe(params.description[1].text)
           expect(i.sizes.small).toBe(params.sizes.small)
           expect(i.sizes.normal).toBe(params.sizes.normal)
           expect(i.sizes.large).toBe(params.sizes.large)

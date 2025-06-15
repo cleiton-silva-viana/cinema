@@ -46,12 +46,11 @@ export interface ISizes {
  */
 export interface ICreateImageParams {
   uid: string
-  title: Record<SupportedLanguageEnum, ITextContent>
-  description: Record<SupportedLanguageEnum, ITextContent>
+  title: ITextContent[]
+  description: ITextContent[]
   sizes: ISizes
 }
 
-// vai pirat um partail?
 /**
  * Interface que define os parâmetros para atualização de uma imagem.
  * Todos os campos são opcionais, permitindo atualização parcial dos metadados.
