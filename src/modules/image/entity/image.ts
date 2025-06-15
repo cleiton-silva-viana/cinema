@@ -3,8 +3,11 @@ import { ImageTitle } from './value-object/image.title'
 import { ImageDescription } from './value-object/image.description'
 import { ImageSizes } from './value-object/image.sizes'
 import { TechnicalError } from '@shared/error/technical.error'
-import { failure, Result, success } from '@shared/result/result'
-import { ensureNotNull, validateAndCollect } from '@shared/validator/common.validators'
+import { combine, failure, Result, success } from '@shared/result/result'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { FailureFactory } from '@shared/failure/failure.factory'
+import { SupportedLanguageEnum } from '@/shared/value-object/language-content/supported.language.enum'
+import { ensureNotNull } from '@shared/validator/utils/validation.helpers'
 
 /**
  * Interface que define o conteúdo textual em um idioma específico.
@@ -43,9 +46,24 @@ export interface ISizes {
  */
 export interface ICreateImageParams {
   uid: string
-  title: ITextContent[]
-  description: ITextContent[]
+  title: Record<SupportedLanguageEnum, ITextContent>
+  description: Record<SupportedLanguageEnum, ITextContent>
   sizes: ISizes
+}
+
+// vai pirat um partail?
+/**
+ * Interface que define os parâmetros para atualização de uma imagem.
+ * Todos os campos são opcionais, permitindo atualização parcial dos metadados.
+ *
+ * @property title - Array de conteúdos textuais para o título em diferentes idiomas
+ * @property description - Array de conteúdos textuais para a descrição em diferentes idiomas
+ * @property sizes - Objeto contendo as URLs para os diferentes tamanhos da imagem
+ */
+export interface IUpdateImageParams {
+  title?: Record<SupportedLanguageEnum, ITextContent>
+  description?: Record<SupportedLanguageEnum, ITextContent>
+  sizes?: ISizes
 }
 
 /**
@@ -62,20 +80,6 @@ export interface IHydrateImageParams {
   title: ITextContent
   description: ITextContent
   sizes: ISizes
-}
-
-/**
- * Interface que define os parâmetros para atualização de uma imagem.
- * Todos os campos são opcionais, permitindo atualização parcial dos metadados.
- *
- * @property title - Array de conteúdos textuais para o título em diferentes idiomas
- * @property description - Array de conteúdos textuais para a descrição em diferentes idiomas
- * @property sizes - Objeto contendo as URLs para os diferentes tamanhos da imagem
- */
-export interface IUpdateImageParams {
-  title?: ITextContent[]
-  description?: ITextContent[]
-  sizes?: ISizes
 }
 
 /**
@@ -122,15 +126,21 @@ export class Image {
    * um array de falhas (SimpleFailure) caso a validação falhe.
    */
   public static create(params: ICreateImageParams): Result<Image> {
-    const failures = ensureNotNull({ params })
+    if (isNullOrUndefined(params)) return failure(FailureFactory.MISSING_REQUIRED_DATA('params'))
+    const failures = ensureNotNull({ ...params })
     if (failures.length > 0) return failure(failures)
 
-    const uid = validateAndCollect(ImageUID.parse(params.uid), failures)
-    const title = validateAndCollect(ImageTitle.create(params.title), failures)
-    const description = validateAndCollect(ImageDescription.create(params.description), failures)
-    const sizes = validateAndCollect(ImageSizes.create(params.sizes), failures)
+    const result = combine({
+      uid: ImageUID.parse(params.uid),
+      title: ImageTitle.create(Object.values(params?.title)),
+      description: ImageDescription.create(Object.values(params?.description)),
+      sizes: ImageSizes.create(params.sizes),
+    })
 
-    return failures.length > 0 ? failure(failures) : success(new Image(uid, title, description, sizes))
+    if (result.isInvalid()) return result
+
+    const { uid, title, description, sizes } = result.value
+    return success(new Image(uid, title, description, sizes))
   }
 
   /**
@@ -175,15 +185,14 @@ export class Image {
    * ou um array de falhas (SimpleFailure) caso a validação falhe.
    */
   public update(params: IUpdateImageParams): Result<Image> {
-    const failures = ensureNotNull({ params })
-    if (failures.length > 0) return failure(failures)
+    if (isNullOrUndefined(params)) return failure(FailureFactory.MISSING_REQUIRED_DATA('params'))
 
-    let { title, description, sizes } = this
-
-    if (params.title) title = validateAndCollect(ImageTitle.create(params.title), failures)
-    if (params.description) description = validateAndCollect(ImageDescription.create(params.description), failures)
-    if (params.sizes) sizes = validateAndCollect(ImageSizes.create(params.sizes), failures)
-
-    return failures.length > 0 ? failure(failures) : success(new Image(this.uid, title, description, sizes))
+    return combine({
+      title: params.title ? ImageTitle.create(Object.values(params.title)) : success(this.title),
+      description: params.description
+        ? ImageDescription.create(Object.values(params.description))
+        : success(this.description),
+      sizes: params.sizes ? ImageSizes.create(params.sizes) : success(this.sizes),
+    }).flatMap(({ title, description, sizes }) => success(new Image(this.uid, title, description, sizes)))
   }
 }
