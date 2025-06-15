@@ -3,28 +3,28 @@ import { IMovieHydrateInput, Movie } from '@modules/movie/entity/movie'
 import { ICreateMovieDTO } from '@modules/movie/controller/dto/movie.dto'
 import { ImageUID } from '@modules/image/entity/value-object/image.uid'
 import { PersonRole } from '@/modules/movie/entity/value-object/movie.contributor'
-import { ILanguageContent, SupportedLanguageEnum } from '@shared/value-object/multilingual-content'
 import { Genre } from '@modules/movie/entity/value-object/movie.genre'
 import { MovieUID } from '@modules/movie/entity/value-object/movie.uid'
 import { MovieAdministrativeStatusEnum } from '@modules/movie/type/movie.administrative.status'
+import { AgeRatingEnum } from '@modules/movie/entity/value-object/age.rating'
+import { SupportedLanguageEnum } from '@/shared/value-object/language-content/supported.language.enum'
+import { CreateTestContributorInput } from '@test/builder/contributor.builder'
+import { DateHelper } from '@shared/helper/date.helper'
 
 export function CreateTestMovie(override?: Partial<IMovieHydrateInput>) {
-  const { title, description, ageRating, imageUID, durationInMinutes, contributors } = CreateTestMovieDTO()
-
+  let { uid, title, description, ageRating, imageUID, duration, contributors, genres, status, displayPeriod } =
+    createTestMovieHydrateInputDTO(override)
   return Movie.hydrate({
-    uid: override?.uid ?? MovieUID.create().value,
-    title: title[0] as ILanguageContent,
-    description: description[0] as ILanguageContent,
-    ageRating: ageRating,
-    imageUID: imageUID,
-    duration: durationInMinutes,
-    contributors: contributors.map((c) => ({
-      personUID: c.personUID,
-      role: c.role,
-    })),
-    status: MovieAdministrativeStatusEnum.DRAFT,
-    displayPeriod: { startDate: faker.date.soon({ days: 10 }), endDate: faker.date.soon({ days: 30 }) },
-    genres: [faker.helpers.enumValue(Genre)],
+    uid,
+    title,
+    description,
+    ageRating,
+    imageUID,
+    duration,
+    contributors,
+    status,
+    displayPeriod,
+    genres,
   })
 }
 
@@ -70,6 +70,29 @@ export function CreateTestMovieDTO(override?: Partial<ICreateMovieDTO>): ICreate
       { personUID: faker.string.uuid(), role: PersonRole.DIRECTOR },
       { personUID: faker.string.uuid(), role: PersonRole.ACTOR },
     ],
-    durationInMinutes: override?.durationInMinutes ?? faker.number.int({ min: 90, max: 180 }),
+    duration: override?.duration ?? faker.number.int({ min: 90, max: 180 }),
+  }
+}
+
+export function createTestMovieHydrateInputDTO(overrides?: Partial<IMovieHydrateInput>): IMovieHydrateInput {
+  return {
+    uid: MovieUID.create().value,
+    title: { text: faker.lorem.paragraph(), language: SupportedLanguageEnum.PT },
+    description: { text: faker.lorem.paragraph(), language: SupportedLanguageEnum.PT },
+    duration: faker.number.int({ min: 90, max: 180 }),
+    ageRating: faker.helpers.enumValue(AgeRatingEnum),
+    status: MovieAdministrativeStatusEnum.DRAFT,
+    genres: [faker.helpers.enumValue(Genre)],
+    imageUID: ImageUID.create().value,
+    contributors: [
+      CreateTestContributorInput(),
+      CreateTestContributorInput(),
+      CreateTestContributorInput(PersonRole.DIRECTOR),
+    ],
+    displayPeriod: {
+      startDate: DateHelper.soon(10),
+      endDate: DateHelper.soon(15),
+    },
+    ...overrides,
   }
 }
