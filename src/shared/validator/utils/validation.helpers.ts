@@ -39,6 +39,42 @@ export function ensureNotNull(fieldsToCheck: Record<string, any>): SimpleFailure
 }
 
 /**
+ * Verifica se valores são nulos ou indefinidos e retorna um Result com falha para cada campo inválido.
+ *
+ * @param fieldsToCheck Um objeto com pares de {nome: valor} para verificar.
+ * @returns Um Result contendo sucesso se todos os campos forem válidos, ou falhas para cada campo nulo ou indefinido.
+ *
+ * @example
+ * const result = ensureNotNullResult({
+ *   movieUID,
+ *   roomUID,
+ *   layout
+ * });
+ *
+ * if (result.isInvalid()) {
+ *   return result;
+ * }
+ */
+export function ensureNotNullResult(fieldsToCheck: Record<string, any>): Result<void> {
+  const failures: SimpleFailure[] = []
+
+  for (const [fieldName, fieldValue] of Object.entries(fieldsToCheck)) {
+    if (isNullOrUndefined(fieldValue)) {
+      failures.push({
+        code: FailureCode.MISSING_REQUIRED_DATA,
+        details: { field: fieldName },
+      })
+    }
+  }
+
+  if (failures.length > 0) {
+    return failure(failures)
+  }
+
+  return success(undefined)
+}
+
+/**
  * Coleta nomes de campos nulos ou indefinidos em um array.
  * Útil para o padrão de validação usado em métodos hydrate.
  *
