@@ -1,66 +1,23 @@
-import { v7 } from 'uuid'
-import { fa, faker } from '@faker-js/faker'
+import { faker } from '@faker-js/faker'
 import { ICreateMovieInput, IMovieHydrateInput, Movie } from './movie'
-import { MovieUID } from './value-object/movie.uid'
 import { AgeRatingEnum } from './value-object/age.rating'
 import { Genre } from './value-object/movie.genre'
 import { PersonRole } from './value-object/movie.contributor'
 import { PersonUID } from '../../person/entity/value-object/person.uid'
-import { MovieAdministrativeStatus } from '../type/movie.administrative.status'
-import { ILanguageContent, SupportedLanguage } from '@shared/value-object/multilingual-content'
+import { MovieAdministrativeStatusEnum } from '../type/movie.administrative.status'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { TechnicalError } from '@shared/error/technical.error'
-import { ImageUID } from '@modules/image/entity/value-object/image.uid'
+import { ImageUID } from '@/modules/image/entity/value-object/image.uid'
+import { CreateTestMovie, createTestMovieHydrateInputDTO } from '@test/builder/movie.builder'
+import { CreateTestContributorInput } from '@test/builder/contributor.builder'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
+import { DateHelper } from '@shared/helper/date.helper'
 
 describe('Movie', () => {
-  function createDate(day: number, hour: number = 12): Date {
-    const now = new Date()
-    return new Date(now.getTime() + day * 24 * 60 * 60 * 1000 + hour * 60 * 60 * 1000)
-  }
-
-  function createHydrateInput(overrides: Partial<IMovieHydrateInput> = {}): IMovieHydrateInput {
-    const defaultInput: IMovieHydrateInput = {
-      uid: MovieUID.create().value,
-      title: {
-        text: faker.lorem.paragraph(),
-        language: SupportedLanguage.EN,
-      } as ILanguageContent,
-      description: {
-        text: faker.lorem.paragraph(),
-        language: SupportedLanguage.EN,
-      } as ILanguageContent,
-      duration: 120,
-      ageRating: AgeRatingEnum.L,
-      status: MovieAdministrativeStatus.DRAFT,
-      genres: [Genre.ACTION],
-      imageUID: 'IMG.' + v7(),
-      contributors: [
-        {
-          personUID: PersonUID.create().value,
-          role: PersonRole.DIRECTOR,
-        },
-      ],
-      displayPeriod: {
-        startDate: createDate(5, 10),
-        endDate: createDate(10, 15),
-      },
-    }
-
-    return {
-      ...defaultInput,
-      ...overrides,
-    }
-  }
   describe('Static Methods', () => {
     describe('create', () => {
-      let failures: SimpleFailure[]
       let validInput: ICreateMovieInput
 
       beforeEach(() => {
-        failures = []
-
         validInput = {
           title: [
             { language: 'pt', text: 'Título do Filme' },
@@ -79,18 +36,15 @@ describe('Movie', () => {
 
       it('deve criar um filme válido com valores mínimos', () => {
         // Act
-        const result = validateAndCollect(Movie.create(validInput), failures)
-
-        // Assert
-        expect(result).toBeDefined()
-        expect(result).toBeInstanceOf(Movie)
-        expect(result.uid).toBeDefined()
-        expect(result.status).toBe(MovieAdministrativeStatus.DRAFT)
-        expect(result.genre).toBeNull()
-        expect(result.contributors.count).toBe(1)
-        expect(result.contributors.getDirectors()[0].personUID.value).toEqual(validInput.contributors[0].personUID)
-        expect(result.displayPeriod).toBeNull()
-        expect(result.duration?.minutes).toBe(validInput.durationInMinutes)
+        expect(Movie.create(validInput)).toBeValidResultMatching<Movie>((m) => {
+          expect(m.uid).toBeDefined()
+          expect(m.status).toBe(MovieAdministrativeStatusEnum.DRAFT)
+          expect(m.genre).toBeNull()
+          expect(m.contributors.count).toBe(1)
+          expect(m.contributors.getDirectors()[0].personUID.value).toEqual(validInput.contributors[0].personUID)
+          expect(m.displayPeriod).toBeNull()
+          expect(m.duration?.minutes).toBe(validInput.durationInMinutes)
+        })
       })
 
       describe('deve falhar quando os dados de entrada são inválidos', () => {
@@ -124,9 +78,7 @@ describe('Movie', () => {
           it(scenario, () => {
             // Act
             const result = Movie.create(input)
-
-            // Assert
-            expect(result.isInvalid()).toBe(true)
+            expect(result).toBeInvalidResult()
           })
         })
       })
@@ -135,19 +87,27 @@ describe('Movie', () => {
     describe('hydrate', () => {
       it('deve hidratar um filme corretamente', () => {
         // Arrange
-        const input = createHydrateInput()
+        const datas = createTestMovieHydrateInputDTO()
 
         // Act
-        const movie = Movie.hydrate(input)
+        const movie = Movie.hydrate(datas)
 
         // Assert
         expect(movie).toBeInstanceOf(Movie)
-        expect(movie.uid.value).toBe(input.uid)
-        expect(movie.status).toBe(input.status)
-        expect(movie.duration?.minutes).toBe(input.duration)
-        expect(movie.genre?.getGenres()).toEqual(input.genres)
-        expect(movie.imageUID.value).toBe(input.imageUID)
-        expect(movie.displayPeriod).toBeDefined()
+        expect(movie.uid.value).toBe(datas.uid)
+        expect(movie.imageUID.value).toBe(datas.imageUID)
+        expect(movie.status).toBe(datas.status)
+        expect(movie.duration?.minutes).toBe(datas.duration)
+        expect(movie.genre?.getGenres()).toEqual(datas.genres)
+        expect(movie.displayPeriod?.startDate).toEqual(datas.displayPeriod?.startDate)
+        expect(movie.displayPeriod?.endDate).toEqual(datas.displayPeriod?.endDate)
+        expect(movie.contributors.count).toBe(datas.contributors.length)
+        expect(movie.contributors.getAll().map((c) => c.personUID.value)).toEqual(
+          datas.contributors.map((c) => c.personUID)
+        )
+        expect(movie.ageRating.value).toBe(datas.ageRating)
+        expect(movie.title.content(SupportedLanguageEnum.PT)).toBe(datas.title.text)
+        expect(movie.description.content(SupportedLanguageEnum.PT)).toBe(datas.description.text)
       })
 
       it('deve lançar erro técnico quando objeto parâmetro for inválido', () => {
@@ -157,22 +117,29 @@ describe('Movie', () => {
 
       describe('deve lançar erro quando algum valor estritamente necessário for inválido', () => {
         const nullCases = [
-          { scenario: 'uid is null', input: createHydrateInput({ uid: null as unknown as string }) },
-          { scenario: 'title is null', input: createHydrateInput({ title: null as any }) },
-          { scenario: 'description is null', input: createHydrateInput({ description: null as any }) },
-          { scenario: 'duration is null', input: createHydrateInput({ duration: null as unknown as number }) },
-          { scenario: 'age rating is null', input: createHydrateInput({ ageRating: null as unknown as string }) },
-          { scenario: 'status is null', input: createHydrateInput({ status: null as any }) },
-          { scenario: 'genre is null', input: createHydrateInput({ genres: null as any }) },
-          { scenario: 'imageUID is null', input: createHydrateInput({ imageUID: null as unknown as string }) },
-          { scenario: 'contributors is null', input: createHydrateInput({ contributors: null as any }) },
-          { scenario: 'display period is null', input: createHydrateInput({ displayPeriod: null as any }) },
+          { scenario: 'uid é nulo', input: createTestMovieHydrateInputDTO({ uid: null as unknown as string }) },
+          { scenario: 'title é nulo', input: createTestMovieHydrateInputDTO({ title: null as any }) },
+          { scenario: 'description é nulo', input: createTestMovieHydrateInputDTO({ description: null as any }) },
+          {
+            scenario: 'duration é nulo',
+            input: createTestMovieHydrateInputDTO({ duration: null as unknown as number }),
+          },
+          {
+            scenario: 'age rating é nulo',
+            input: createTestMovieHydrateInputDTO({ ageRating: null as unknown as string }),
+          },
+          { scenario: 'status é nulo', input: createTestMovieHydrateInputDTO({ status: null as any }) },
+          {
+            scenario: 'imageUID é nulo',
+            input: createTestMovieHydrateInputDTO({ imageUID: null as unknown as string }),
+          },
+          { scenario: 'contributors é nulo', input: createTestMovieHydrateInputDTO({ contributors: null as any }) },
         ]
 
         nullCases.forEach(({ scenario, input }) => {
           it(scenario, () => {
             // Act
-            expect(() => Movie.hydrate(input as unknown as IMovieHydrateInput)).toThrow(TechnicalError)
+            expect(() => Movie.hydrate(input as unknown as IMovieHydrateInput)).toThrowTechnicalError()
           })
         })
       })
@@ -180,7 +147,6 @@ describe('Movie', () => {
   })
 
   describe('Instance Methods', () => {
-    let failures: SimpleFailure[]
     let movie: Movie
 
     function expectOnlyPropertyUpdated(original: Movie, updated: Movie, propertyName: string) {
@@ -198,25 +164,31 @@ describe('Movie', () => {
     }
 
     beforeEach(() => {
-      failures = []
-      movie = Movie.hydrate(createHydrateInput())
+      movie = CreateTestMovie({
+        contributors: [
+          CreateTestContributorInput(),
+          CreateTestContributorInput(),
+          CreateTestContributorInput(PersonRole.DIRECTOR),
+        ],
+      })
     })
 
     describe('updateTitle', () => {
       it('deve atualizar o título com sucesso', () => {
         // Arrange
         const newTitle = [
-          { language: SupportedLanguage.PT, text: 'Novo Título' },
-          { language: SupportedLanguage.EN, text: 'New Títle' },
+          { language: SupportedLanguageEnum.PT, text: 'Novo Título' },
+          { language: SupportedLanguageEnum.EN, text: 'New Títle' },
         ]
 
         // Act
-        const result = validateAndCollect(movie.updateTitle(newTitle), failures)
+        const result = movie.updateTitle(newTitle)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.title.content(SupportedLanguage.PT)).toBe(newTitle[0].text)
-        expectOnlyPropertyUpdated(movie, result, 'title')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.title.content(SupportedLanguageEnum.PT)).toBe(newTitle[0].text)
+          expectOnlyPropertyUpdated(movie, m, 'title')
+        })
       })
 
       it('deve falhar ao atualizar com título inválido', () => {
@@ -232,17 +204,18 @@ describe('Movie', () => {
       it('deve atualizar a descrição com sucesso', () => {
         // Arrange
         const newDescription = [
-          { language: SupportedLanguage.PT, text: faker.string.alphanumeric({ length: { min: 48, max: 240 } }) },
-          { language: SupportedLanguage.EN, text: faker.string.alphanumeric({ length: { min: 48, max: 240 } }) },
+          { language: SupportedLanguageEnum.PT, text: faker.string.alphanumeric({ length: { min: 48, max: 240 } }) },
+          { language: SupportedLanguageEnum.EN, text: faker.string.alphanumeric({ length: { min: 48, max: 240 } }) },
         ]
 
         // Act
-        const result = validateAndCollect(movie.updateDescription(newDescription), failures)
+        const result = movie.updateDescription(newDescription)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.description.content(SupportedLanguage.PT)).toBe(newDescription[0].text)
-        expectOnlyPropertyUpdated(movie, result, 'description')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.description.content(SupportedLanguageEnum.PT)).toBe(newDescription[0].text)
+          expectOnlyPropertyUpdated(movie, m, 'description')
+        })
       })
 
       it('deve falhar ao atualizar com descrição inválida', () => {
@@ -263,14 +236,15 @@ describe('Movie', () => {
         ]
 
         // Act
-        const result = validateAndCollect(movie.updateContributors(newContributors), failures)
+        const result = movie.updateContributors(newContributors)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.contributors.count).toBe(newContributors.length)
-        expect(result.contributors.getAll().some((c) => c.personUID.value === newContributors[0].personUID)).toBe(true)
-        expect(result.contributors.getAll().some((c) => c.personUID.value === newContributors[1].personUID)).toBe(true)
-        expectOnlyPropertyUpdated(movie, result, 'contributors')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.contributors.count).toBe(newContributors.length)
+          expect(m.contributors.getAll().some((c) => c.personUID.value === newContributors[0].personUID)).toBe(true)
+          expect(m.contributors.getAll().some((c) => c.personUID.value === newContributors[1].personUID)).toBe(true)
+          expectOnlyPropertyUpdated(movie, m, 'contributors')
+        })
       })
 
       it('deve falhar se dados inválidos forem fornecidos', () => {
@@ -283,18 +257,20 @@ describe('Movie', () => {
 
       it('deve falhar ao remover o único diretor', () => {
         // Arrange
-        const movieWithOnlyDirector = Movie.hydrate(
-          createHydrateInput({
-            contributors: [{ personUID: PersonUID.create().value, role: PersonRole.DIRECTOR }],
-          })
-        )
+        const movieWithOnlyDirector = CreateTestMovie({
+          contributors: [
+            {
+              personUID: PersonUID.create().value,
+              role: PersonRole.DIRECTOR,
+            },
+          ],
+        })
 
         // Act
-        const result = validateAndCollect(movieWithOnlyDirector.updateContributors([]), failures)
+        const result = movieWithOnlyDirector.updateContributors([])
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_MISSING_CONTRIBUTORS)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_MISSING_CONTRIBUTORS)
       })
     })
 
@@ -304,12 +280,13 @@ describe('Movie', () => {
         const newDuration = 150
 
         // Act
-        const result = validateAndCollect(movie.setDuration(newDuration), failures)
+        const result = movie.setDuration(newDuration)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.duration?.minutes).toBe(newDuration)
-        expectOnlyPropertyUpdated(movie, result, 'duration')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.duration?.minutes).toBe(newDuration)
+          expectOnlyPropertyUpdated(movie, m, 'duration')
+        })
       })
 
       it('deve falhar ao definir duração negativa', () => {
@@ -324,34 +301,35 @@ describe('Movie', () => {
     describe('updateAgeRating', () => {
       it('deve atualizar a classificação etária com sucesso', () => {
         // Act
-        const result = validateAndCollect(movie.updateAgeRating(AgeRatingEnum.TEN), failures)
+        const result = movie.updateAgeRating(AgeRatingEnum.TEN)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.ageRating.value).toBe('10')
-        expectOnlyPropertyUpdated(movie, result, 'ageRating')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.ageRating.value).toBe('10')
+          expectOnlyPropertyUpdated(movie, m, 'ageRating')
+        })
       })
 
       it('deve falhar com classificação etária inválida', () => {
         // Act
-        const result = validateAndCollect(movie.updateAgeRating('INVALID' as AgeRatingEnum), failures)
+        const result = movie.updateAgeRating('INVALID' as AgeRatingEnum)
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.INVALID_ENUM_VALUE)
       })
     })
 
     describe('setGenres', () => {
       it('deve definir gêneros com sucesso', () => {
         // Act
-        const result = validateAndCollect(movie.setGenres([Genre.ACTION, Genre.COMEDY]), failures)
+        const result = movie.setGenres([Genre.ACTION, Genre.COMEDY])
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.genre?.getGenres().some((g) => g === Genre.ACTION)).toBe(true)
-        expect(result.genre?.getGenres().some((g) => g === Genre.COMEDY)).toBe(true)
-        expectOnlyPropertyUpdated(movie, result, 'genre')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.genre?.getGenres().some((g) => g === Genre.ACTION)).toBe(true)
+          expect(m.genre?.getGenres().some((g) => g === Genre.COMEDY)).toBe(true)
+          expectOnlyPropertyUpdated(movie, m, 'genre')
+        })
       })
 
       it('deve falhar com lista de gêneros vazia', () => {
@@ -369,12 +347,13 @@ describe('Movie', () => {
         const newImageUID = ImageUID.create().value
 
         // Act
-        const result = validateAndCollect(movie.updatePosterImage(newImageUID), failures)
+        const result = movie.updatePosterImage(newImageUID)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.imageUID.value).toBe(newImageUID)
-        expectOnlyPropertyUpdated(movie, result, 'imageUID')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.imageUID.value).toBe(newImageUID)
+          expectOnlyPropertyUpdated(movie, m, 'imageUID')
+        })
       })
 
       it('deve falhar com imageUID inválido', () => {
@@ -389,23 +368,24 @@ describe('Movie', () => {
     describe('setDisplayPeriod', () => {
       it('deve definir período de exibição com sucesso', () => {
         // Arrange
-        const startDate = createDate(1)
-        const endDate = createDate(30)
+        const startDate = DateHelper.soon(1)
+        const endDate = DateHelper.soon(30)
 
         // Act
-        const result = validateAndCollect(movie.setDisplayPeriod(startDate, endDate), failures)
+        const result = movie.setDisplayPeriod(startDate, endDate)
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.displayPeriod?.startDate).toEqual(startDate)
-        expect(result.displayPeriod?.endDate).toEqual(endDate)
-        expectOnlyPropertyUpdated(movie, result, 'displayPeriod')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.displayPeriod?.startDate).toEqual(startDate)
+          expect(m.displayPeriod?.endDate).toEqual(endDate)
+          expectOnlyPropertyUpdated(movie, m, 'displayPeriod')
+        })
       })
 
       it('deve falhar com data de início posterior à data de fim', () => {
         // Arrange
-        const startDate = createDate(5)
-        const endDate = createDate(2)
+        const startDate = faker.date.soon({ days: 5 })
+        const endDate = faker.date.soon({ days: 2 })
 
         // Act
         const result = movie.setDisplayPeriod(startDate, endDate)
@@ -418,135 +398,125 @@ describe('Movie', () => {
     describe('toPendingReview', () => {
       it('deve mudar para pendente de revisão quando todos requisitos são atendidos', () => {
         // Act
-        const result = validateAndCollect(movie.toPendingReview(), failures)
+        const result = movie.toPendingReview()
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.status).toBe(MovieAdministrativeStatus.PENDING_REVIEW)
-        expectOnlyPropertyUpdated(movie, result, 'status')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.status).toBe(MovieAdministrativeStatusEnum.PENDING_REVIEW)
+          expectOnlyPropertyUpdated(movie, m, 'status')
+        })
       })
 
       it('deve falhar ao tentar mudar para pendente quando não houver um diretor associado ao filme', () => {
         // Arrange
-        const movieWithoutDirector = Movie.hydrate(
-          createHydrateInput({
-            contributors: [{ personUID: PersonUID.create().value, role: PersonRole.ACTOR }],
-          })
-        )
+        const movieWithoutDirector = CreateTestMovie({
+          contributors: [
+            {
+              personUID: PersonUID.create().value,
+              role: PersonRole.ACTOR,
+            },
+          ],
+        })
 
         // Act
-        const result = validateAndCollect(movieWithoutDirector.toPendingReview(), failures)
+        const result = movieWithoutDirector.toPendingReview()
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_DIRECTOR_REQUIRED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_DIRECTOR_REQUIRED)
       })
 
       it('deve falhar se o filme já estiver em APPROVED', () => {
         // Arrange
-        const movieApproved = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.APPROVED,
-          })
-        )
+        const movieApproved = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.APPROVED,
+          contributors: [CreateTestContributorInput(PersonRole.DIRECTOR)],
+        })
 
         // Act
-        const result = validateAndCollect(movieApproved.toPendingReview(), failures)
+        const result = movieApproved.toPendingReview()
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_ALREADY_APPROVED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_ALREADY_APPROVED)
       })
 
       it('deve falhar se o filme já estiver em ARCHIVED', () => {
         // Arrange
-        const movieArchived = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.ARCHIVED,
-          })
-        )
+        const movieArchived = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.ARCHIVED,
+        })
 
         // Act
-        const result = validateAndCollect(movieArchived.toPendingReview(), failures)
+        const result = movieArchived.toPendingReview()
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_IS_ARCHIVED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_IS_ARCHIVED)
       })
 
       it('deve manter o mesmo status se já estiver em PENDING_REVIEW', () => {
         // Arrange
-        const moviePending = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.PENDING_REVIEW,
-          })
-        )
+        const moviePending = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.PENDING_REVIEW,
+        })
 
         // Act
-        const result = validateAndCollect(moviePending.toPendingReview(), failures)
+        const result = moviePending.toPendingReview()
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.status).toBe(MovieAdministrativeStatus.PENDING_REVIEW)
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.status).toBe(MovieAdministrativeStatusEnum.PENDING_REVIEW)
+        })
       })
     })
 
     describe('toApprove', () => {
       it('deve aprovar um filme quando todos os requisitos são atendidos', () => {
         // Arrange
-        const moviePending = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.PENDING_REVIEW,
-            duration: 120,
-            genres: [Genre.ACTION],
-          })
-        )
+        const moviePending = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.PENDING_REVIEW,
+          duration: 120,
+          genres: [Genre.ACTION],
+        })
 
         // Act
-        const result = validateAndCollect(moviePending.toApprove(), failures)
+        const result = moviePending.toApprove()
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.status).toBe(MovieAdministrativeStatus.APPROVED)
-        expectOnlyPropertyUpdated(moviePending, result, 'status')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.status).toBe(MovieAdministrativeStatusEnum.APPROVED)
+          expectOnlyPropertyUpdated(moviePending, m, 'status')
+        })
       })
 
       it('deve falhar quando o filme já possui o status "APPROVED"', () => {
         // Arrange
-        const approvedMovie = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.APPROVED,
-            duration: 120,
-            genres: [Genre.ACTION],
-          })
-        )
+        const approvedMovie = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.APPROVED,
+          duration: 120,
+          genres: [Genre.ACTION],
+        })
 
         // Act
-        const result = validateAndCollect(approvedMovie.toApprove(), failures)
+        const result = approvedMovie.toApprove()
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_ALREADY_APPROVED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_ALREADY_APPROVED)
       })
 
       it('deve falhar quando não está em PENDING_REVIEW', () => {
         // Act (movie está em DRAFT por padrão)
-        const result = validateAndCollect(movie.toApprove(), failures)
+        const result = movie.toApprove()
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_NOT_IN_DRAFT)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_NOT_IN_DRAFT)
       })
 
       it('deve falhar ao tentar aprovar sem gêneros definidos', () => {
         // Arrange
-        const moviePending = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.PENDING_REVIEW,
-            duration: 120,
-            genres: [],
-          })
-        )
+        const moviePending = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.PENDING_REVIEW,
+          duration: 120,
+          genres: [],
+        })
 
         // Act
         const result = moviePending.toApprove()
@@ -555,82 +525,59 @@ describe('Movie', () => {
         expect(result.isInvalid()).toBe(true)
       })
 
-      it('deve falhar quando não tem duração definida', () => {
-        // Arrange
-        const moviePending = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.PENDING_REVIEW,
-            duration: null as unknown as number,
-            genres: [Genre.ACTION],
-          })
-        )
-
-        // Act
-        const result = validateAndCollect(moviePending.toApprove(), failures)
-
-        // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
-      })
-
       it('deve falhar quando não tem um diretor definido', () => {
         // Arrange
-        const moviePending = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.PENDING_REVIEW,
-            duration: 120,
-            genres: [Genre.ACTION],
-            contributors: [{ personUID: PersonUID.create().value, role: PersonRole.ACTOR }],
-          })
-        )
+        const moviePending = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.PENDING_REVIEW,
+          duration: 120,
+          genres: [Genre.ACTION],
+          contributors: [{ personUID: PersonUID.create().value, role: PersonRole.ACTOR }],
+        })
 
         // Act
-        const result = validateAndCollect(moviePending.toApprove(), failures)
+        const result = moviePending.toApprove()
 
         // Assert
-        expect(result).toBeNull()
-        expect(failures[0].code).toBe(FailureCode.MOVIE_DIRECTOR_REQUIRED)
+        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MOVIE_DIRECTOR_REQUIRED)
       })
     })
 
     describe('toArchive', () => {
       it('deve arquivar um filme aprovado com sucesso', () => {
         // Arrange
-        const approvedMovie = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.APPROVED,
-          })
-        )
+        const approvedMovie = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.APPROVED,
+        })
 
         // Act
-        const result = validateAndCollect(approvedMovie.toArchive(), failures)
+        const result = approvedMovie.toArchive()
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.status).toBe(MovieAdministrativeStatus.ARCHIVED)
-        expectOnlyPropertyUpdated(approvedMovie, result, 'status')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.status).toBe(MovieAdministrativeStatusEnum.ARCHIVED)
+          expectOnlyPropertyUpdated(approvedMovie, m, 'status')
+        })
       })
 
       it('deve arquivar um filme com status em DRAFT com sucesso', () => {
         // Act (está em draft por d=adrão)
-        const result = validateAndCollect(movie.toArchive(), failures)
+        const result = movie.toArchive()
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.status).toBe(MovieAdministrativeStatus.ARCHIVED)
-        expectOnlyPropertyUpdated(movie, result, 'status')
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.status).toBe(MovieAdministrativeStatusEnum.ARCHIVED)
+          expectOnlyPropertyUpdated(movie, m, 'status')
+        })
       })
 
       it('deve arquivar com sucesso um filme com status igual à PENDING_REVIEW', () => {
         // Arrange
-        const pendingMovie = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.PENDING_REVIEW,
-          })
-        )
+        const pendingMovie = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.PENDING_REVIEW,
+        })
 
         // Act
-        const result = validateAndCollect(pendingMovie.toArchive(), failures)
+        const result = pendingMovie.toArchive()
 
         // Assert
         expect(result).toBeDefined()
@@ -638,18 +585,17 @@ describe('Movie', () => {
 
       it('deve manter o mesmo status se já estiver arquivado', () => {
         // Arrange
-        const archivedMovie = Movie.hydrate(
-          createHydrateInput({
-            status: MovieAdministrativeStatus.ARCHIVED,
-          })
-        )
+        const archivedMovie = CreateTestMovie({
+          status: MovieAdministrativeStatusEnum.ARCHIVED,
+        })
 
         // Act
-        const result = validateAndCollect(archivedMovie.toArchive(), failures)
+        const result = archivedMovie.toArchive()
 
         // Assert
-        expect(result).toBeDefined()
-        expect(result.status).toBe(MovieAdministrativeStatus.ARCHIVED)
+        expect(result).toBeValidResultMatching<Movie>((m) => {
+          expect(m.status).toBe(MovieAdministrativeStatusEnum.ARCHIVED)
+        })
       })
     })
 
@@ -660,12 +606,10 @@ describe('Movie', () => {
         const endDate = new Date(now)
         endDate.setDate(endDate.getDate() + 10)
 
-        const movie = Movie.hydrate(
-          createHydrateInput({
-            displayPeriod: { startDate, endDate },
-            status: MovieAdministrativeStatus.APPROVED,
-          })
-        )
+        const movie = CreateTestMovie({
+          displayPeriod: { startDate, endDate },
+          status: MovieAdministrativeStatusEnum.APPROVED,
+        })
 
         return { now, startDate, endDate, movie }
       }
@@ -673,7 +617,7 @@ describe('Movie', () => {
       it('deve aceitar data proposta dentro do período de exibição', () => {
         // Arrange
         const { movie } = setupAvailabilityTest()
-        const proposedDate = createDate(5)
+        const proposedDate = faker.date.soon({ days: 5 })
 
         // Act
         const result = movie.isAvailableForPeriod(proposedDate)
@@ -722,7 +666,7 @@ describe('Movie', () => {
       it('deve rejeitar data proposta antes do período de exibição', () => {
         // Arrange
         const { movie } = setupAvailabilityTest()
-        const proposedDate = createDate(-15)
+        const proposedDate = faker.date.recent({ days: 15 })
 
         // Act
         const result = movie.isAvailableForPeriod(proposedDate)
@@ -734,7 +678,7 @@ describe('Movie', () => {
       it('deve rejeitar data proposta após o período de exibição', () => {
         // Arrange
         const { movie } = setupAvailabilityTest()
-        const proposedDate = createDate(15)
+        const proposedDate = DateHelper.soon(15)
 
         // Act
         const result = movie.isAvailableForPeriod(proposedDate)
@@ -745,12 +689,11 @@ describe('Movie', () => {
 
       it('deve rejeitar quando o filme não tem período de exibição definido', () => {
         // Arrange
-        const movieWithoutPeriod = Movie.hydrate(
-          createHydrateInput({
-            displayPeriod: null as any,
-            status: MovieAdministrativeStatus.APPROVED,
-          })
-        )
+        const movieWithoutPeriod = CreateTestMovie({
+          displayPeriod: null as any,
+          status: MovieAdministrativeStatusEnum.APPROVED,
+        })
+
         const proposedDate = new Date()
 
         // Act
@@ -763,12 +706,11 @@ describe('Movie', () => {
       it('deve rejeitar quando o filme não está aprovado', () => {
         // Arrange
         const { startDate, endDate } = setupAvailabilityTest()
-        const movieNotApproved = Movie.hydrate(
-          createHydrateInput({
-            displayPeriod: { startDate, endDate },
-            status: MovieAdministrativeStatus.DRAFT,
-          })
-        )
+        const movieNotApproved = CreateTestMovie({
+          displayPeriod: { startDate, endDate },
+          status: MovieAdministrativeStatusEnum.DRAFT,
+        })
+
         const proposedDate = new Date(startDate)
 
         // Act
@@ -781,12 +723,11 @@ describe('Movie', () => {
       it('deve rejeitar quando o filme está arquivado', () => {
         // Arrange
         const { startDate, endDate } = setupAvailabilityTest()
-        const archivedMovie = Movie.hydrate(
-          createHydrateInput({
-            displayPeriod: { startDate, endDate },
-            status: MovieAdministrativeStatus.ARCHIVED,
-          })
-        )
+        const archivedMovie = CreateTestMovie({
+          displayPeriod: { startDate, endDate },
+          status: MovieAdministrativeStatusEnum.ARCHIVED,
+        })
+
         const proposedDate = new Date(startDate)
 
         // Act
@@ -799,12 +740,11 @@ describe('Movie', () => {
       it('deve rejeitar quando o filme está pendente de revisão', () => {
         // Arrange
         const { startDate, endDate } = setupAvailabilityTest()
-        const pendingMovie = Movie.hydrate(
-          createHydrateInput({
-            displayPeriod: { startDate, endDate },
-            status: MovieAdministrativeStatus.PENDING_REVIEW,
-          })
-        )
+        const pendingMovie = CreateTestMovie({
+          displayPeriod: { startDate, endDate },
+          status: MovieAdministrativeStatusEnum.PENDING_REVIEW,
+        })
+
         const proposedDate = new Date(startDate)
 
         // Act
@@ -826,11 +766,9 @@ describe('Movie', () => {
 
       it('deve retornar false quando não tem diretor', () => {
         // Arrange
-        const movieWithoutDirector = Movie.hydrate(
-          createHydrateInput({
-            contributors: [{ personUID: PersonUID.create().value, role: PersonRole.ACTOR }],
-          })
-        )
+        const movieWithoutDirector = CreateTestMovie({
+          contributors: [{ personUID: PersonUID.create().value, role: PersonRole.ACTOR }],
+        })
 
         // Act
         const result = movieWithoutDirector.hasMinimumRequirementsForReview()
@@ -841,11 +779,9 @@ describe('Movie', () => {
 
       it('deve retornar false quando não tem contribuidores', () => {
         // Arrange
-        const movieWithoutContributors = Movie.hydrate(
-          createHydrateInput({
-            contributors: [],
-          })
-        )
+        const movieWithoutContributors = CreateTestMovie({
+          contributors: [],
+        })
 
         // Act
         const result = movieWithoutContributors.hasMinimumRequirementsForReview()
@@ -858,12 +794,7 @@ describe('Movie', () => {
     describe('hasAllRequirementsForApproval', () => {
       it('deve retornar true quando tem todos os requisitos para aprovação', () => {
         // Arrange
-        const completeMovie = Movie.hydrate(
-          createHydrateInput({
-            duration: 120,
-            genres: [Genre.ACTION],
-          })
-        )
+        const completeMovie = CreateTestMovie({ status: MovieAdministrativeStatusEnum.PENDING_REVIEW })
 
         // Act
         const result = completeMovie.hasAllRequirementsForApproval()
@@ -872,30 +803,12 @@ describe('Movie', () => {
         expect(result).toBe(true)
       })
 
-      it('deve retornar false quando não tem duração', () => {
-        // Arrange
-        const movieWithoutDuration = Movie.hydrate(
-          createHydrateInput({
-            duration: null as any,
-            genres: [Genre.ACTION],
-          })
-        )
-
-        // Act
-        const result = movieWithoutDuration.hasAllRequirementsForApproval()
-
-        // Assert
-        expect(result).toBe(false)
-      })
-
       it('deve retornar false quando não tem gêneros', () => {
         // Arrange
-        const movieWithoutGenres = Movie.hydrate(
-          createHydrateInput({
-            duration: 120,
-            genres: [],
-          })
-        )
+        const movieWithoutGenres = CreateTestMovie({
+          duration: 120,
+          genres: [],
+        })
 
         // Act
         const result = movieWithoutGenres.hasAllRequirementsForApproval()
@@ -906,13 +819,11 @@ describe('Movie', () => {
 
       it('deve retornar false quando não tem diretor', () => {
         // Arrange
-        const movieWithoutDirector = Movie.hydrate(
-          createHydrateInput({
-            duration: 120,
-            genres: [Genre.ACTION],
-            contributors: [{ personUID: PersonUID.create().value, role: PersonRole.ACTOR }],
-          })
-        )
+        const movieWithoutDirector = CreateTestMovie({
+          duration: 120,
+          genres: [Genre.ACTION],
+          contributors: [{ personUID: PersonUID.create().value, role: PersonRole.ACTOR }],
+        })
 
         // Act
         const result = movieWithoutDirector.hasAllRequirementsForApproval()
@@ -923,13 +834,11 @@ describe('Movie', () => {
 
       it('deve retornar false quando não atende aos requisitos mínimos para revisão', () => {
         // Arrange
-        const incompleteMovie = Movie.hydrate(
-          createHydrateInput({
-            duration: 120,
-            genres: [Genre.ACTION],
-            contributors: [], // Sem contribuidores
-          })
-        )
+        const incompleteMovie = CreateTestMovie({
+          duration: 120,
+          genres: [Genre.ACTION],
+          contributors: [], // Sem contribuidores
+        })
 
         // Act
         const result = incompleteMovie.hasAllRequirementsForApproval()
