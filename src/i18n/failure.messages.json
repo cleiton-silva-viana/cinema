@@ -578,8 +578,8 @@
       "en": "Movie Duration Too Short"
     },
     "template": {
-      "pt": "A duração do filme '{movie_title:string}' ({duration:number} minutos) é muito curta. A duração mínima é de {min:number} minutos.",
-      "en": "The duration of movie '{movie_title:string}' ({duration:number} minutes) is too short. The minimum duration is {min:number} minutes."
+      "pt": "A duração do filme ({duration:number} minutos) é muito curta. A duração mínima é de {min:number} minutos.",
+      "en": "The duration of movie ({duration:number} minutes) is too short. The minimum duration is {min:number} minutes."
     }
   },
   "MOVIE_WITH_DURATION_TOO_LONG": {
@@ -589,8 +589,8 @@
       "en": "Movie Duration Too Long"
     },
     "template": {
-      "pt": "A duração do filme '{movie_title:string}' ({duration:number} minutos) é muito longa. A duração máxima é de {max:number} minutos.",
-      "en": "The duration of movie '{movie_title:string}' ({duration:number} minutes) is too long. The maximum duration is {max:number} minutes."
+      "pt": "A duração do filme ({duration:number} minutos) é muito longa. A duração máxima é de {max:number} minutos.",
+      "en": "The duration of movie ({duration:number} minutes) is too long. The maximum duration is {max:number} minutes."
     }
   },
   "MOVIE_NOT_AVAILABLE_IN_PERIOD": {
@@ -1581,6 +1581,17 @@
     "template": {
       "pt": "O campo '{field:string}' esperava exatamente {expected:number} valor(es), mas recebeu '{received:number}' valor(es): '{value:any}'.",
       "en": "The field '{field:string}' expected exactly {expected:number} value(s), but received '{received:number}' value(s): '{value:any}'."
+    }
+  },
+  "IMAGE_PERSISTENCE_FAILURE": {
+    "status": 500,
+    "title": {
+      "pt": "Falha na Persistência da Imagem",
+      "en": "Image Persistence Failure"
+    },
+    "template": {
+      "pt": "Ocorreu um erro ao tentar persistir a imagem no banco de dados.",
+      "en": "An error occurred while trying to persist the image to the database."
     }
   },
   "INVALID_COMBINE_INPUT": {
