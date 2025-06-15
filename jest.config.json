@@ -1,25 +1,25 @@
 {
   "preset": "ts-jest",
   "testEnvironment": "node",
-  "roots": ["./src", "./scripts", "./test"],
-  "testMatch": ["**/__tests__/**/*.+(ts|tsx|js)", "**/?(*.)+(spec|test).+(ts|tsx|js)"],
+  "roots": ["<rootDir>/src", "<rootDir>/scripts", "./test"],
+  "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
   "transform": {
-    "^.+\\.(ts|tsx)$": [
-      "ts-jest",
-      {
-        "tsconfig": "tsconfig.json"
-      }
-    ]
+    "^.+\\ts$": "ts-jest"
   },
-  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+  "setupFilesAfterEnv": ["<rootDir>/test/setup/jest.setup.ts"],
+  "collectCoverageFrom": [
+    "src/**/*.ts",
+    "!src/**/*.d.ts",
+    "!src/**/*.interface.ts",
+    "!src/**/*.type.ts",
+    "!src/**/*.enum.ts",
+    "!src/**/*.constant.ts"
+  ],
   "moduleNameMapper": {
-    "^@shared/(.*)$": "<rootDir>/src/shared/$1",
-    "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^@/(.*)$": "<rootDir>/src/$1",
     "^@scripts/(.*)$": "<rootDir>/scripts/$1",
+    "^@shared/(.*)$": "<rootDir>/src/shared/$1",
+    "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^@test/(.*)$": "<rootDir>/test/$1"
-  },
-  "collectCoverage": true,
-  "coverageDirectory": "coverage",
-  "collectCoverageFrom": ["src/**/*.{ts,tsx}", "scripts/**/*.{ts,tsx}", "!src/**/*.d.ts", "!src/**/index.ts"]
+  }
 }
