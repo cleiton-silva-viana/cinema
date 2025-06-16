@@ -1,7 +1,7 @@
 import { Person } from '@modules/person/entity/person'
 import { PersonUID } from '@modules/person/entity/value-object/person.uid'
 import { faker } from '@faker-js/faker'
-import { ICreatePersonDTO } from "@modules/person/controller/dto/create.person.dto";
+import { ICreatePersonDTO } from '@modules/person/controller/dto/create.person.dto'
 
 export function CreateTestPerson(override?: Partial<{ uid: string; name: string; birthDate: Date }>) {
   const uid = override?.uid ?? PersonUID.create().value
