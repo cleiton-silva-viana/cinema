@@ -2,6 +2,10 @@
  * Helper para criação de datas em testes, substituindo o faker para maior consistência
  */
 export class DateHelper {
+  static formatDateToISOString(date: Date): string {
+    return date.toLocaleDateString().split('T')[0]
+  }
+
   /**
    * Cria uma data no futuro baseada em uma data de referência
    * @param days Número de dias no futuro
