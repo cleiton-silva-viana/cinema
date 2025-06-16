@@ -2,13 +2,12 @@ import { faker } from '@faker-js/faker'
 import { ICreateImageSizesInput, ImageSizes } from './image.sizes'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@shared/error/technical.error'
+import { CreateTestSizes } from '@test/builder/sizes.builder'
 
 describe('ImageSizes', () => {
-  const sizes = {
-    small: faker.internet.url(),
-    normal: faker.internet.url(),
-    large: faker.internet.url(),
-  }
+  let sizes: ImageSizes
+
+  beforeEach(() => (sizes = CreateTestSizes()))
 
   describe('create', () => {
     it('deve retornar uma instância de ImageSizes com sucesso', () => {
@@ -33,8 +32,8 @@ describe('ImageSizes', () => {
         {
           sizes: {
             small: '        ',
-            normal: sizes.normal,
-            large: sizes.large,
+            normal: faker.internet.url(),
+            large: faker.internet.url(),
           },
           scenario: 'quando há uma URL vazia',
           code: FailureCode.STRING_CANNOT_BE_EMPTY,
@@ -42,8 +41,8 @@ describe('ImageSizes', () => {
 
         {
           sizes: {
-            small: sizes.small,
-            normal: sizes.normal,
+            small: faker.internet.url(),
+            normal: faker.internet.url(),
             large: null,
           },
           scenario: 'quando há uma URL nula',
