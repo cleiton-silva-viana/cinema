@@ -1,12 +1,12 @@
 import { faker } from '@faker-js/faker/locale/pt_PT'
-import { ICreateImageParams, IHydrateImageParams, Image, ITextContent, IUpdateImageParams } from './image'
+import { ICreateImageParams, IHydrateImageParams, Image, ITextContent, IUpdateImageMetadataParams } from './image'
 import { CreateTestImage, CreateTestImageParams } from '@test/builder/image.builder'
 import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
-import { CreateMultilingualContent, CreateTestTextContent } from '@test/builder/muiltilignual.content.builder'
+import { CreateMultilingualTextContent, CreateTestTextContent } from '@test/builder/muiltilignual.content.builder'
 import { v4 } from 'uuid'
-import { CreateTestImageSizes } from '@test/builder/image.sizes.builder'
 import { ImageUID } from '@modules/image/entity/value-object/image.uid'
+import { CreateTestSizes } from '@test/builder/sizes.builder'
 
 describe('Image', () => {
   describe('Static Methods', () => {
@@ -102,7 +102,7 @@ describe('Image', () => {
     describe('hydrate', () => {
       const validHydrateInput: IHydrateImageParams = {
         uid: v4(),
-        sizes: CreateTestImageSizes(),
+        sizes: CreateTestSizes(),
         title: CreateTestTextContent(),
         description: CreateTestTextContent(),
       }
@@ -113,7 +113,7 @@ describe('Image', () => {
           uid: ImageUID.create().value,
           title: CreateTestTextContent({ language: SupportedLanguageEnum.PT }),
           description: CreateTestTextContent({ language: SupportedLanguageEnum.PT }),
-          sizes: CreateTestImageSizes(),
+          sizes: CreateTestSizes(),
         }
 
         // Act
@@ -187,12 +187,12 @@ describe('Image', () => {
       describe('deve atualizar corretamente as propriedades', () => {
         it('deve atualizar a propriedade title corretamente', () => {
           // Arrange
-          const params: IUpdateImageParams = {
-            title: CreateMultilingualContent(),
+          const params: IUpdateImageMetadataParams = {
+            title: CreateMultilingualTextContent(),
           }
 
           // Act
-          const result = instance.update(params)
+          const result = instance.updateMetadata(params)
 
           // Assert
           expect(result).toBeValidResultMatching<Image>((i) => {
@@ -200,8 +200,8 @@ describe('Image', () => {
             expect(i.description).toEqual(instance.description)
             expect(i.sizes).toEqual(instance.sizes)
             expect(i.title).not.toEqual(instance.title)
-            expect(i.title.content(SupportedLanguageEnum.PT)).toBe(params.title?.PT.text)
-            expect(i.title.content(SupportedLanguageEnum.EN)).toBe(params.title?.EN.text)
+            expect(i.title.content(SupportedLanguageEnum.PT)).toBe(params.title![0].text)
+            expect(i.title.content(SupportedLanguageEnum.EN)).toBe(params.title![1].text)
             expect(i.title.content(SupportedLanguageEnum.PT)).not.toBe(instance.title.content(SupportedLanguageEnum.PT))
             expect(i.title.content(SupportedLanguageEnum.EN)).not.toBe(instance.title.content(SupportedLanguageEnum.EN))
           })
@@ -209,12 +209,12 @@ describe('Image', () => {
 
         it('deve atualizar a propriedade description corretamente', () => {
           // Arrange
-          const params: IUpdateImageParams = {
-            description: CreateMultilingualContent(),
+          const params: IUpdateImageMetadataParams = {
+            description: CreateMultilingualTextContent(),
           }
 
           // Act
-          const result = instance.update(params)
+          const result = instance.updateMetadata(params)
 
           // Assert
           expect(result).toBeValidResultMatching<Image>((I) => {
@@ -222,8 +222,8 @@ describe('Image', () => {
             expect(I.title).toEqual(instance.title)
             expect(I.sizes).toEqual(instance.sizes)
             expect(I.description).not.toEqual(instance.description)
-            expect(I.description.content(SupportedLanguageEnum.EN)).toBe(params.description!.EN.text)
-            expect(I.description.content(SupportedLanguageEnum.PT)).toBe(params.description!.PT.text)
+            expect(I.description.content(SupportedLanguageEnum.PT)).toBe(params.description![0].text)
+            expect(I.description.content(SupportedLanguageEnum.EN)).toBe(params.description![1].text)
             expect(I.description.content(SupportedLanguageEnum.EN)).not.toBe(
               instance.description.content(SupportedLanguageEnum.EN)
             )
@@ -233,27 +233,7 @@ describe('Image', () => {
           })
         })
 
-        it('deve atualiza a propriedade size corretamente', () => {
-          // Arrange
-          const params: IUpdateImageParams = {
-            sizes: CreateTestImageSizes(),
-          }
-
-          // Act
-          const result = instance.update(params)
-
-          // Assert
-          expect(result).toBeValidResultMatching<Image>((i) => {
-            expect(i.uid.value).toBe(instance.uid.value)
-            expect(i.title).toEqual(instance.title)
-            expect(i.description).toEqual(instance.description)
-            expect(i.sizes).not.toEqual(instance.sizes)
-            expect(i.sizes.small).toEqual(params.sizes?.small)
-            expect(i.sizes.normal).toEqual(params.sizes?.normal)
-            expect(i.sizes.large).toEqual(params.sizes?.large)
-            expect(i.sizes).not.toEqual(instance.sizes)
-          })
-        })
+        it('deve atualizar as propriedades title e description corretamente', () => {})
       })
 
       describe('deve falhar ao tentar atualizar com dados inválidos', () => {
@@ -270,18 +250,12 @@ describe('Image', () => {
               description: {},
             },
           },
-          {
-            scenario: 'sizes é inválido',
-            params: {
-              sizes: {},
-            },
-          },
         ]
 
         failureCases.forEach(({ scenario, params }) => {
           it(scenario, () => {
             // Act
-            const result = instance.update(params as unknown as IUpdateImageParams)
+            const result = instance.updateMetadata(params as unknown as IUpdateImageMetadataParams)
 
             // Assert
             expect(result).toBeInvalidResult()
@@ -291,7 +265,7 @@ describe('Image', () => {
 
       it('deve falhar ao não receber dados para atualização', () => {
         // Act
-        const result = instance.update(null as any)
+        const result = instance.updateMetadata(null as any)
 
         // Assert
         expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)

@@ -59,10 +59,9 @@ export interface ICreateImageParams {
  * @property description - Array de conteúdos textuais para a descrição em diferentes idiomas
  * @property sizes - Objeto contendo as URLs para os diferentes tamanhos da imagem
  */
-export interface IUpdateImageParams {
-  title?: Record<SupportedLanguageEnum, ITextContent>
-  description?: Record<SupportedLanguageEnum, ITextContent>
-  sizes?: ISizes
+export interface IUpdateImageMetadataParams {
+  title?: ITextContent[]
+  description?: ITextContent[]
 }
 
 /**
@@ -183,7 +182,7 @@ export class Image {
    * @returns Result<Image> - Um objeto Result contendo a instância atualizada de Image
    * ou um array de falhas (SimpleFailure) caso a validação falhe.
    */
-  public update(params: IUpdateImageParams): Result<Image> {
+  public updateMetadata(params: IUpdateImageMetadataParams): Result<Image> {
     if (isNullOrUndefined(params)) return failure(FailureFactory.MISSING_REQUIRED_DATA('params'))
 
     return combine({
@@ -191,7 +190,6 @@ export class Image {
       description: params.description
         ? ImageDescription.create(Object.values(params.description))
         : success(this.description),
-      sizes: params.sizes ? ImageSizes.create(params.sizes) : success(this.sizes),
-    }).flatMap(({ title, description, sizes }) => success(new Image(this.uid, title, description, sizes)))
+    }).flatMap(({ title, description }) => success(new Image(this.uid, title, description, this.sizes)))
   }
 }
