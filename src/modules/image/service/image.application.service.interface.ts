@@ -1,6 +1,6 @@
-import { Result } from "../../../shared/result/result";
-import { Image, ItextContent, IUpdateImageParams } from "../entity/image";
-import { ImageHandlerConfig } from "../handler/types/image.handler.config";
+import { Image, ITextContent, IUpdateImageMetadataParams } from '../entity/image'
+import { ImageHandlerConfig } from '../handler/types/image.handler.config'
+import { Result } from '@shared/result/result'
 
 /**
  * Interface para o serviço de imagens.
@@ -17,11 +17,11 @@ export interface IImageService {
    * @returns Result contendo a entidade Image criada ou falhas
    */
   create(
-    title: ItextContent[],
-    description: ItextContent[],
+    title: ITextContent[],
+    description: ITextContent[],
     image: Express.Multer.File,
-    configs: ImageHandlerConfig,
-  ): Promise<Result<Image>>;
+    configs: ImageHandlerConfig
+  ): Promise<Result<Image>>
 
   /**
    * Busca uma imagem pelo seu identificador único.
@@ -29,7 +29,7 @@ export interface IImageService {
    * @param uid - Identificador único da imagem
    * @returns Result contendo a entidade Image ou falha
    */
-  findById(uid: string): Promise<Result<Image>>;
+  findById(uid: string): Promise<Result<Image>>
 
   /**
    * Remove uma imagem do sistema.
@@ -37,7 +37,7 @@ export interface IImageService {
    * @param uid - Identificador único da imagem
    * @returns Result indicando sucesso ou falha
    */
-  delete(uid: string): Promise<Result<null>>;
+  delete(uid: string): Promise<Result<null>>
 
   /**
    * Atualiza os metadados de uma imagem existente.
@@ -46,5 +46,5 @@ export interface IImageService {
    * @param params - Parâmetros para atualização da imagem
    * @returns Result contendo a entidade Image atualizada ou falhas
    */
-  update(uid: string, params: IUpdateImageParams): Promise<Result<Image>>;
+  updateMetadata(uid: string, params: IUpdateImageMetadataParams): Promise<Result<Image>>
 }
