@@ -2,6 +2,7 @@ import { Result } from '@shared/result/result'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@/shared/error/technical.error'
 import { matcherHint, printExpected, printReceived } from 'jest-matcher-utils'
+import { SimpleFailure } from '@/shared/failure/simple.failure.type'
 
 /**
  * Matchers customizados para Jest específicos do domínio do cinema
@@ -16,6 +17,7 @@ declare global {
       toBeValidResultWithValue(expectedValue: any): R
       toBeValidResultMatching<T>(predicate: (value: T) => boolean | void): R
       toBeInvalidResult(): R
+      toBeInvalidResultWithFailure(failure: SimpleFailure): R
       toBeInvalidResultWithSingleFailure(expectedCode: FailureCode): R
       toBeInvalidResultWithFailureCount(expectedCount: number): R
       toThrowTechnicalError(): R
@@ -317,6 +319,60 @@ function toBeInvalidResultWithFailureCount(received: Result<any>, expectedCount:
 }
 
 /**
+ * Matcher para verificar se um Result é inválido e contém um objeto failure estritamente igual ao esperado
+ */
+function toBeInvalidResultWithFailure(received: Result<any>, expectedFailure: SimpleFailure) {
+  if (received.isValid()) {
+    return {
+      message: () =>
+        matcherHint('.toBeInvalidResultWithFailure', 'received', 'expectedFailure') +
+        '\n\n' +
+        'Expected Result to be invalid with failure:\n' +
+        '  ' +
+        printExpected(expectedFailure) +
+        '\nBut Result was valid with value:\n' +
+        '  ' +
+        printReceived(received.value),
+      pass: false,
+    }
+  }
+
+  const failures = received.failures
+  const pass =
+    failures.length === 1 &&
+    failures[0].code === expectedFailure.code &&
+    JSON.stringify(failures[0].details) === JSON.stringify(expectedFailure.details)
+
+  if (pass) {
+    return {
+      message: () =>
+        matcherHint('.not.toBeInvalidResultWithFailure', 'received', 'expectedFailure') +
+        '\n\n' +
+        'Expected Result not to have failure:\n' +
+        '  ' +
+        printExpected(expectedFailure) +
+        '\nBut received:\n' +
+        '  ' +
+        printReceived(failures[0]),
+      pass: true,
+    }
+  } else {
+    return {
+      message: () =>
+        matcherHint('.toBeInvalidResultWithFailure', 'received', 'expectedFailure') +
+        '\n\n' +
+        'Expected Result to have failure:\n' +
+        '  ' +
+        printExpected(expectedFailure) +
+        '\nReceived:\n' +
+        '  ' +
+        printReceived(failures[0]),
+      pass: false,
+    }
+  }
+}
+
+/**
  * Matcher para verificar se um valor é uma instância de TechnicalError.
  * Útil para testar se uma função lança um TechnicalError.
  */
@@ -385,12 +441,13 @@ function toHaveTechnicalErrorCode(received: any, expectedCode: FailureCode) {
 export function setupCustomMatchers() {
   expect.extend({
     toBeValidResult,
-    toBeInvalidResult,
-    toThrowTechnicalError,
-    toHaveTechnicalErrorCode,
-    toBeValidResultMatching,
     toBeValidResultWithValue,
+    toBeValidResultMatching,
+    toBeInvalidResult,
+    toBeInvalidResultWithFailure,
     toBeInvalidResultWithSingleFailure,
     toBeInvalidResultWithFailureCount,
+    toThrowTechnicalError,
+    toHaveTechnicalErrorCode,
   })
 }
