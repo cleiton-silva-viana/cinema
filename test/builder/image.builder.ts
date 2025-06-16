@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker'
-import {ICreateImageParams, IHydrateImageParams, Image, IUpdateImageMetadataParams} from '@modules/image/entity/image'
+import { ICreateImageParams, IHydrateImageParams, Image, IUpdateImageMetadataParams } from '@modules/image/entity/image'
 import { ImageUID } from '@modules/image/entity/value-object/image.uid'
 import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 import { CreateTestSizes } from '@test/builder/sizes.builder'
