@@ -210,12 +210,37 @@ export function combine<T1, T2, T3, T4, T5>(
 ): Result<[T1, T2, T3, T4, T5]>
 
 /**
- * Combina múltiplos resultados (Result) de um array em um único Result.
- * Se todos os resultados forem SUCCESS, retorna um SUCCESS contendo um array com os valores de cada resultado.
- * Se um ou mais resultados forem FAILURE, retorna um FAILURE contendo todas as falhas coletadas.
- * @template T Um array de tipos Result.
- * @param results O array de resultados a serem combinados.
- * @returns Um Result que é SUCCESS com um array de valores ou FAILURE com um array de falhas.
+ * Combina múltiplos resultados em um único Result, seguindo a semântica "all or nothing".
+ *
+ * **Comportamento:**
+ * - Se TODOS os resultados forem SUCCESS: retorna SUCCESS com os valores combinados
+ * - Se QUALQUER resultado for FAILURE: retorna FAILURE com todas as falhas coletadas
+ *
+ * @template T Um array de tipos Result ou Record de Result
+ * @param results Array ou objeto contendo os resultados a serem combinados
+ * @returns Result com valores combinados (SUCCESS) ou falhas coletadas (FAILURE)
+ *
+ * @example
+ * // Combinando array de Results
+ * const userResult = validateUser(userData)
+ * const emailResult = validateEmail(email)
+ * const passwordResult = validatePassword(password)
+ *
+ * const combinedResult = combine([userResult, emailResult, passwordResult])
+ * // Se todos válidos: Result<[User, Email, Password]>
+ * // Se algum inválido: Result<never> com todas as falhas
+ *
+ * @example
+ * // Combinando objeto de Results
+ * const validationResults = {
+ *   name: validateName(input.name),
+ *   age: validateAge(input.age),
+ *   email: validateEmail(input.email)
+ * }
+ *
+ * const result = combine(validationResults)
+ * // Se todos válidos: Result<{name: string, age: number, email: string}>
+ * // Se algum inválido: Result<never> com todas as falhas de validação
  */
 export function combine<T extends ReadonlyArray<Result<unknown>>>(
   results: T
@@ -283,6 +308,39 @@ export function combine<T extends ReadonlyArray<Result<unknown>> | Record<string
  * @example
  * result.map(customer => customer.name) // retorna um Result<string>
  */
+/**
+ * Transforma o valor contido em um Result de sucesso aplicando uma função de mapeamento.
+ *
+ * **Comportamento:**
+ * - Se o Result for SUCCESS: aplica a função ao valor e retorna novo Result com valor transformado
+ * - Se o Result for FAILURE: retorna a falha inalterada (não executa a função)
+ *
+ * **Características:**
+ * - Operação "pura" - não produz efeitos colaterais
+ * - Preserva o contexto de erro
+ * - Permite encadeamento de transformações
+ *
+ * @template T Tipo do valor de entrada
+ * @template U Tipo do valor de saída após transformação
+ * @param fn Função de transformação que converte T em U
+ * @returns Função que aceita Result<T> e retorna Result<U>
+ *
+ * @example
+ * // Transformando dados de usuário
+ * const userResult: Result<User> = getUser(id)
+ *
+ * const userNameResult = userResult.map(user => user.name.toUpperCase())
+ * // Se userResult for SUCCESS: Result<string> com nome em maiúsculas
+ * // Se userResult for FAILURE: Result<never> com as mesmas falhas
+ *
+ * @example
+ * // Encadeamento de transformações
+ * const result = getUserById(123)
+ *   .map(user => user.profile)
+ *   .map(profile => profile.displayName)
+ *   .map(name => `Bem-vindo, ${name}!`)
+ * // Cada map só executa se o anterior foi bem-sucedido
+ */
 const map =
   <T, U>(fn: (value: T) => U) =>
   (result: Result<T>): Result<U> => {
@@ -290,11 +348,40 @@ const map =
   }
 
 /**
- * Função que permite que transformar e retornar outro Result, "achata" o resultado para evitar Result<Result<U, E>, E>.
- * @param fn Função que retorna um Result a ser aplicada ao valor
- * @returns Uma função que aceita um Result e retorna um Result achatado
+ * Aplica uma função que retorna um Result, "achatando" o resultado para evitar aninhamento.
+ * 
+ * **Comportamento:**
+ * - Se o Result for SUCCESS: aplica a função e retorna o Result resultante diretamente
+ * - Se o Result for FAILURE: retorna a falha inalterada (não executa a função)
+ * 
+ * **Diferença do map:**
+ * - `map`: T => U (função retorna valor simples)
+ - `flatMap`: T => Result<Q> (função retorna Result, evita Result<Result<Q>>)
+ *
+ * @template T Tipo do valor de entrada
+ * @template U Tipo do valor de saída após transformação
+ * @param fn Função que recebe T e retorna Result<U>
+ * @returns Função que aceita Result<T> e retorna Result<U> (achatado)
+ * 
  * @example
- * result.flatMap(customer => customer.updateName(newName))
+ * // Operações que podem falhar
+ * const userResult: Result<User> = getUser(id)
+ * 
+ * const updatedUserResult = userResult.flatMap(user => 
+ *   updateUserEmail(user, newEmail) // retorna Result<User>
+ * )
+ * // Se getUser falhar: retorna a falha original
+ * // Se getUser suceder mas updateUserEmail falhar: retorna falha do update
+ * // Se ambos sucederem: retorna Result<User> com dados atualizados
+ * 
+ * @example
+ * // Pipeline de validação e processamento
+ * const result = parseUserInput(rawData)
+ *   .flatMap(data => validateUserData(data))     // Result<ValidatedUser>
+ *   .flatMap(user => saveUserToDatabase(user))   // Result<SavedUser>
+ *   .flatMap(saved => sendWelcomeEmail(saved))   // Result<EmailSent>
+ * // Cada operação só executa se a anterior foi bem-sucedida
+ * // Qualquer falha interrompe a cadeia e é propagada
  */
 const flatMap =
   <T, U>(fn: (value: T) => Result<U>) =>
@@ -304,14 +391,41 @@ const flatMap =
 
 /**
  * Combina os casos de sucesso e falha em um único valor, aplicando a função apropriada.
- * @param onSuccess Função a ser aplicada em caso de sucesso
- * @param onFailure Função a ser aplicada em caso de falha
- * @returns Uma função que aceita um Result e retorna o valor transformado
+ * Útil para extrair um valor final de um `Result` ou para lidar com ambos os caminhos (sucesso/falha).
+ *
+ * **Comportamento:**
+ * - Se o Result for SUCCESS: aplica a função `onSuccess` ao valor de sucesso
+ * - Se o Result for FAILURE: aplica a função `onFailure` às falhas
+ *
+ * **Características:**
+ * - Permite transformar um `Result` em qualquer outro tipo `U`.
+ * - É uma operação terminal no encadeamento de `Result`s, pois retorna um valor simples, não outro `Result`.
+ *
+ * @template T Tipo do valor de sucesso do Result.
+ * @template U Tipo do valor retornado pela função `fold`.
+ * @param onSuccess Função a ser aplicada se o Result for um sucesso. Recebe o valor de sucesso.
+ * @param onFailure Função a ser aplicada se o Result for uma falha. Recebe um array de `SimpleFailure`.
+ * @returns O valor transformado de tipo `U`.
+ *
  * @example
- * result.fold(
- *   (onFailure) => ({ status: 500, body: { onFailure } }),
- *   (customer) => ({ status: 200, body: { customer } })
- * )
+ * // Exemplo 1: Retornando um objeto de resposta HTTP
+ * const processResult: Result<ProcessedData> = processData(input);
+ *
+ * const httpResponse = processResult.fold(
+ *   (data) => ({ status: 200, body: { message: 'Sucesso!', data } }),
+ *   (failures) => ({ status: 400, body: { message: 'Falha na operação.', errors: failures } })
+ * );
+ * // httpResponse será { status: 200, body: { ... } } ou { status: 400, body: { ... } }
+ *
+ * @example
+ * // Exemplo 2: Extraindo um valor padrão ou o valor de sucesso
+ * const configResult: Result<AppConfig> = loadConfig();
+ *
+ * const config = configResult.fold(
+ *   (cfg) => cfg, // Retorna a configuração se for sucesso
+ *   (failures) => defaultAppConfig // Retorna uma configuração padrão se for falha
+ * );
+ * // config será AppConfig (carregada ou padrão)
  */
 const fold =
   <T, U>(onSuccess: (value: T) => U, onFailure: (failures: ReadonlyArray<SimpleFailure>) => U) =>
