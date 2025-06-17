@@ -439,6 +439,17 @@
       "en": "The date '{date:string}' exceeds the maximum allowed limit ({max_date:string})."
     }
   },
+  "DATE_RANGE_TOO_LARGE": {
+    "status": 400,
+    "title": {
+      "pt": "Intervalo de Datas Muito Grande",
+      "en": "Date Range Too Large"
+    },
+    "template": {
+      "pt": "O período selecionado excede o limite máximo de {max_days:number} dias. Por favor, selecione um período menor.",
+      "en": "The selected period exceeds the maximum limit of {max_days:number} days. Please select a shorter period."
+    }
+  },
   "DATE_NOT_BEFORE_LIMIT": {
     "status": 400,
     "title": {
