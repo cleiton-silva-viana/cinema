@@ -199,6 +199,15 @@ export class MovieGenre {
   }
 
   /**
+   * Cria uma instância de MovieGenre contendo todos os gêneros disponíveis.
+   * @returns Result<MovieGenre>
+   */
+  public static createAllGenres(): MovieGenre {
+    const allGenres = Object.values(Genre)
+    return new MovieGenre(new Set(allGenres))
+  }
+
+  /**
    * Verifica se o filme possui um determinado gênero
    * @param genreId Gênero a verificar
    * @returns boolean
