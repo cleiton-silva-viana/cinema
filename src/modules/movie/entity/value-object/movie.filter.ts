@@ -1,10 +1,8 @@
 import { AgeRating } from './age.rating'
 import { MovieGenre } from './movie.genre'
-import { failure, Result, success } from '@shared/result/result'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
-import { isNull } from '@shared/validator/validator'
-import { validateAndCollect } from '@shared/validator/common.validators'
+import { combine, Result, success } from '@shared/result/result'
 import { MovieFilterDateRange } from '@modules/movie/entity/value-object/movie.filter.date.range'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
 
 /**
  * Interface que define os parâmetros de entrada para filtrar filmes.
@@ -53,16 +51,6 @@ export interface IMovieFilterInput {
  */
 export class MovieFilter {
   /**
-   * Número máximo de dias no futuro permitido para a data inicial do filtro (30 dias)
-   */
-  public static readonly MAX_FUTURE_DAYS = 30
-
-  /**
-   * Intervalo máximo em dias entre a data inicial e final do filtro (14 dias)
-   */
-  public static readonly MAX_DATE_RANGE_DAYS = 14
-
-  /**
    * Construtor privado. Use o método estático `create` para instanciar.
    *
    * @param dateRange Intervalo de datas para filtrar filmes em exibição
@@ -71,12 +59,9 @@ export class MovieFilter {
    * @private
    */
   private constructor(
-    public readonly dateRange?: {
-      readonly startDate: Date
-      readonly endDate: Date
-    },
-    public readonly ageRating?: AgeRating,
-    public readonly genres?: MovieGenre
+    public readonly dateRange: MovieFilterDateRange,
+    public readonly ageRating: AgeRating,
+    public readonly genres: MovieGenre
   ) {}
 
   /**
@@ -99,46 +84,21 @@ export class MovieFilter {
    * @returns Result<MovieFilter> contendo a instância criada ou falhas de validação
    */
   public static create(input: IMovieFilterInput): Result<MovieFilter> {
-    if (isNull(input)) {
-      const today = new Date()
-      const endDate = new Date(today)
-      endDate.setDate(endDate.getDate() + 7)
+    const defaultDateRange = MovieFilterDateRange.createDefault()
+    const defaultAgeRating = AgeRating.createDefault()
+    const defaultGenres = MovieGenre.createAllGenres()
 
-      return success(
-        new MovieFilter({
-          startDate: today,
-          endDate: endDate,
-        })
-      )
-    }
+    if (isNullOrUndefined(input) || isNullOrUndefined({ ...input }))
+      return success(new MovieFilter(defaultDateRange, defaultAgeRating, defaultGenres))
 
-    const failures: SimpleFailure[] = []
-    let dateRangeValue: { startDate: Date; endDate: Date } | undefined = undefined
-    let ageRatingValue: AgeRating | undefined = undefined
-    let genresValue: MovieGenre | undefined = undefined
-
-    dateRangeValue = input.dateRange
-      ? validateAndCollect(MovieFilterDateRange.create(input.dateRange.startDate, input.dateRange.endDate), failures)
-      : MovieFilterDateRange.createDefault()
-
-    if (input.ageRating) ageRatingValue = validateAndCollect(AgeRating.create(input.ageRating), failures)
-    if (input.genres) genresValue = validateAndCollect(MovieGenre.create(input.genres), failures)
-
-    if (failures.length > 0) return failure(failures)
-
-    if (!dateRangeValue && !ageRatingValue && !genresValue) {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      const endDate = new Date(today)
-      endDate.setDate(endDate.getDate() + 7)
-
-      dateRangeValue = {
-        startDate: today,
-        endDate: endDate,
-      }
-    }
-
-    return success(new MovieFilter(dateRangeValue, ageRatingValue, genresValue))
+    return combine({
+      dateRange: input.dateRange
+        ? MovieFilterDateRange.create(input.dateRange.startDate, input.dateRange.endDate)
+        : success(defaultDateRange),
+      genres: input.genres ? MovieGenre.create(input.genres) : success(defaultGenres),
+      ageRating: input.ageRating ? AgeRating.create(input.ageRating) : success(defaultAgeRating),
+    }).flatMap(({ dateRange, genres, ageRating }) => {
+      return success(new MovieFilter(dateRange, ageRating, genres))
+    })
   }
 }
