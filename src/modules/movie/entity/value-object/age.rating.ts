@@ -56,6 +56,14 @@ export class AgeRating {
   }
 
   /**
+   * Cria uma instância padrão de AgeRating (Livre).
+   * @returns Result<AgeRating>
+   */
+  public static createDefault(): AgeRating {
+    return new AgeRating(AgeRatingEnum.L)
+  }
+
+  /**
    * Cria uma instância de AgeRating a partir de uma string, sem validação.
    * Usado para hidratar objetos do banco de dados.
    *
