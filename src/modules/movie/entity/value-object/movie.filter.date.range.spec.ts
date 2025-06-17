@@ -67,6 +67,24 @@ describe('MovieFilterDateRange', () => {
       expect(result).toBeInvalidResultWithSingleFailure(FailureCode.DATE_RANGE_TOO_LARGE)
     })
 
+    describe('deve falhar quando valores forem nulos', () => {
+      const cases = [
+        { scenario: 'quando start date for nulo', startDate: null as any, endDate: DateHelper.soon(10) },
+        { scenario: 'quando end date for nulo', startDate: DateHelper.soon(10), endDate: null as any },
+        { scenario: 'quando start & start date for nulo', startDate: null as any, endDate: null as any },
+      ]
+
+      cases.forEach(({ scenario, startDate, endDate }) => {
+        it(scenario, () => {
+          // Act
+          const result = MovieFilterDateRange.create(startDate, endDate)
+
+          // Assert
+          expect(result).toBeInvalidResult()
+        })
+      })
+    })
+
     it('deve retornar result de falha com múltiplas falhas', () => {
       // Arrange
       const pastDate = DateHelper.recent(1)

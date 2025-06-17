@@ -50,7 +50,7 @@ export class MovieFilterDateRange {
                 .isBefore(maxEndDate)
           })
           .fold((result) => {
-            onFailure: result
+            onFailure: (failures) => failure(failures)
             onSuccess: new MovieFilterDateRange(startDate, endDate)
           })*/
 
@@ -62,16 +62,19 @@ export class MovieFilterDateRange {
         const maxEndDate = DateHelper.addDays(this.MAX_FUTURE_DAYS, today)
         Validate.date({ endDate }, failures)
           .isRequired()
-          .isAfter(startDate, () =>
-            FailureFactory.DATE_WITH_INVALID_SEQUENCE(
-              DateHelper.formatDateToISOString(startDate),
-              DateHelper.formatDateToISOString(endDate)
-            )
-          )
-          .isBefore(maxEndDate)
-          .isBefore(DateHelper.addDays(MovieFilterDateRange.MAX_DATE_RANGE_DAYS, startDate), () =>
-            FailureFactory.DATE_RANGE_TOO_LARGE(MovieFilterDateRange.MAX_DATE_RANGE_DAYS)
-          )
+          .when(endDate != null, () => {
+            Validate.date({ endDate }, failures)
+              .isAfter(startDate, () =>
+                FailureFactory.DATE_WITH_INVALID_SEQUENCE(
+                  DateHelper.formatDateToISOString(startDate),
+                  DateHelper.formatDateToISOString(endDate)
+                )
+              )
+              .isBefore(maxEndDate)
+              .isBefore(DateHelper.addDays(MovieFilterDateRange.MAX_DATE_RANGE_DAYS, startDate), () =>
+                FailureFactory.DATE_RANGE_TOO_LARGE(MovieFilterDateRange.MAX_DATE_RANGE_DAYS)
+              )
+          })
       })
 
     return failures.length > 0 ? failure(failures) : success(new MovieFilterDateRange(startDate, endDate))
