@@ -2,8 +2,8 @@ import { Result } from '@shared/result/result'
 import { Movie, ICreateMovieInput } from '../entity/movie'
 import { IMovieFilterInput } from '../entity/value-object/movie.filter'
 import { IMovieWithRelations } from '../repository/movie.repository.interface'
-import { IMultilingualInput } from '@shared/value-object/multilingual-content'
 import { IMovieContributorInput } from '@modules/movie/entity/value-object/movie.contributor'
+import { ILanguageContentInput } from '@/shared/value-object/language-content/language.content.input.interface'
 
 /**
  * Interface para o serviço de aplicação de filmes.
@@ -83,7 +83,7 @@ export interface IMovieApplicationService {
    * @param title - Novo título multilíngue
    * @returns Result<Movie> - Um Result contendo o filme atualizado ou falhas
    */
-  updateTitle(uid: string, title: IMultilingualInput[]): Promise<Result<Movie>>
+  updateTitle(uid: string, title: ILanguageContentInput[]): Promise<Result<Movie>>
 
   /**
    * Atualiza a descrição do filme.
@@ -92,7 +92,7 @@ export interface IMovieApplicationService {
    * @param description - Nova descrição multilíngue
    * @returns Result<Movie> - Um Result contendo o filme atualizado ou falhas
    */
-  updateDescription(uid: string, description: IMultilingualInput[]): Promise<Result<Movie>>
+  updateDescription(uid: string, description: ILanguageContentInput[]): Promise<Result<Movie>>
 
   /**
    * Define ou atualiza a duração do filme.
