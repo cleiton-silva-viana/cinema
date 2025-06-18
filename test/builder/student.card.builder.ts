@@ -1,4 +1,4 @@
-import { IStudentCardCommand } from '@modules/customer/interfaces/customer.command.interface'
+import { IStudentCardCommand } from '@modules/customer/interface/customer.command.interface'
 import { StudentCard } from '@modules/customer/entity/value-object/student-card'
 import { faker } from '@faker-js/faker'
 import { DateHelper } from '@shared/helper/date.helper'
