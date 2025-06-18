@@ -1,76 +1,42 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { v4, v7 } from 'uuid'
 import { IMovieRepository, IMovieWithRelations } from '../repository/movie.repository.interface'
-import { MovieUID } from '../entity/value-object/movie.uid'
-import { ICreateMovieInput, Movie } from '../entity/movie'
-import { IMovieFilterInput, MovieFilter } from '../entity/value-object/movie.filter'
-import { failure, success } from '@shared/result/result'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { MovieApplicationService } from '@modules/movie/service/movie.application.service'
-import { validateAndCollect } from '@shared/validator/common.validators'
-import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { MOVIE_REPOSITORY } from '@modules/movie/constant/movie.constant'
-import { IMultilingualInput } from '@shared/value-object/multilingual-content'
+import { CloneTestMovieWithOverrides, CreateTestMovie, CreateTestMovieWithRelations } from '@test/builder/movie.builder'
+import { CreateTestContributorInput } from '@test/builder/contributor.builder'
+import { IMovieFilterInput, MovieFilter } from '@modules/movie/entity/value-object/movie.filter'
+import { ICreateMovieInput, Movie } from '@modules/movie/entity/movie'
+import { SimpleFailure } from '@shared/failure/simple.failure.type'
+import { failure, success } from '@/shared/result/result'
+import { DateHelper } from '@shared/helper/date.helper'
+import { ImageUID } from '@modules/image/entity/value-object/image.uid'
+import { CreateMultilingualTextContent } from '@test/builder/muiltilignual.content.builder'
+import { AgeRating } from '@modules/movie/type/age.rating'
+import { MovieAdministrativeStatusEnum } from '@modules/movie/type/movie.administrative.status'
+import { ILanguageContent } from '@/shared/value-object/language-content/language.content.interface'
+import { SupportedLanguageEnum } from '@shared/value-object/language-content/supported.language.enum'
 import { faker } from '@faker-js/faker'
-import { Person } from '@modules/person/entity/person'
-import { Image } from '@modules/image/entity/image'
 
 describe('MovieApplicationService - Testes de Integração', () => {
+  const mockError = new Error('error para testes')
+  const mockMovie = CreateTestMovie()
+  const mockSimpleFailure: SimpleFailure = { code: FailureCode.INVALID_ENUM_VALUE }
+  const mockFilterInstance = {
+    genre: ['ACTION'],
+    ageRating: 'L',
+    dateRange: {
+      startDate: DateHelper.soon(1),
+      endDate: DateHelper.soon(7),
+    },
+  } as unknown as MovieFilter
+  const mockFilterInput = { ...mockFilterInstance } as unknown as IMovieFilterInput
+
   let movieService: MovieApplicationService
   let repositoryMock: jest.Mocked<IMovieRepository>
-  let movieMock: jest.Mocked<Movie>
-  let validMovieUID: MovieUID
-  let failures: SimpleFailure[]
   let module: TestingModule
 
-  const validCreateInput: ICreateMovieInput = {
-    title: [
-      { language: 'pt', text: faker.lorem.sentence({ min: 3, max: 6 }) },
-      { language: 'en', text: faker.lorem.sentence({ min: 3, max: 6 }) },
-    ],
-    description: [
-      { language: 'pt', text: faker.lorem.paragraphs({ min: 2, max: 4 }) },
-      { language: 'en', text: faker.lorem.paragraphs({ min: 2, max: 4 }) },
-    ],
-    ageRating: '12',
-    imageUID: 'IMG.' + v7(),
-    contributors: [
-      { personUID: 'PERSON.' + v7(), role: 'director' },
-      { personUID: 'PERSON.' + v7(), role: 'actor' },
-    ],
-    durationInMinutes: 123,
-  }
-
-  const validFilters: IMovieFilterInput = {
-    genres: ['ACTION', 'COMEDY'],
-    ageRating: '12',
-  }
-
-  const movieWithRelationsMock: IMovieWithRelations = {
-    movie: {} as Movie,
-    image: Image.hydrate({
-      uid: v4(),
-      title: {
-        text: faker.lorem.sentence({ min: 3, max: 6 }),
-        language: 'en',
-      },
-      description: {
-        text: faker.lorem.paragraphs({ min: 2, max: 4 }),
-        language: 'en',
-      },
-      sizes: {
-        small: faker.image.url(),
-        normal: faker.image.url(),
-        large: faker.image.url(),
-      },
-    }),
-    contributors: [Person.hydrate(v4(), faker.person.firstName(), faker.date.birthdate())],
-  }
-
   beforeEach(async () => {
-    failures = []
-    validMovieUID = MovieUID.create()
-
     repositoryMock = {
       findById: jest.fn(),
       findByIdWithRelations: jest.fn(),
@@ -80,27 +46,6 @@ describe('MovieApplicationService - Testes de Integração', () => {
       update: jest.fn(),
       delete: jest.fn(),
     } as jest.Mocked<IMovieRepository>
-
-    movieMock = {
-      uid: validMovieUID,
-      title: validCreateInput.title,
-      description: validCreateInput.description,
-      ageRating: validCreateInput.ageRating,
-      status: 'DRAFT',
-      toPendingReview: jest.fn(),
-      toApprove: jest.fn(),
-      toArchive: jest.fn(),
-      updateTitle: jest.fn(),
-      updateDescription: jest.fn(),
-      setDuration: jest.fn(),
-      removeDuration: jest.fn(),
-      updateAgeRating: jest.fn(),
-      setGenres: jest.fn(),
-      removeGenres: jest.fn(),
-      updatePosterImage: jest.fn(),
-      setDisplayPeriod: jest.fn(),
-      removeDisplayPeriod: jest.fn(),
-    } as unknown as jest.Mocked<Movie>
 
     module = await Test.createTestingModule({
       providers: [
@@ -124,74 +69,71 @@ describe('MovieApplicationService - Testes de Integração', () => {
   describe('findById', () => {
     it('deve retornar um filme quando encontrado pelo UID válido', async () => {
       // Arrange
-      repositoryMock.findById.mockResolvedValue(movieMock)
+      repositoryMock.findById.mockResolvedValue(mockMovie)
 
       // Act
-      const result = validateAndCollect(await movieService.findById(validMovieUID.value), failures)
+      const result = await movieService.findById(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(movieMock)
       expect(repositoryMock.findById).toHaveBeenCalledTimes(1)
-      expect(repositoryMock.findById).toHaveBeenCalledWith(validMovieUID)
-      expect(failures).toHaveLength(0)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(result).toBeValidResultWithValue(mockMovie)
     })
 
-    it('deve retornar failure quando UID for inválido', async () => {
+    it('deve retornar falha quando UID for inválido', async () => {
       // Arrange
       const invalidUID = 'uid-inválido'
 
       // Act
-      const result = validateAndCollect(await movieService.findById(invalidUID), failures)
+      const result = await movieService.findById(invalidUID)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toHaveLength(1)
-      expect(failures[0].code).toBe(FailureCode.UID_WITH_INVALID_FORMAT)
       expect(repositoryMock.findById).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.UID_WITH_INVALID_FORMAT)
     })
 
-    it('deve retornar failure quando filme não existir', async () => {
+    it('deve retornar falha quando filme não existir', async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(null)
 
       // Act
-      const result = validateAndCollect(await movieService.findById(validMovieUID.value), failures)
+      const result = await movieService.findById(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toHaveLength(1)
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
-      expect(repositoryMock.findById).toHaveBeenCalledWith(validMovieUID)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
 
     it('deve propagar erro do repositório', async () => {
       // Arrange
-      const repositoryError = new Error('Erro de conexão com banco')
-      repositoryMock.findById.mockRejectedValue(repositoryError)
+      repositoryMock.findById.mockRejectedValue(mockError)
 
       // Act & Assert
-      await expect(movieService.findById(validMovieUID.value)).rejects.toThrow(repositoryError)
-      expect(repositoryMock.findById).toHaveBeenCalledWith(validMovieUID)
+      await expect(movieService.findById(mockMovie.uid.value)).rejects.toThrow(mockError)
+
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
     })
   })
 
   describe('findByIdWithRelations', () => {
     it('deve retornar filme com relacionamentos quando encontrado', async () => {
       // Arrange
-      repositoryMock.findByIdWithRelations.mockResolvedValue(movieWithRelationsMock)
+      const movieWithRelations = CreateTestMovieWithRelations({
+        contributos: [CreateTestContributorInput(), CreateTestContributorInput()],
+      })
+      repositoryMock.findByIdWithRelations.mockResolvedValue(movieWithRelations)
 
       // Act
-      const result = validateAndCollect(await movieService.findByIdWithRelations(validMovieUID.value), failures)
+      const result = await movieService.findByIdWithRelations(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(movieWithRelationsMock)
-      expect(result.movie).toBeDefined()
-      expect(result.image).toBeDefined()
-      expect(result.contributors).toHaveLength(1)
-      expect(repositoryMock.findByIdWithRelations).toHaveBeenCalledWith(validMovieUID)
-      expect(repositoryMock.findByIdWithRelations).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findByIdWithRelations).toHaveBeenCalledWith(mockMovie.uid)
+      expect(result).toBeValidResultWithValue(movieWithRelations)
+      expect(result).toBeValidResultMatching<IMovieWithRelations>((m) => {
+        expect(m.movie).toBeDefined()
+        expect(m.image).toBeDefined()
+        expect(m.contributors).toHaveLength(2)
+      })
     })
 
     it('deve retornar failure quando UID for inválido', async () => {
@@ -199,12 +141,11 @@ describe('MovieApplicationService - Testes de Integração', () => {
       const invalidUID = 'uid-invalido'
 
       // Act
-      const result = validateAndCollect(await movieService.findByIdWithRelations(invalidUID), failures)
+      const result = await movieService.findByIdWithRelations(invalidUID)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.UID_WITH_INVALID_FORMAT)
       expect(repositoryMock.findByIdWithRelations).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.UID_WITH_INVALID_FORMAT)
     })
 
     it('deve retornar failure quando filme não existir', async () => {
@@ -212,602 +153,825 @@ describe('MovieApplicationService - Testes de Integração', () => {
       repositoryMock.findByIdWithRelations.mockResolvedValue(null)
 
       // Act
-      const result = validateAndCollect(await movieService.findByIdWithRelations(validMovieUID.value), failures)
+      const result = await movieService.findByIdWithRelations(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
-      expect(repositoryMock.findByIdWithRelations).toHaveBeenCalledWith(validMovieUID)
-      expect(repositoryMock.findByIdWithRelations).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findByIdWithRelations).toHaveBeenCalledWith(mockMovie.uid)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
 
     it('deve propagar erro do repositório', async () => {
-      const repositoryError = new Error('Erro de conexão')
-      repositoryMock.findByIdWithRelations.mockRejectedValue(repositoryError)
-      await expect(movieService.findByIdWithRelations(validMovieUID.value)).rejects.toThrow(repositoryError)
+      // Arrange
+      repositoryMock.findByIdWithRelations.mockRejectedValue(mockError)
+
+      // Act & Assert
+      await expect(movieService.findByIdWithRelations(mockMovie.uid.value)).rejects.toThrow(mockError)
     })
   })
 
   describe('findMany', () => {
     it('deve retornar lista de filmes quando filtros são válidos', async () => {
       // Arrange
-      const movies = [movieMock, { ...movieMock, uid: MovieUID.create() } as unknown as Movie]
-      const filterInstance = MovieFilter.create(validFilters)
-      jest.spyOn(MovieFilter, 'create').mockReturnValue(filterInstance)
-      repositoryMock.findMany.mockResolvedValue(movies)
+      const mockMovies = [CreateTestMovie(), CreateTestMovie()]
+      jest.spyOn(MovieFilter, 'create').mockReturnValue(success(mockFilterInstance))
+      repositoryMock.findMany.mockResolvedValue(mockMovies)
 
       // Act
-      const result = validateAndCollect(await movieService.findMany(validFilters), failures)
+      const result = await movieService.findMany(mockFilterInput)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toHaveLength(2)
-      expect(result).toEqual(movies)
-      expect(MovieFilter.create).toHaveBeenCalledWith(validFilters)
-      expect(MovieFilter.create).toHaveBeenCalledTimes(1)
-      expect(repositoryMock.findMany).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findMany).toHaveBeenCalledWith(mockFilterInstance)
+      expect(MovieFilter.create).toHaveBeenCalledWith(mockFilterInput)
+      expect(result).toBeValidResultMatching<Movie[]>((m) => {
+        expect(m).toHaveLength(2)
+        expect(m).toEqual(mockMovies)
+      })
     })
 
     it('deve retornar lista vazia quando nenhum filme corresponder aos filtros', async () => {
       // Arrange
+      jest.spyOn(MovieFilter, 'create').mockReturnValue(success(mockFilterInstance))
       repositoryMock.findMany.mockResolvedValue([])
 
       // Act
-      const result = validateAndCollect(await movieService.findMany(validFilters), failures)
+      const result = await movieService.findMany(mockFilterInput)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toHaveLength(0)
-      expect(repositoryMock.findMany).toHaveBeenCalledTimes(1)
+      expect(MovieFilter.create).toHaveBeenCalledWith(mockFilterInput)
+      expect(repositoryMock.findMany).toHaveBeenCalledWith(mockFilterInstance)
+      expect(result).toBeValidResultMatching<Movie[]>((m) => {
+        expect(m).toHaveLength(0)
+      })
     })
 
     it('deve retornar failure quando validação dos filtros falhar', async () => {
       // Arrange
-      const filterFailures = [{ code: FailureCode.INVALID_ENUM_VALUE }]
-      jest.spyOn(MovieFilter, 'create').mockReturnValue(failure(filterFailures))
+      jest.spyOn(MovieFilter, 'create').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(await movieService.findMany(validFilters), failures)
+      const result = await movieService.findMany(mockFilterInput)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(filterFailures)
-      expect(MovieFilter.create).toHaveBeenCalledWith(validFilters)
-      expect(MovieFilter.create).toHaveBeenCalledTimes(1)
       expect(repositoryMock.findMany).not.toHaveBeenCalled()
+      expect(MovieFilter.create).toHaveBeenCalledWith(mockFilterInput)
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve propagar erro n o repositório', () => {
+      // Arrange
+      jest.spyOn(MovieFilter, 'create').mockReturnValue(success(mockFilterInstance))
+      repositoryMock.findMany.mockRejectedValue(mockError)
+
+      // Act & assert
+      expect(() => movieService.findMany(mockFilterInput)).rejects.toThrow(mockError)
+      expect(MovieFilter.create).toHaveBeenCalledWith(mockFilterInput)
     })
   })
 
   describe('findManyWithRelations', () => {
     it('deve retornar lista de filmes com relacionamentos', async () => {
       // Arrange
-      const moviesWithRelations = [movieWithRelationsMock]
-      repositoryMock.findManyWithRelations.mockResolvedValue(moviesWithRelations)
-
-      const filterInstance = MovieFilter.create(validFilters) as MovieFilter
-      jest.spyOn(MovieFilter, 'create').mockReturnValue(success(filterInstance))
+      const mockMoviesWithRelations = [CreateTestMovieWithRelations({ contributos: [CreateTestContributorInput()] })]
+      repositoryMock.findManyWithRelations.mockResolvedValue(mockMoviesWithRelations)
+      jest.spyOn(MovieFilter, 'create').mockReturnValue(success(mockFilterInstance))
 
       // Act
-      const result = validateAndCollect(await movieService.findManyWithRelations(validFilters), failures)
+      const result = await movieService.findManyWithRelations(mockFilterInput)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toHaveLength(1)
-      expect(result[0].movie).toBeDefined()
-      expect(result[0].image).toBeDefined()
-      expect(result[0].contributors).toBeDefined()
-      expect(MovieFilter.create).toHaveBeenCalledWith(validFilters)
-      expect(MovieFilter.create).toHaveBeenCalledTimes(1)
-      expect(repositoryMock.findManyWithRelations).toHaveBeenCalledTimes(1)
-      expect(repositoryMock.findManyWithRelations).toHaveBeenCalledWith(filterInstance)
+      expect(MovieFilter.create).toHaveBeenCalledWith(mockFilterInput)
+      expect(repositoryMock.findManyWithRelations).toHaveBeenCalledWith(mockFilterInstance)
+      expect(result).toBeValidResultMatching<IMovieWithRelations[]>((m) => {
+        expect(m).toEqual(mockMoviesWithRelations)
+      })
     })
 
     it('deve retornar lista vazia quando nenhum filme com relacionamentos corresponder', async () => {
       // Arrange
       repositoryMock.findManyWithRelations.mockResolvedValue([])
+      jest.spyOn(MovieFilter, 'create').mockReturnValue(success(mockFilterInstance))
 
       // Act
-      const result = validateAndCollect(await movieService.findManyWithRelations(validFilters), failures)
+      const result = await movieService.findManyWithRelations(mockFilterInput)
 
       // Assert
-      expect(result).toEqual([])
+      expect(MovieFilter.create).toHaveBeenCalledWith(mockFilterInput)
+      expect(repositoryMock.findManyWithRelations).toBeCalledWith(mockFilterInstance)
+      expect(result).toBeValidResultMatching<Array<IMovieWithRelations>>((arr) => arr.length === 0)
     })
 
     it('deve retornar failure quando validação dos filtros falhar', async () => {
       // Arrange
-      const invalidFilters = { ...validFilters, ageRating: 'INVALID_AGE' }
+      jest.spyOn(MovieFilter, 'create').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(await movieService.findManyWithRelations(invalidFilters), failures)
+      const result = await movieService.findManyWithRelations(mockFilterInput)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.INVALID_ENUM_VALUE)
+      expect(MovieFilter.create).toHaveBeenCalledWith(mockFilterInput)
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
     })
 
     it('deve propagar erro do repositório', async () => {
       // Arrange
-      const repositoryError = new Error('Erro de conexão')
-      repositoryMock.findManyWithRelations.mockRejectedValue(repositoryError)
+      jest.spyOn(MovieFilter, 'create').mockReturnValue(success(mockFilterInstance))
+      repositoryMock.findManyWithRelations.mockRejectedValue(mockError)
 
       // Act & Assert
-      await expect(movieService.findManyWithRelations(validFilters)).rejects.toThrow(repositoryError)
+      await expect(movieService.findManyWithRelations(mockFilterInput)).rejects.toThrow(mockError)
+      expect(MovieFilter.create).toHaveBeenCalledWith(mockFilterInput)
     })
   })
 
   describe('create', () => {
+    const input: ICreateMovieInput = {
+      imageUID: ImageUID.create().value,
+      title: CreateMultilingualTextContent(),
+      description: CreateMultilingualTextContent(),
+      ageRating: AgeRating.L,
+      contributors: [CreateTestContributorInput(), CreateTestContributorInput()],
+      durationInMinutes: 120,
+    }
+
     it('deve criar filme com sucesso quando dados são válidos', async () => {
       // Arrange
-      jest.spyOn(Movie, 'create').mockReturnValue(success(movieMock))
-      repositoryMock.save.mockResolvedValue(movieMock)
+      jest.spyOn(Movie, 'create').mockReturnValue(success(mockMovie))
+      repositoryMock.save.mockResolvedValue(mockMovie)
 
       // Act
-      const result = validateAndCollect(await movieService.create(validCreateInput), failures)
+      const result = await movieService.create(input)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(movieMock)
-      expect(Movie.create).toHaveBeenCalledWith(validCreateInput)
-      expect(repositoryMock.save).toHaveBeenCalledWith(movieMock)
-      expect(repositoryMock.save).toHaveBeenCalledTimes(1)
-      expect(failures).toHaveLength(0)
+      expect(Movie.create).toHaveBeenCalledWith(input)
+      expect(repositoryMock.save).toHaveBeenCalledWith(mockMovie)
+      expect(result).toBeValidResultWithValue(mockMovie)
     })
 
-    it('deve retornar failure quando input for null', async () => {
-      // Act
-      const result = validateAndCollect(await movieService.create(null as any), failures)
-
-      // Assert
-      expect(result).toBeNull()
-      expect(failures).toHaveLength(1)
-      expect(failures[0].code).toBe(FailureCode.MISSING_REQUIRED_DATA)
-      expect(repositoryMock.save).not.toHaveBeenCalled()
-    })
-
-    it('deve retornar failure quando validação da entidade falhar', async () => {
+    it('deve retornar falha quando inputs forem inválidos', async () => {
       // Arrange
-      const entityFailures = [{ code: FailureCode.UID_WITH_INVALID_FORMAT }]
-      jest.spyOn(Movie, 'create').mockReturnValue(failure(entityFailures))
+      jest.spyOn(Movie, 'create').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(await movieService.create(validCreateInput), failures)
+      const result = await movieService.create(input)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(entityFailures)
+      expect(Movie.create).toHaveBeenCalledWith(input)
       expect(repositoryMock.save).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve retornar falha quando parâmetros obrigatórios são nulos ou indefinidos', async () => {
+      // Act
+      const result = await movieService.create(null as any)
+
+      // Assert
+      expect(repositoryMock.save).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.MISSING_REQUIRED_DATA)
     })
 
     it('deve propagar erro do repositório durante save', async () => {
       // Arrange
-      jest.spyOn(Movie, 'create').mockReturnValue(success(movieMock))
-      const saveError = new Error('Erro ao salvar no banco')
-      repositoryMock.save.mockRejectedValue(saveError)
+      jest.spyOn(Movie, 'create').mockReturnValue(success(mockMovie))
+      repositoryMock.save.mockRejectedValue(mockError)
 
       // Act & Assert
-      await expect(movieService.create(validCreateInput)).rejects.toThrow(saveError)
+      await expect(movieService.create({} as any)).rejects.toThrow(mockError)
     })
   })
 
   describe('submitForReview', () => {
     it('deve enviar filme para revisão com sucesso', async () => {
       // Arrange
-      const pendingReviewMovie = { ...movieMock, status: 'PENDING_REVIEW' } as unknown as Movie
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toPendingReview.mockReturnValue(success(pendingReviewMovie))
-      repositoryMock.update.mockResolvedValue(pendingReviewMovie)
+      const pendingReviewMovie = CloneTestMovieWithOverrides(mockMovie, {
+        status: MovieAdministrativeStatusEnum.PENDING_REVIEW,
+      })
+      const savedMovieInRepository = CloneTestMovieWithOverrides(pendingReviewMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie) // status = DRAFT por padrão
+      jest.spyOn(mockMovie, 'toPendingReview').mockReturnValue(success(pendingReviewMovie))
+      repositoryMock.update.mockResolvedValue(savedMovieInRepository) // espera-se que retorne um objeto igual ao enviado...
 
       // Act
-      const result = validateAndCollect(await movieService.submitForReview(validMovieUID.value), failures)
+      const result = await movieService.submitForReview(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(pendingReviewMovie)
-      expect(movieMock.toPendingReview).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.toPendingReview).toHaveBeenCalled()
       expect(repositoryMock.update).toHaveBeenCalledWith(pendingReviewMovie)
-      expect(repositoryMock.update).toHaveBeenCalledTimes(1)
+      expect(result).toBeValidResultWithValue(savedMovieInRepository) // deve retornar uma instância de objeto semelhante...
     })
 
-    it('deve retornar failure quando filme não for encontrado', async () => {
+    it('deve retornar falha quando filme não for encontrado', async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(null)
 
       // Act
-      const result = validateAndCollect(await movieService.submitForReview(validMovieUID.value), failures)
+      const result = await movieService.submitForReview(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
       expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
 
-    it('deve retornar failure quando transição de estado falhar', async () => {
+    it('deve retornar falha quando transição de estado falhar', async () => {
       // Arrange
-      const transitionFailures = [{ code: FailureCode.MOVIE_ALREADY_APPROVED }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toPendingReview.mockReturnValue(failure(transitionFailures))
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'toPendingReview').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(await movieService.submitForReview(validMovieUID.value), failures)
+      const result = await movieService.submitForReview(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(transitionFailures)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
       expect(repositoryMock.update).not.toHaveBeenCalled()
-    })
-
-    it('deve retornar failure quando transição de estado toPendingReview falhar', async () => {
-      // Arrange
-      const transitionFailures = [{ code: FailureCode.MOVIE_ALREADY_APPROVED }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toPendingReview.mockReturnValue(failure(transitionFailures))
-
-      // Act
-      const result = validateAndCollect(await movieService.submitForReview(validMovieUID.value), failures)
-
-      // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(transitionFailures)
-      expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
     })
 
     it('deve propagar erro do repositório durante update', async () => {
       // Arrange
-      const updateError = new Error('Erro ao atualizar')
-      const pendingReviewMovie = { ...movieMock, status: 'PENDING_REVIEW' } as unknown as Movie
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toPendingReview.mockReturnValue(success(pendingReviewMovie))
-      repositoryMock.update.mockRejectedValue(updateError)
+      const mockUpdatedMovie = CloneTestMovieWithOverrides(mockMovie, {
+        status: MovieAdministrativeStatusEnum.PENDING_REVIEW,
+      })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'toPendingReview').mockReturnValue(success(mockUpdatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
 
-      await expect(movieService.submitForReview(validMovieUID.value)).rejects.toThrow(updateError)
+      // Act & Assert
+      await expect(movieService.submitForReview(mockMovie.uid.value)).rejects.toThrow(mockError)
     })
   })
 
-  describe('approve', () => {
+  describe('toApprove', () => {
     it('deve aprovar filme com sucesso', async () => {
       // Arrange
-      const approvedMovie = { ...movieMock, status: 'APPROVED' } as unknown as Movie
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toApprove.mockReturnValue(success(approvedMovie))
-      repositoryMock.update.mockResolvedValue(approvedMovie)
+      const approvedMovie = CloneTestMovieWithOverrides(mockMovie, { status: MovieAdministrativeStatusEnum.APPROVED })
+      const mockUpdatedMovieRepository = CloneTestMovieWithOverrides(approvedMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'toApprove').mockReturnValue(success(approvedMovie))
+      repositoryMock.update.mockResolvedValue(mockUpdatedMovieRepository)
 
       // Act
-      const result = validateAndCollect(await movieService.approve(validMovieUID.value), failures)
+      const result = await movieService.approve(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(approvedMovie)
-      expect(movieMock.toApprove).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.toApprove).toHaveBeenCalled()
       expect(repositoryMock.update).toHaveBeenCalledWith(approvedMovie)
+      expect(result).toBeValidResultWithValue(mockUpdatedMovieRepository)
     })
 
-    it('deve retornar failure quando aprovação falhar por regras de negócio', async () => {
+    it('deve retornar falha quando aprovação falhar por regras de negócio', async () => {
       // Arrange
-      const approvalFailures = [{ code: FailureCode.MOVIE_MISSING_CONTRIBUTORS }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toApprove.mockReturnValue(failure(approvalFailures))
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'toApprove').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(await movieService.approve(validMovieUID.value), failures)
+      const result = await movieService.approve(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(approvalFailures)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
       expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
     })
 
-    it('deve retornar failure quando filme não for encontrado', async () => {
+    it('deve retornar falha quando filme não for encontrado', async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(null)
 
       // Act
-      const result = validateAndCollect(await movieService.approve(validMovieUID.value), failures)
+      const result = await movieService.approve(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
 
-    it('deve retornar failure quando transição de estado toApprove falhar', async () => {
+    it('deve propagar erros lançados no repositório', async () => {
       // Arrange
-      const transitionFailures = [{ code: FailureCode.MOVIE_ALREADY_APPROVED }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toApprove.mockReturnValue(failure(transitionFailures))
+      const approvedMovie = CloneTestMovieWithOverrides(mockMovie, { status: MovieAdministrativeStatusEnum.APPROVED })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'toApprove').mockReturnValue(success(approvedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
 
-      // Act
-      const result = validateAndCollect(await movieService.approve(validMovieUID.value), failures)
-
-      // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(transitionFailures)
+      // Act & Assert
+      await expect(() => movieService.approve(mockMovie.uid.value)).rejects.toThrow(mockError)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
     })
   })
 
-  describe('archive', () => {
+  describe('toArchive', () => {
     it('deve arquivar filme com sucesso', async () => {
       // Arrange
-      const archivedMovie = { ...movieMock, status: 'ARCHIVED' } as unknown as Movie
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toArchive.mockReturnValue(success(archivedMovie))
-      repositoryMock.update.mockResolvedValue(archivedMovie)
+      const archivedMovie = CloneTestMovieWithOverrides(mockMovie, { status: MovieAdministrativeStatusEnum.ARCHIVED })
+      const archivedMovieRepository = CloneTestMovieWithOverrides(archivedMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'toArchive').mockReturnValue(success(archivedMovie))
+      repositoryMock.update.mockResolvedValue(archivedMovieRepository)
 
       // Act
-      const result = validateAndCollect(await movieService.archive(validMovieUID.value), failures)
+      const result = await movieService.archive(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(archivedMovie)
-      expect(movieMock.toArchive).toHaveBeenCalledTimes(1)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.toArchive).toHaveBeenCalled()
       expect(repositoryMock.update).toHaveBeenCalledWith(archivedMovie)
+      expect(result).toBeValidResultWithValue(archivedMovieRepository)
     })
 
-    it('deve retornar failure quando arquivamento falhar', async () => {
+    it('deve retornar falha quando arquivamento falhar', async () => {
       // Arrange
-      const archiveFailures = [{ code: FailureCode.MOVIE_ALREADY_APPROVED }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toArchive.mockReturnValue(failure(archiveFailures))
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'toArchive').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(await movieService.archive(validMovieUID.value), failures)
+      const result = await movieService.archive(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(archiveFailures)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.toArchive).toHaveBeenCalled()
       expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
     })
 
-    it('deve retornar failure quando filme não for encontrado', async () => {
+    it('deve retornar falha quando filme não for encontrado', async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(null)
 
       // Act
-      const result = validateAndCollect(await movieService.archive(validMovieUID.value), failures)
+      const result = await movieService.archive(mockMovie.uid.value)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
     })
 
-    it('deve retornar failure quando transição de estado toArchive falhar', async () => {
+    it('deve propagar erros', async () => {
       // Arrange
-      const transitionFailures = [{ code: FailureCode.MOVIE_ALREADY_APPROVED }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toArchive.mockReturnValue(failure(transitionFailures))
+      const archivedMovie = CloneTestMovieWithOverrides(mockMovie, { status: MovieAdministrativeStatusEnum.ARCHIVED })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'toArchive').mockReturnValue(success(archivedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
 
-      // Act
-      const result = validateAndCollect(await movieService.archive(validMovieUID.value), failures)
-
-      // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(transitionFailures)
+      // Act & Assert
+      await expect(() => movieService.archive(mockMovie.uid.value)).rejects.toThrow(mockError)
     })
   })
 
   describe('updateTitle', () => {
-    const newTitle: IMultilingualInput[] = [
-      { language: 'pt', text: 'Novo Título' },
-      { language: 'en', text: 'New Title' },
-    ]
+    const mockNewTitle: ILanguageContent = {
+      text: 'New Movie Title for Testing',
+      language: SupportedLanguageEnum.EN,
+    }
+    const newTitle = CreateMultilingualTextContent()
 
     it('deve atualizar título com sucesso', async () => {
       // Arrange
-      const updatedMovie = { ...movieMock, title: newTitle } as unknown as Movie
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.updateTitle.mockReturnValue(success(updatedMovie))
-      repositoryMock.update.mockResolvedValue(updatedMovie)
+      const updatedMovie = CreateTestMovie({ title: mockNewTitle })
+      const updatedMovieRepository = CreateTestMovie({ title: mockNewTitle })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateTitle').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockResolvedValue(updatedMovieRepository)
 
       // Act
-      const result = validateAndCollect(await movieService.updateTitle(validMovieUID.value, newTitle), failures)
+      const result = await movieService.updateTitle(mockMovie.uid.value, newTitle)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(updatedMovie)
-      expect(movieMock.updateTitle).toHaveBeenCalledWith(newTitle)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updateTitle).toHaveBeenCalledWith(newTitle)
       expect(repositoryMock.update).toHaveBeenCalledWith(updatedMovie)
+      expect(result).toBeValidResultWithValue(updatedMovieRepository)
     })
 
     it('deve retornar failure quando título for inválido', async () => {
       // Arrange
-      const titleFailures = [{ code: FailureCode.MISSING_REQUIRED_DATA }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.updateTitle.mockReturnValue(failure(titleFailures))
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateTitle').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(await movieService.updateTitle(validMovieUID.value, newTitle), failures)
+      const result = await movieService.updateTitle(mockMovie.uid.value, newTitle)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(titleFailures)
-      expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updateTitle).toHaveBeenCalledWith(newTitle)
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve propagar erro', async () => {
+      // Arrange
+      const updatedMovie = CreateTestMovie({ title: mockNewTitle })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateTitle').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
+
+      // Act & Assert
+      await expect(() => movieService.updateTitle(mockMovie.uid.value, newTitle)).rejects.toThrow(mockError)
     })
   })
 
   describe('updateDescription', () => {
-    const validDescriptionInput: IMultilingualInput[] = [{ language: 'pt', text: 'Nova descrição.' }]
+    const mockNewDescription: ILanguageContent = {
+      text: faker.lorem.words(15),
+      language: SupportedLanguageEnum.EN,
+    }
+    const newDescription = CreateMultilingualTextContent()
+
     it('deve atualizar a descrição com sucesso', async () => {
       // Arrange
-      const updatedMovie = { ...movieMock, description: validDescriptionInput } as unknown as Movie
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.updateDescription.mockReturnValue(success(updatedMovie))
-      repositoryMock.update.mockResolvedValue(updatedMovie)
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { description: mockNewDescription })
+      const updatedMovieRepository = CloneTestMovieWithOverrides(mockMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateDescription').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockResolvedValue(updatedMovieRepository)
 
       // Act
-      const result = validateAndCollect(
-        await movieService.updateDescription(validMovieUID.value, validDescriptionInput),
-        failures
-      )
+      const result = await movieService.updateDescription(mockMovie.uid.value, newDescription)
 
       // Assert
-      expect(result).toEqual(updatedMovie)
-      expect(movieMock.updateDescription).toHaveBeenCalledWith(validDescriptionInput)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updateDescription).toHaveBeenCalledWith(newDescription)
       expect(repositoryMock.update).toHaveBeenCalledWith(updatedMovie)
+      expect(result).toBeValidResultWithValue(updatedMovieRepository)
     })
 
     it('deve retornar failure quando Movie.updateDescription falhar', async () => {
       // Arrange
-      const updateFailures = [{ code: FailureCode.INVALID_ENUM_VALUE }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.updateDescription.mockReturnValue(failure(updateFailures))
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateDescription').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(
-        await movieService.updateDescription(validMovieUID.value, validDescriptionInput),
-        failures
-      )
+      const result = await movieService.updateDescription(mockMovie.uid.value, newDescription)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(updateFailures)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve propagar erro', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { description: mockNewDescription })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateDescription').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
+
+      // Act & Assert
+      await expect(() => movieService.updateDescription(mockMovie.uid.value, newDescription)).rejects.toThrow(mockError)
     })
   })
 
   describe('setDuration', () => {
+    const newDuration = 180
+
     it('deve definir duração com sucesso', async () => {
       // Arrange
-      const durationInMinutes = 180
-      const updatedMovie = { ...movieMock, duration: durationInMinutes } as unknown as Movie
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.setDuration.mockReturnValue(success(updatedMovie))
-      repositoryMock.update.mockResolvedValue(updatedMovie)
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { duration: newDuration })
+      const updatedMovieRepository = CloneTestMovieWithOverrides(updatedMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setDuration').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockResolvedValue(updatedMovieRepository)
 
       // Act
-      const result = validateAndCollect(
-        await movieService.setDuration(validMovieUID.value, durationInMinutes),
-        failures
-      )
+      const result = await movieService.setDuration(mockMovie.uid.value, newDuration)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(updatedMovie)
-      expect(movieMock.setDuration).toHaveBeenCalledWith(durationInMinutes)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.setDuration).toHaveBeenCalledWith(newDuration)
       expect(repositoryMock.update).toHaveBeenCalledWith(updatedMovie)
+      expect(result).toBeValidResultWithValue(updatedMovieRepository)
     })
 
-    it('deve retornar failure quando duração for inválida', async () => {
+    it('deve retornar falha quando duração for inválida', async () => {
       // Arrange
-      const invalidDuration = -10
-      const durationFailures = [{ code: FailureCode.UID_WITH_INVALID_FORMAT, message: 'Duração inválida' }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.setDuration.mockReturnValue(failure(durationFailures))
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setDuration').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(await movieService.setDuration(validMovieUID.value, invalidDuration), failures)
+      const result = await movieService.setDuration(mockMovie.uid.value, newDuration)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(durationFailures)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.setDuration).toHaveBeenCalledWith(newDuration)
       expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve retornar falha quando filme não for encontrado', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null)
+
+      // Act
+      const result = await movieService.setDuration(mockMovie.uid.value, newDuration)
+
+      // Assert
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
+    })
+
+    it('deve propagar erro', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { duration: newDuration })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setDuration').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
+
+      // Act & Assert
+      await expect(() => movieService.setDuration(mockMovie.uid.value, newDuration)).rejects.toThrow(mockError)
     })
   })
 
   describe('setDisplayPeriod', () => {
+    const startDate = DateHelper.soon(1)
+    const endDate = DateHelper.soon(30)
+
     it('deve definir período de exibição com sucesso', async () => {
       // Arrange
-      const startDate = new Date('2024-01-01')
-      const endDate = new Date('2024-12-31')
-      const updatedMovie = { ...movieMock } as unknown as Movie
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.setDisplayPeriod.mockReturnValue(success(updatedMovie))
-      repositoryMock.update.mockResolvedValue(updatedMovie)
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { displayPeriod: { startDate, endDate } })
+      const updatedMovieRepository = CloneTestMovieWithOverrides(updatedMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setDisplayPeriod').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockResolvedValue(updatedMovieRepository)
 
       // Act
-      const result = validateAndCollect(
-        await movieService.setDisplayPeriod(validMovieUID.value, startDate, endDate),
-        failures
-      )
+      const result = await movieService.setDisplayPeriod(mockMovie.uid.value, startDate, endDate)
 
       // Assert
-      expect(result).toBeDefined()
-      expect(result).toEqual(updatedMovie)
-      expect(movieMock.setDisplayPeriod).toHaveBeenCalledWith(startDate, endDate)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.setDisplayPeriod).toHaveBeenCalledWith(startDate, endDate)
       expect(repositoryMock.update).toHaveBeenCalledWith(updatedMovie)
+      expect(result).toBeValidResultWithValue(updatedMovieRepository)
     })
 
-    it('deve retornar failure quando período for inválido', async () => {
+    it('deve retornar falha quando período for inválido', async () => {
       // Arrange
-      const startDate = new Date('2024-12-31')
-      const endDate = new Date('2024-01-01') // Data final antes da inicial
-      const periodFailures = [{ code: FailureCode.MOVIE_MISSING_CONTRIBUTORS }]
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.setDisplayPeriod.mockReturnValue(failure(periodFailures))
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setDisplayPeriod').mockReturnValue(failure(mockSimpleFailure))
 
       // Act
-      const result = validateAndCollect(
-        await movieService.setDisplayPeriod(validMovieUID.value, startDate, endDate),
-        failures
-      )
+      const result = await movieService.setDisplayPeriod(mockMovie.uid.value, startDate, endDate)
 
       // Assert
-      expect(result).toBeNull()
-      expect(failures).toEqual(periodFailures)
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.setDisplayPeriod).toHaveBeenCalledWith(startDate, endDate)
       expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve retornar falha quando filme não for encontrado', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null)
+
+      // Act
+      const result = await movieService.setDisplayPeriod(mockMovie.uid.value, startDate, endDate)
+
+      // Assert
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
+    })
+
+    it('deve propagar erro', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { displayPeriod: { startDate, endDate } })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setDisplayPeriod').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
+
+      // Act & Assert
+      await expect(() => movieService.setDisplayPeriod(mockMovie.uid.value, startDate, endDate)).rejects.toThrow(
+        mockError
+      )
     })
   })
 
-  describe('cenários de erro genéricos para métodos de atualização', () => {
-    ;['updateTitle', 'updateDescription', 'setDuration', 'setDisplayPeriod', 'updateDescription'].forEach(
-      (methodName) => {
-        describe(`${methodName} - Cenários de Erro Comuns`, () => {
-          const dummyInput = methodName === 'setDuration' ? 100 : [] // Input apropriado para cada método
+  describe('updateAgeRating', () => {
+    const newAgeRating = AgeRating.Twelve
 
-          it('deve retornar failure quando filme não for encontrado', async () => {
-            repositoryMock.findById.mockResolvedValue(null)
-            const result = validateAndCollect(
-              await (movieService as any)[methodName](validMovieUID.value, dummyInput),
-              failures
-            )
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.RESOURCE_NOT_FOUND)
-          })
-
-          it('deve propagar erro do repositório durante update', async () => {
-            const updateError = new Error('Erro ao atualizar no DB')
-            repositoryMock.findById.mockResolvedValue(movieMock)
-            ;(movieMock as any)[methodName === 'setDuration' ? 'setDuration' : methodName].mockReturnValue(
-              success(movieMock)
-            ) // Simula sucesso da entidade
-            repositoryMock.update.mockRejectedValue(updateError)
-
-            await expect((movieService as any)[methodName](validMovieUID.value, dummyInput)).rejects.toThrow(
-              updateError
-            )
-          })
-
-          it('deve retornar failure quando UID for inválido', async () => {
-            // Arrange
-            const invalidUID = 'uid-invalido'
-
-            // Act
-            const result = validateAndCollect(await (movieService as any)[methodName](invalidUID, dummyInput), failures)
-
-            // Assert
-            expect(result).toBeNull()
-            expect(failures[0].code).toBe(FailureCode.UID_WITH_INVALID_FORMAT)
-          })
-        })
-      }
-    )
-  })
-
-  describe('Cenários de Erro Gerais', () => {
-    it('deve lidar com falha de conexão do repositório em operações de busca', async () => {
+    it('deve atualizar classificação etária com sucesso', async () => {
       // Arrange
-      const connectionError = new Error('Connection timeout')
-      repositoryMock.findById.mockRejectedValue(connectionError)
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { ageRating: newAgeRating })
+      const updatedMovieRepository = CloneTestMovieWithOverrides(updatedMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateAgeRating').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockResolvedValue(updatedMovieRepository)
 
-      // Act & Assert
-      await expect(movieService.findById(validMovieUID.value)).rejects.toThrow(connectionError)
+      // Act
+      const result = await movieService.updateAgeRating(mockMovie.uid.value, newAgeRating)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updateAgeRating).toHaveBeenCalledWith(newAgeRating)
+      expect(repositoryMock.update).toHaveBeenCalledWith(updatedMovie)
+      expect(result).toBeValidResultWithValue(updatedMovieRepository)
     })
 
-    it('deve lidar com falha de conexão do repositório em operações de atualização', async () => {
+    it('deve retornar failure quando classificação etária for inválida', async () => {
       // Arrange
-      const connectionError = new Error('Connection timeout')
-      repositoryMock.findById.mockResolvedValue(movieMock)
-      movieMock.toArchive.mockReturnValue(success(movieMock))
-      repositoryMock.update.mockRejectedValue(connectionError)
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateAgeRating').mockReturnValue(failure(mockSimpleFailure))
+
+      // Act
+      const result = await movieService.updateAgeRating(mockMovie.uid.value, newAgeRating)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updateAgeRating).toHaveBeenCalledWith(newAgeRating)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve retornar falha quando filme não for encontrado', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null)
+
+      // Act
+      const result = await movieService.updateAgeRating(mockMovie.uid.value, newAgeRating)
+
+      // Assert
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
+    })
+
+    it('deve propagar erro', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { ageRating: newAgeRating })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateAgeRating').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
 
       // Act & Assert
-      await expect(movieService.archive(validMovieUID.value)).rejects.toThrow(connectionError)
+      await expect(() => movieService.updateAgeRating(mockMovie.uid.value, newAgeRating)).rejects.toThrow(mockError)
+    })
+  })
+
+  describe('setGenres', () => {
+    const newGenres = ['ACTION', 'COMEDY']
+
+    it('deve definir gêneros com sucesso', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { genres: newGenres })
+      const updatedMovieRepository = CloneTestMovieWithOverrides(updatedMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setGenres').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockResolvedValue(updatedMovieRepository)
+
+      // Act
+      const result = await movieService.setGenres(mockMovie.uid.value, newGenres)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.setGenres).toHaveBeenCalledWith(newGenres)
+      expect(repositoryMock.update).toHaveBeenCalledWith(updatedMovie)
+      expect(result).toBeValidResultWithValue(updatedMovieRepository)
+    })
+
+    it('deve retornar failure quando gêneros forem inválidos', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setGenres').mockReturnValue(failure(mockSimpleFailure))
+
+      // Act
+      const result = await movieService.setGenres(mockMovie.uid.value, newGenres)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.setGenres).toHaveBeenCalledWith(newGenres)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve retornar falha quando filme não for encontrado', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null)
+
+      // Act
+      const result = await movieService.setGenres(mockMovie.uid.value, newGenres)
+
+      // Assert
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
+    })
+
+    it('deve propagar erro', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { genres: newGenres })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'setGenres').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
+
+      // Act & Assert
+      await expect(() => movieService.setGenres(mockMovie.uid.value, newGenres)).rejects.toThrow(mockError)
+    })
+  })
+
+  describe('updatePosterImage', () => {
+    const newImageUID = ImageUID.create().value
+
+    it('deve atualizar imagem do poster com sucesso', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { imageUID: newImageUID })
+      const updatedMovieRepository = CloneTestMovieWithOverrides(updatedMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updatePosterImage').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockResolvedValue(updatedMovieRepository)
+
+      // Act
+      const result = await movieService.updatePosterImage(mockMovie.uid.value, newImageUID)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updatePosterImage).toHaveBeenCalledWith(newImageUID)
+      expect(repositoryMock.update).toHaveBeenCalledWith(updatedMovie)
+      expect(result).toBeValidResultWithValue(updatedMovieRepository)
+    })
+
+    it('deve retornar failure quando UID da imagem for inválido', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updatePosterImage').mockReturnValue(failure(mockSimpleFailure))
+
+      // Act
+      const result = await movieService.updatePosterImage(mockMovie.uid.value, newImageUID)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updatePosterImage).toHaveBeenCalledWith(newImageUID)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve retornar falha quando filme não for encontrado', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null)
+
+      // Act
+      const result = await movieService.updatePosterImage(mockMovie.uid.value, newImageUID)
+
+      // Assert
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
+    })
+
+    it('deve propagar erro', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { imageUID: newImageUID })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updatePosterImage').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
+
+      // Act & Assert
+      await expect(() => movieService.updatePosterImage(mockMovie.uid.value, newImageUID)).rejects.toThrow(mockError)
+    })
+  })
+
+  describe('updateContributors', () => {
+    const newContributors = [CreateTestContributorInput(), CreateTestContributorInput()]
+
+    it('deve atualizar contribuidores com sucesso', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { contributors: newContributors })
+      const updatedMovieRepository = CloneTestMovieWithOverrides(updatedMovie, {})
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateContributors').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockResolvedValue(updatedMovieRepository)
+
+      // Act
+      const result = await movieService.updateContributors(mockMovie.uid.value, newContributors)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updateContributors).toHaveBeenCalledWith(newContributors)
+      expect(repositoryMock.update).toHaveBeenCalledWith(updatedMovie)
+      expect(result).toBeValidResultWithValue(updatedMovieRepository)
+    })
+
+    it('deve retornar failure quando contribuidores forem inválidos', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateContributors').mockReturnValue(failure(mockSimpleFailure))
+
+      // Act
+      const result = await movieService.updateContributors(mockMovie.uid.value, newContributors)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(mockMovie.uid)
+      expect(mockMovie.updateContributors).toHaveBeenCalledWith(newContributors)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+      expect(result).toBeInvalidResultWithFailure(mockSimpleFailure)
+    })
+
+    it('deve retornar falha quando filme não for encontrado', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null)
+
+      // Act
+      const result = await movieService.updateContributors(mockMovie.uid.value, newContributors)
+
+      // Assert
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
+    })
+
+    it('deve propagar erro', async () => {
+      // Arrange
+      const updatedMovie = CloneTestMovieWithOverrides(mockMovie, { contributors: newContributors })
+      repositoryMock.findById.mockResolvedValue(mockMovie)
+      jest.spyOn(mockMovie, 'updateContributors').mockReturnValue(success(updatedMovie))
+      repositoryMock.update.mockRejectedValue(mockError)
+
+      // Act & Assert
+      await expect(() => movieService.updateContributors(mockMovie.uid.value, newContributors)).rejects.toThrow(
+        mockError
+      )
     })
   })
 })

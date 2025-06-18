@@ -4,13 +4,13 @@ import { ICreateMovieInput, Movie } from '../entity/movie'
 import { MovieUID } from '../entity/value-object/movie.uid'
 import { IMovieFilterInput, MovieFilter } from '../entity/value-object/movie.filter'
 import { failure, Result, success } from '@shared/result/result'
-import { ResourceTypes } from '@shared/constant/resource.types'
+import { ResourceTypesEnum } from '@shared/constant/resource.types'
 import { MOVIE_REPOSITORY } from '@modules/movie/constant/movie.constant'
 import { FailureFactory } from '@shared/failure/failure.factory'
-import { ensureNotNull } from '@shared/validator/common.validators'
-import { IMultilingualInput } from '@shared/value-object/multilingual-content'
 import { IMovieContributorInput } from '@modules/movie/entity/value-object/movie.contributor'
 import { IMovieApplicationService } from '@modules/movie/service/movie.application.service.interface'
+import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { ILanguageContentInput } from '@shared/value-object/language-content/language.content.input.interface'
 
 /**
  * Serviço responsável por gerenciar operações relacionadas a filmes.
@@ -43,7 +43,7 @@ export class MovieApplicationService implements IMovieApplicationService {
     const movieUID = uidResult.value
     const movie = await this.repository.findById(movieUID)
 
-    return movie ? success(movie) : failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.MOVIE, movieUID.value))
+    return movie ? success(movie) : failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypesEnum.MOVIE, movieUID.value))
   }
 
   /**
@@ -60,7 +60,7 @@ export class MovieApplicationService implements IMovieApplicationService {
     const movieUID = uidResult.value
     const movie = await this.repository.findByIdWithRelations(movieUID)
 
-    return movie ? success(movie) : failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.MOVIE, movieUID.value))
+    return movie ? success(movie) : failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypesEnum.MOVIE, movieUID.value))
   }
 
   /**
@@ -115,8 +115,7 @@ export class MovieApplicationService implements IMovieApplicationService {
    * @returns Result<Movie> - Um Result contendo o filme criado ou falhas de validação
    */
   public async create(input: ICreateMovieInput): Promise<Result<Movie>> {
-    const failures = ensureNotNull({ input })
-    if (failures.length > 0) return failure(failures)
+    if (isNullOrUndefined(input)) return failure(FailureFactory.MISSING_REQUIRED_DATA('input'))
 
     const creatMovieResult = Movie.create(input)
     if (creatMovieResult.isInvalid()) return creatMovieResult
@@ -188,7 +187,7 @@ export class MovieApplicationService implements IMovieApplicationService {
    * @param title - Novo título multilíngue
    * @returns Result<Movie> - Um Result contendo o filme atualizado ou falhas
    */
-  public async updateTitle(uid: string, title: IMultilingualInput[]): Promise<Result<Movie>> {
+  public async updateTitle(uid: string, title: ILanguageContentInput[]): Promise<Result<Movie>> {
     const findResult = await this.findById(uid)
     if (findResult.isInvalid()) return findResult
     const movie = findResult.value
@@ -207,7 +206,7 @@ export class MovieApplicationService implements IMovieApplicationService {
    * @param description - Nova descrição multilíngue
    * @returns Result<Movie> - Um Result contendo o filme atualizado ou falhas
    */
-  public async updateDescription(uid: string, description: IMultilingualInput[]): Promise<Result<Movie>> {
+  public async updateDescription(uid: string, description: ILanguageContentInput[]): Promise<Result<Movie>> {
     const findResult = await this.findById(uid)
     if (findResult.isInvalid()) return findResult
     const movie = findResult.value
