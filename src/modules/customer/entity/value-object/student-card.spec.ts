@@ -1,63 +1,68 @@
 import { StudentCard } from './student-card'
 import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { TechnicalError } from '@shared/error/technical.error'
+import { IStudentCardCommand } from '@modules/customer/interface/customer.command.interface'
+import { faker } from '@faker-js/faker/.'
+import { DateHelper } from '@shared/helper/date.helper'
+import { CloneTestStudentCardWithOverrides, CreateTestStudentCard } from '@test/builder/student.card.builder'
 
 describe('StudentCard', () => {
   const MIN_ID_LENGTH = 6
   const MAX_ID_LENGTH = 24
   const MAX_VALIDITY_DAY_IN_FUTURE = 360 * 2
+  const MIN_INSTITUTION_LENGTH = 3
+  const MAX_INSTITUTION_LENGTH = 100
 
-  const getFutureDate = (days: number): Date => {
-    const date = new Date()
-    date.setDate(date.getDate() + days)
-    return date
-  }
-
-  const getPastDate = (days: number): Date => {
-    const date = new Date()
-    date.setDate(date.getDate() - days)
-    return date
-  }
+  const createValidInput = (overrides: Partial<IStudentCardCommand> = {}): IStudentCardCommand => ({
+    institution: faker.lorem.words(5),
+    registrationNumber: 'VALID123',
+    expirationDate: DateHelper.soon(30),
+    ...overrides,
+  })
 
   describe('create', () => {
     describe('deve criar um StudentCard válido', () => {
       const successCases = [
         {
-          id: 'VALID123',
-          validity: getFutureDate(30),
-          scenario: 'com ID e validade válidos',
+          input: createValidInput(),
+          scenario: 'com dados válidos padrão',
         },
         {
-          id: 'A'.repeat(MIN_ID_LENGTH),
-          validity: getFutureDate(10),
-          scenario: 'com ID de comprimento mínimo',
+          input: createValidInput({ registrationNumber: 'A'.repeat(MIN_ID_LENGTH) }),
+          scenario: 'com número de matrícula de comprimento mínimo',
         },
         {
-          id: 'B'.repeat(MAX_ID_LENGTH),
-          validity: getFutureDate(MAX_VALIDITY_DAY_IN_FUTURE - 1),
-          scenario: 'com ID de comprimento máximo',
+          input: createValidInput({ registrationNumber: 'B'.repeat(MAX_ID_LENGTH) }),
+          scenario: 'com número de matrícula de comprimento máximo',
         },
         {
-          id: 'NEARFUT',
-          validity: getFutureDate(1), // Amanhã
-          scenario: 'com data de validade mínima no futuro',
+          input: createValidInput({ expirationDate: DateHelper.soon(1) }),
+          scenario: 'com data de expiração mínima no futuro',
         },
         {
-          id: 'FARFUT',
-          validity: getFutureDate(MAX_VALIDITY_DAY_IN_FUTURE - 1), // Um pouco antes do limite máximo
-          scenario: 'com data de validade próxima ao limite máximo no futuro',
+          input: createValidInput({ expirationDate: DateHelper.soon(MAX_VALIDITY_DAY_IN_FUTURE - 1) }),
+          scenario: 'com data de expiração próxima ao limite máximo no futuro',
+        },
+        {
+          input: createValidInput({ institution: 'A'.repeat(MIN_INSTITUTION_LENGTH) }),
+          scenario: 'com nome de instituição de comprimento mínimo',
+        },
+        {
+          input: createValidInput({ institution: 'B'.repeat(MAX_INSTITUTION_LENGTH) }),
+          scenario: 'com nome de instituição de comprimento máximo',
         },
       ]
 
-      successCases.forEach(({ id, validity, scenario }) => {
+      successCases.forEach(({ input, scenario }) => {
         it(`objeto StudentCard ${scenario}`, () => {
           // Act
-          const result = StudentCard.create(id, validity)
+          const result = StudentCard.create(input)
 
           // Assert
           expect(result).toBeValidResultMatching<StudentCard>((c) => {
-            expect(c?.id).toBe(id)
-            expect(c?.validity.toISOString()).toBe(validity.toISOString())
+            expect(c?.institution).toBe(input.institution)
+            expect(c?.registrationNumber).toBe(input.registrationNumber)
+            expect(c?.expirationDate.toISOString()).toBe(input.expirationDate.toISOString())
           })
         })
       })
@@ -66,53 +71,73 @@ describe('StudentCard', () => {
     describe('deve falhar ao criar um StudentCard inválido', () => {
       const failureCases = [
         {
-          id: null as any,
-          validity: getFutureDate(30),
-          scenario: 'quando o ID é nulo',
+          input: null as any,
+          scenario: 'quando o input é nulo',
           errorCodeExpected: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
-          id: 'VALID123',
-          validity: null as any,
-          scenario: 'quando a validade é nula',
+          input: createValidInput({ institution: null as any }),
+          scenario: 'quando a instituição é nula',
           errorCodeExpected: FailureCode.MISSING_REQUIRED_DATA,
         },
         {
-          id: 'A'.repeat(MIN_ID_LENGTH - 1),
-          validity: getFutureDate(30),
-          scenario: 'quando o ID é muito curto',
+          input: createValidInput({ registrationNumber: null as any }),
+          scenario: 'quando o número de matrícula é nulo',
+          errorCodeExpected: FailureCode.MISSING_REQUIRED_DATA,
+        },
+        {
+          input: createValidInput({ expirationDate: null as any }),
+          scenario: 'quando a data de expiração é nula',
+          errorCodeExpected: FailureCode.MISSING_REQUIRED_DATA,
+        },
+        {
+          input: createValidInput({
+            registrationNumber: 'A'.repeat(MIN_ID_LENGTH - 1),
+          }),
+          scenario: 'quando o número de matrícula é muito curto',
           errorCodeExpected: FailureCode.STUDENT_CARD_ID_INVALID_FORMAT,
         },
         {
-          id: 'B'.repeat(MAX_ID_LENGTH + 1),
-          validity: getFutureDate(30),
-          scenario: 'quando o ID é muito longo',
+          input: createValidInput({ registrationNumber: 'B'.repeat(MAX_ID_LENGTH + 1) }),
+          scenario: 'quando o número de matrícula é muito longo',
           errorCodeExpected: FailureCode.STUDENT_CARD_ID_INVALID_FORMAT,
         },
         {
-          id: 'PASTDATE',
-          validity: getPastDate(1),
-          scenario: 'quando a data de validade é no passado',
+          input: createValidInput({ expirationDate: DateHelper.recent(1) }),
+          scenario: 'quando a data de expiração é no passado',
           errorCodeExpected: FailureCode.DATE_CANNOT_BE_PAST,
         },
         {
-          id: 'TODAYVAL',
-          validity: new Date(), // Hoje
-          scenario: 'quando a data de validade é hoje',
+          input: createValidInput({ expirationDate: new Date() }),
+          scenario: 'quando a data de expiração é hoje',
           errorCodeExpected: FailureCode.DATE_CANNOT_BE_PAST,
         },
         {
-          id: 'TOOFAR',
-          validity: getFutureDate(MAX_VALIDITY_DAY_IN_FUTURE + 10),
-          scenario: 'quando a data de validade é muito distante no futuro',
+          input: createValidInput({ expirationDate: DateHelper.soon(MAX_VALIDITY_DAY_IN_FUTURE + 10) }),
+          scenario: 'quando a data de expiração é muito distante no futuro',
           errorCodeExpected: FailureCode.DATE_NOT_AFTER_LIMIT,
+        },
+        {
+          input: createValidInput({ institution: 'A'.repeat(MIN_INSTITUTION_LENGTH - 1) }),
+          scenario: 'quando o nome da instituição é muito curto',
+          errorCodeExpected: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
+        },
+        {
+          input: createValidInput({ institution: 'B'.repeat(MAX_INSTITUTION_LENGTH + 1) }),
+          scenario: 'quando o nome da instituição é muito longo',
+          errorCodeExpected: FailureCode.STRING_LENGTH_OUT_OF_RANGE,
+        },
+        {
+          input: createValidInput({ institution: 'name with ä invalid chars' }),
+          scenario: 'quando o nome da instituição contém caracteres inválidos',
+          errorCodeExpected: FailureCode.STRING_WITH_INVALID_FORMAT,
         },
       ]
 
-      failureCases.forEach(({ id, validity, scenario, errorCodeExpected }) => {
+      failureCases.forEach(({ input, scenario, errorCodeExpected }) => {
         it(`falha ${scenario}`, () => {
           // Act
-          const result = StudentCard.create(id, validity)
+          const result = StudentCard.create(input)
 
           // Assert
           expect(result).toBeInvalidResultWithSingleFailure(errorCodeExpected)
@@ -124,49 +149,64 @@ describe('StudentCard', () => {
   describe('hydrate', () => {
     it('deve hidratar um StudentCard com dados válidos', () => {
       // Arrange
-      const id = 'HYDRATE1'
-      const validity = getFutureDate(60)
+      const input = createValidInput({
+        institution: 'Instituto Tecnológico',
+        registrationNumber: 'HYDRATE1',
+        expirationDate: DateHelper.soon(60),
+      })
 
       // Act
-      const studentCard = StudentCard.hydrate(id, validity)
+      const studentCard = StudentCard.hydrate(input)
 
       // Assert
       expect(studentCard).toBeInstanceOf(StudentCard)
-      expect(studentCard.id).toBe(id)
-      expect(studentCard.validity.toISOString().split('T')[0]).toBe(validity.toISOString().split('T')[0])
+      expect(studentCard.institution).toBe(input.institution)
+      expect(studentCard.registrationNumber).toBe(input.registrationNumber)
+      expect(studentCard.expirationDate.toISOString().split('T')[0]).toBe(
+        input.expirationDate.toISOString().split('T')[0]
+      )
     })
 
-    it('deve lançar TechnicalError se o ID for nulo', () => {
-      expect(() => StudentCard.hydrate(null as any, getFutureDate(10))).toThrow(TechnicalError)
+    it('deve lançar TechnicalError se o input for nulo', () => {
+      expect(() => StudentCard.hydrate(null as any)).toThrow(TechnicalError)
     })
 
-    it('deve lançar TechnicalError se a validade for nula', () => {
-      expect(() => StudentCard.hydrate('IDVALID', null as any)).toThrow(TechnicalError)
+    it('deve lançar TechnicalError se a instituição for nula', () => {
+      const input = createValidInput({ institution: null as any })
+      expect(() => StudentCard.hydrate(input)).toThrow(TechnicalError)
+    })
+
+    it('deve lançar TechnicalError se o número de matrícula for nulo', () => {
+      const input = createValidInput({ registrationNumber: null as any })
+      expect(() => StudentCard.hydrate(input)).toThrow(TechnicalError)
+    })
+
+    it('deve lançar TechnicalError se a data de expiração for nula', () => {
+      const input = createValidInput({ expirationDate: null as any })
+      expect(() => StudentCard.hydrate(input)).toThrow(TechnicalError)
     })
   })
 
   describe('isValid', () => {
-    it('deve retornar true para uma carteirinha com validade futura', () => {
+    it('deve retornar true para uma carteirinha com expiração futura', () => {
       // Arrange
-      const studentCard = StudentCard.hydrate('VALIDC', getFutureDate(5))
+      const studentCard = CreateTestStudentCard({ expirationDate: DateHelper.soon(5) })
 
       // Act & Assert
       expect(studentCard.isValid).toBe(true)
     })
 
-    it('deve retornar false para uma carteirinha com validade passada', () => {
+    it('deve retornar false para uma carteirinha com expiração passada', () => {
       // Arrange
-      const pastDate = getPastDate(5)
-      const studentCard = new (StudentCard as any)('EXPIRED', pastDate)
+      const studentCard = CreateTestStudentCard({ expirationDate: DateHelper.recent(5) })
 
       // Act & Assert
       expect(studentCard.isValid).toBe(false)
     })
 
-    it('deve retornar true para uma carteirinha com validade hoje', () => {
+    it('deve retornar true para uma carteirinha com expiração hoje', () => {
       // Arrange
-      const today = new Date()
-      const studentCard = StudentCard.hydrate('CARDID', today)
+      const studentCard = CreateTestStudentCard({ expirationDate: new Date() })
 
       // Act & Assert
       expect(studentCard.isValid).toBe(true)
@@ -174,27 +214,42 @@ describe('StudentCard', () => {
   })
 
   describe('equals', () => {
-    const id1 = 'EQUALID1'
-    const validity1 = getFutureDate(90)
-    const card1 = StudentCard.hydrate(id1, validity1)
-    const card1Again = StudentCard.hydrate(id1, validity1)
+    const card1 = CreateTestStudentCard({
+      institution: 'Universidade A',
+      registrationNumber: 'EQUALID1',
+      expirationDate: DateHelper.soon(90),
+    })
 
-    const id2 = 'DIFFID2'
-    const validity2 = getFutureDate(100)
-    const card2 = StudentCard.hydrate(id2, validity2)
+    it('deve retornar true para duas instâncias de StudentCard com mesmos dados', () => {
+      // Arrange
+      const card1Again = CloneTestStudentCardWithOverrides(card1, {})
 
-    it('deve retornar true para duas instâncias de StudentCard com mesmo ID e validade', () => {
+      // Act
       expect(card1.equals(card1Again)).toBe(true)
     })
 
-    it('deve retornar false para StudentCards com IDs diferentes', () => {
-      const cardDiffId = StudentCard.hydrate(id2, validity1)
-      expect(card1.equals(cardDiffId)).toBe(false)
+    it('deve retornar false para StudentCards com instituições diferentes', () => {
+      // Arrange
+      const cardDiffInstitution = CloneTestStudentCardWithOverrides(card1, { institution: 'Universidade B' })
+
+      // Act & Assert
+      expect(card1.equals(cardDiffInstitution)).toBe(false)
     })
 
-    it('deve retornar false para StudentCards com datas de validade diferentes', () => {
-      const cardDiffValidity = StudentCard.hydrate(id1, validity2)
-      expect(card1.equals(cardDiffValidity)).toBe(false)
+    it('deve retornar false para StudentCards com números de matrícula diferentes', () => {
+      // Arrange
+      const cardDiffRegistration = CloneTestStudentCardWithOverrides(card1, { registrationNumber: 'EQUALID2' })
+
+      // Act & Assert
+      expect(card1.equals(cardDiffRegistration)).toBe(false)
+    })
+
+    it('deve retornar false para StudentCards com datas de expiração diferentes', () => {
+      // Arrange
+      const cardDiffExpiration = CloneTestStudentCardWithOverrides(card1, { expirationDate: DateHelper.soon(10) })
+
+      // Act & Assert
+      expect(card1.equals(cardDiffExpiration)).toBe(false)
     })
 
     it('deve retornar false ao comparar com null', () => {
@@ -206,7 +261,13 @@ describe('StudentCard', () => {
     })
 
     it('deve retornar false ao comparar com um objeto de tipo diferente', () => {
-      expect(card1.equals({ id: id1, validity: validity1 } as any)).toBe(false)
+      expect(
+        card1.equals({
+          institution: card1.institution,
+          registrationNumber: card1.registrationNumber,
+          expirationDate: card1.expirationDate,
+        } as any)
+      ).toBe(false)
     })
   })
 })
