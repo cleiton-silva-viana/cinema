@@ -38,9 +38,9 @@ export function CloneTestCustomerWithOverrides(
     name: override?.name ?? customer.name.value,
     birthDate: override?.birthDate ?? customer.birthDate.value,
     email: override?.email ?? customer.email.value,
-    cpf: override?.cpf ?? customer.cpf?.value,
-    studentCard: override?.studentCard ?? card,
     createdAt: override.createdAt ?? customer.createdAt,
     updatedAt: customer.updatedAt ?? customer.updatedAt,
+    cpf: override.hasOwnProperty('cpf') ? override.cpf : customer.cpf?.value,
+    studentCard: override.hasOwnProperty('studentCard') ? override.studentCard : card,
   })
 }
