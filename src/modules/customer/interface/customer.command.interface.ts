@@ -8,6 +8,7 @@ export interface ICreateCustomerCommand {
   birthDate: Date
   cpf?: string
   studentCard?: IStudentCardCommand
+  password: string
 }
 
 /**
