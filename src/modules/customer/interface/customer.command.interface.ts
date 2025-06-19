@@ -18,8 +18,8 @@ export interface IHydrateCustomerCommand {
   uid: string
   name: string
   email: string
-  cpf: string
   birthDate: Date
+  cpf?: string
   studentCard?: IStudentCardCommand
   createdAt: Date
   updatedAt: Date
