@@ -2,6 +2,7 @@ import { Customer } from '../entity/customer'
 import { CustomerUID } from '../entity/value-object/customer.uid'
 import { Email } from '../entity/value-object/email'
 import { CPF } from '@/modules/customer/entity/value-object/cpf'
+import { Password } from '@modules/customer/entity/value-object/password'
 
 export interface ICustomerRepository {
   hasEmail(email: Email): Promise<boolean>
@@ -14,7 +15,7 @@ export interface ICustomerRepository {
 
   findByEmail(email: Email): Promise<Customer | null>
 
-  create(customer: Customer): Promise<Customer>
+  create(customer: Customer, password: Password): Promise<Customer>
 
   update(uid: CustomerUID, customer: Partial<Customer>): Promise<Customer>
 
