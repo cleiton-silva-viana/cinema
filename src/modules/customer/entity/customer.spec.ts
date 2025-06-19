@@ -1,173 +1,143 @@
-import { Customer, IHydrateCustomerProps } from './customer'
+import { Customer } from './customer'
 import { CPF } from './value-object/cpf'
 import { CustomerUID } from './value-object/customer.uid'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
+import {
+  ICreateCustomerCommand,
+  IHydrateCustomerCommand,
+  IStudentCardCommand,
+} from '@modules/customer/interface/customer.command.interface'
+import { faker } from '@faker-js/faker'
+import { DateHelper } from '@shared/helper/date.helper'
+import { testRequiredFields } from '@test/helpers/required.fields.helper'
 import { CreateTestCustomer } from '@test/builder/customer.builder'
+import { CreateTestStudentCard } from '@test/builder/student.card.builder'
 
 describe('Customer', () => {
-  const validName = 'John Doe'
-  const validBirthDate = new Date(1990, 0, 1)
-  const validEmail = 'john.doe@example.com'
-  const validCpf = '123.456.789-01'
-  const validStudentCardId = 'STUDENT123'
-  const validStudentCardValidity = new Date()
-  validStudentCardValidity.setDate(validStudentCardValidity.getDate() + 30) // Validade para 30 dias no futuro
-
   describe('Métodos estáticos', () => {
+    const input: ICreateCustomerCommand = {
+      name: 'jon doe',
+      email: faker.internet.email(),
+      cpf: '123.123.123-12',
+      birthDate: new Date(1990, 0, 1),
+      studentCard: {
+        institution: 'faker inst',
+        expirationDate: DateHelper.soon(45),
+        registrationNumber: 'FAKER111',
+      },
+    }
+
     describe('create', () => {
       it('deve criar um Customer válido com todos os campos fornecidos', async () => {
         // Act
-        const result = Customer.create(validName, validBirthDate, validEmail)
+        const result = Customer.create(input)
 
         // Assert
         expect(result).toBeValidResultMatching<Customer>((c) => {
           expect(c).toBeInstanceOf(Customer)
-          expect(c.name.value).toBe(validName)
-          expect(c.birthDate.value.toISOString()).toBe(validBirthDate.toISOString())
-          expect(c.email.value).toBe(validEmail)
-          expect(c.cpf).toBeUndefined()
-          expect(c.studentCard).toBeUndefined()
+          expect(c.name.value).toBe(input.name)
+          expect(c.birthDate.value.toISOString()).toBe(input.birthDate.toISOString())
+          expect(c.email.value).toBe(input.email)
+          expect(c.cpf?.value).toBe(input.cpf)
+          expect(c.studentCard?.institution).toBe(input.studentCard?.institution)
+          expect(c.studentCard?.expirationDate).toBe(input.studentCard?.expirationDate)
+          expect(c.studentCard?.registrationNumber).toBe(input.studentCard?.registrationNumber)
         })
       })
 
-      it('deve falhar ao criar um Customer com nome inválido', async () => {
-        // Act
-        const result = Customer.create('J', validBirthDate, validEmail) // Nome muito curto
+      describe('cenários de falha', () => {
+        const cases = [
+          { scenario: 'com nome inválido', prop: { name: '' } },
+          {
+            scenario: 'com data de nascimento inválida',
+            prop: { birthDate: new Date() },
+          },
+          { scenario: 'com email inválido', prop: { email: 'invalid-email' } },
+          {
+            scenario: 'com cartão de estudante inválido',
+            prop: { studentCard: {} as any },
+          },
+          { scenario: 'com CPF inválido', prop: { cpf: '123' } },
+        ]
 
-        // Assert
-        expect(result).toBeInvalidResult()
-      })
+        cases.forEach(({ scenario, prop }) => {
+          it(`deve falhar ao criar um Customer ${scenario}`, () => {
+            // Act
+            const result = Customer.create({ ...input, ...prop })
 
-      it('deve falhar ao criar um Customer com data de nascimento inválida', async () => {
-        // Act
-        const futureDate = new Date()
-        futureDate.setDate(futureDate.getDate() + 1) // Data no futuro
-        const result = Customer.create(validName, futureDate, validEmail)
-
-        // Assert
-        expect(result).toBeInvalidResultWithFailureCount(1)
-      })
-
-      it('deve falhar ao criar um Customer com email inválido', async () => {
-        // Act
-        const result = Customer.create(validName, validBirthDate, 'invalid-email')
-
-        // Assert
-        expect(result).toBeInvalidResultWithFailureCount(1)
-      })
-
-      it('deve acumular falhas se múltiplos campos forem inválidos', async () => {
-        // Act
-        const result = Customer.create('J', new Date(2500, 0, 1), 'invalid-email')
-
-        // Assert
-        expect(result).toBeInvalidResultWithFailureCount(3)
+            // Assert
+            expect(result).toBeInvalidResult()
+          })
+        })
       })
     })
 
     describe('hydrate', () => {
-      const hydrateProps: IHydrateCustomerProps = {
+      const hydrateInput: IHydrateCustomerCommand = {
+        ...input,
         uid: CustomerUID.create().value,
-        name: validName,
-        birthDate: validBirthDate,
-        email: validEmail,
-        cpf: validCpf,
-        studentCard: {
-          id: validStudentCardId,
-          validity: validStudentCardValidity,
-        },
+        cpf: '123.123.123-12',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       }
 
       it('deve hidratar um Customer com todos os campos', () => {
         // Act
-        const customer = Customer.hydrate(hydrateProps)
+        const customer = Customer.hydrate(hydrateInput)
 
         // Assert
         expect(customer).toBeInstanceOf(Customer)
-        expect(customer.uid.value).toBe(hydrateProps.uid)
-        expect(customer.name.value).toBe(hydrateProps.name)
-        expect(customer.birthDate.value.toISOString().split('T')[0]).toBe(
-          hydrateProps.birthDate.toISOString().split('T')[0]
-        )
-        expect(customer.email.value).toBe(hydrateProps.email)
-        expect(customer.cpf?.value).toBe(hydrateProps.cpf)
-        expect(customer.studentCard?.id).toBe(hydrateProps.studentCard?.id)
-        expect(customer.studentCard?.validity.toISOString().split('T')[0]).toBe(
-          hydrateProps.studentCard?.validity.toISOString().split('T')[0]
-        )
+        expect(customer.uid.value).toBe(hydrateInput.uid)
+        expect(customer.name.value).toBe(hydrateInput.name)
+        expect(customer.birthDate.value.toISOString()).toBe(hydrateInput.birthDate.toISOString())
+        expect(customer.email.value).toBe(hydrateInput.email)
+        expect(customer.cpf?.value).toBe(hydrateInput.cpf)
+        expect(customer.studentCard?.institution).toBe(hydrateInput.studentCard?.institution)
+        expect(customer.studentCard?.expirationDate).toBe(hydrateInput.studentCard?.expirationDate)
+        expect(customer.studentCard?.registrationNumber).toBe(hydrateInput.studentCard?.registrationNumber)
       })
 
       it('deve hidratar um Customer sem CPF e StudentCard', () => {
         // Arrange
-        const propsWithoutOptional: IHydrateCustomerProps = {
-          uid: CustomerUID.create().value,
-          name: validName,
-          birthDate: validBirthDate,
-          email: validEmail,
+        const propsWithoutOptionalProps: IHydrateCustomerCommand = {
+          ...hydrateInput,
+          studentCard: undefined,
+          cpf: undefined,
         }
 
         // Act
-        const customer = Customer.hydrate(propsWithoutOptional)
+        const customer = Customer.hydrate(propsWithoutOptionalProps)
 
         // Assert
-        expect(customer.cpf).toBeNull()
-        expect(customer.studentCard).toBeNull()
+        expect(customer.cpf).toBeUndefined()
+        expect(customer.studentCard).toBeUndefined()
       })
 
-      it('deve hidratar um Customer apenas com CPF', () => {
-        // Arrange
-        const propsWithCpf: IHydrateCustomerProps = {
-          uid: CustomerUID.create().value,
-          name: validName,
-          birthDate: validBirthDate,
-          email: validEmail,
-          cpf: validCpf,
-        }
-
-        // Act
-        const customer = Customer.hydrate(propsWithCpf)
-
-        // Assert
-        expect(customer.cpf?.value).toBe(validCpf)
-        expect(customer.studentCard).toBeNull()
+      it('deve falhar quando objeto de parâmetro for nulo', () => {
+        expect(() => Customer.hydrate(null as any)).toThrowTechnicalError()
       })
 
-      it('deve hidratar um Customer apenas com StudentCard', () => {
-        // Arrange
-        const propsWithStudentCard: IHydrateCustomerProps = {
-          uid: CustomerUID.create().value,
-          name: validName,
-          birthDate: validBirthDate,
-          email: validEmail,
-          studentCard: {
-            id: validStudentCardId,
-            validity: validStudentCardValidity,
-          },
-        }
-
-        // Act
-        const customer = Customer.hydrate(propsWithStudentCard)
-
-        // Assert
-        expect(customer.cpf).toBeNull()
-        expect(customer.studentCard?.id).toBe(validStudentCardId)
-      })
-
-      // Testes de TechnicalError para campos obrigatórios ausentes em hydrate
-      const requiredFields: (keyof IHydrateCustomerProps)[] = ['uid', 'name', 'birthDate', 'email']
-      requiredFields.forEach((field) => {
-        it(`deve lançar TechnicalError se ${field} estiver ausente no hydrate`, () => {
-          const incompleteProps = { ...hydrateProps }
-          delete incompleteProps[field]
-          expect(() => Customer.hydrate(incompleteProps as any)).toThrow(Error) // TechnicalError
-        })
+      describe('deve falhar quando propriedades obrigatórias forem nulas', () => {
+        testRequiredFields(Customer.hydrate, hydrateInput, [
+          'uid',
+          'name',
+          'birthDate',
+          'email',
+          'createdAt',
+          'updatedAt',
+        ])
       })
     })
   })
 
   describe('Métodos de instância', () => {
-    let customerInstance: Customer
-    beforeEach(() => (customerInstance = CreateTestCustomer()))
+    const customerMock = CreateTestCustomer({
+      cpf: '123.123.133-99',
+      studentCard: {
+        institution: faker.lorem.words(5),
+        registrationNumber: faker.string.alphanumeric(8),
+        expirationDate: DateHelper.soon(30),
+      },
+    })
 
     describe('updateName', () => {
       it('deve atualizar o nome com sucesso', async () => {
@@ -175,12 +145,12 @@ describe('Customer', () => {
         const newName = 'Jane Doe'
 
         // Act
-        const result = customerInstance.updateName(newName)
+        const result = customerMock.updateName(newName)
 
         // Assert
         expect(result).toBeValidResultMatching<Customer>((c) => {
           expect(c.name.value).toBe(newName)
-          expect(c.uid).toBe(customerInstance.uid)
+          expect(c.uid).toBe(customerMock.uid)
         })
       })
 
@@ -189,7 +159,7 @@ describe('Customer', () => {
         const invalidName = 'J'
 
         // Act
-        const result = customerInstance.updateName(invalidName)
+        const result = customerMock.updateName(invalidName)
 
         // Assert
         expect(result).toBeInvalidResult()
@@ -202,7 +172,7 @@ describe('Customer', () => {
         const newBirthDate = new Date(1995, 5, 15)
 
         // Act
-        const result = customerInstance.updateBirthDate(newBirthDate)
+        const result = customerMock.updateBirthDate(newBirthDate)
 
         // Assert
         expect(result).toBeValidResultMatching<Customer>((c) => {
@@ -215,7 +185,7 @@ describe('Customer', () => {
         const invalidBirthDate = new Date(2500, 0, 1) // Data no futuro
 
         // Act
-        const result = customerInstance.updateBirthDate(invalidBirthDate)
+        const result = customerMock.updateBirthDate(invalidBirthDate)
 
         // Assert
         expect(result).toBeInvalidResult()
@@ -228,7 +198,7 @@ describe('Customer', () => {
         const newEmail = 'jane.doe@example.com'
 
         // Act
-        const result = customerInstance.updateEmail(newEmail)
+        const result = customerMock.updateEmail(newEmail)
 
         // Assert
         expect(result).toBeValidResultMatching<Customer>((c) => {
@@ -241,7 +211,7 @@ describe('Customer', () => {
         const invalidEmail = 'invalid-email'
 
         // Act
-        const result = customerInstance.updateEmail(invalidEmail)
+        const result = customerMock.updateEmail(invalidEmail)
 
         // Assert
         expect(result).toBeInvalidResult()
@@ -250,13 +220,16 @@ describe('Customer', () => {
 
     describe('assignCPF', () => {
       it('deve atribuir CPF com sucesso', async () => {
+        // Arrange
+        const newCPF = '123.456.789-89'
+
         // Act
-        const result = customerInstance.assignCPF(validCpf)
+        const result = customerMock.assignCPF(newCPF)
 
         // Assert
         expect(result).toBeValidResultMatching<Customer>((c) => {
           expect(c.cpf).toBeInstanceOf(CPF)
-          expect(c.cpf?.value).toBe(validCpf)
+          expect(c.cpf?.value).toBe(newCPF)
         })
       })
 
@@ -265,7 +238,7 @@ describe('Customer', () => {
         const invalidCpf = '123'
 
         // Act
-        const result = customerInstance.assignCPF(invalidCpf)
+        const result = customerMock.assignCPF(invalidCpf)
 
         // Assert
         expect(result).toBeInvalidResult()
@@ -274,69 +247,116 @@ describe('Customer', () => {
 
     describe('removeCPF', () => {
       it('deve remover o CPF com sucesso', () => {
-        // Arrange
-        const customerWithCpf = CreateTestCustomer({ cpf: validCpf })
-
         // Act
-        const result = customerWithCpf.removeCPF()
+        const result = customerMock.removeCPF()
 
         // Assert
         expect(result).toBeValidResultMatching<Customer>((c) => {
-          expect(c.cpf).toBeNull()
+          expect(c.cpf).toBeUndefined()
         })
       })
     })
 
     describe('assignStudentCard', () => {
+      const newStudentCard: IStudentCardCommand = {
+        registrationNumber: 'ABC123455',
+        expirationDate: DateHelper.soon(35),
+        institution: faker.lorem.words(5),
+      }
+
       it('deve atribuir StudentCard com sucesso', async () => {
         // Act
-        const result = customerInstance.assignStudentCard(validStudentCardId, validStudentCardValidity)
+        const result = customerMock.assignStudentCard(newStudentCard)
 
         // Assert
         expect(result).toBeValidResultMatching<Customer>((c) => {
-          expect(c.studentCard?.id).toBe(validStudentCardId)
-          expect(c.studentCard?.validity).toBe(validStudentCardValidity)
+          expect(c.studentCard?.institution).toBe(newStudentCard.institution)
+          expect(c.studentCard?.registrationNumber).toBe(newStudentCard.registrationNumber)
+          expect(c.studentCard?.expirationDate).toBe(newStudentCard.expirationDate)
         })
       })
 
-      it('deve falhar ao atribuir StudentCard com ID inválido', async () => {
+      it('deve falhar ao atribuir StudentCard inválido', async () => {
         // Arrange
-        const invalidId = 'S1'
+        const invalidId = { ...newStudentCard, expirationDate: DateHelper.recent(1) } // tentativa de cadastrar um cartão de estudante com validade expirada
 
         // Act
-        const result = customerInstance.assignStudentCard(invalidId, validStudentCardValidity)
+        const result = customerMock.assignStudentCard(invalidId)
 
         // Assert
-        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.STUDENT_CARD_ID_INVALID_FORMAT)
-      })
-
-      it('deve falhar ao atribuir StudentCard com validade inválida (passado)', async () => {
-        // Arrange
-        const customer = CreateTestCustomer()
-        const pastDate = new Date(2000, 0, 1)
-
-        // Act
-        const result = customer.assignStudentCard(validStudentCardId, pastDate)
-
-        // Assert
-        expect(result).toBeInvalidResultWithSingleFailure(FailureCode.DATE_CANNOT_BE_PAST)
+        expect(result).toBeInvalidResult()
       })
     })
 
     describe('removeStudentCard', () => {
       it('deve remover o StudentCard com sucesso', async () => {
-        // Arrange
-        const customerWithCard = CreateTestCustomer({
-          studentCard: { id: validStudentCardId, validity: validStudentCardValidity },
-        })
+        expect(customerMock.studentCard).toBeDefined()
 
         // Act
-        const result = customerWithCard.removeStudentCard()
+        const result = customerMock.removeStudentCard()
 
         // Assert
         expect(result).toBeValidResultMatching<Customer>((c) => {
-          expect(c.studentCard).toBeNull()
+          expect(c.studentCard).toBeUndefined()
         })
+      })
+    })
+
+    describe('isStudent', () => {
+      it('deve retornar true se o cliente possui um cartão de estudante válido', () => {
+        // Arrange
+        expect(customerMock.studentCard).toBeDefined()
+
+        // Act & Assert
+        expect(customerMock.isStudent).toBe(true)
+      })
+
+      it('deve retornar false se o cliente não possui um cartão de estudante', () => {
+        // Arrange
+        const customer = CreateTestCustomer({ studentCard: undefined })
+
+        // Act & assert
+        expect(customer.isStudent).toBe(false)
+      })
+
+      it('deve retornar false se o cliente possui um cartão de estudante expirado', () => {
+        // Arrange
+        const studentCardExpired = CreateTestStudentCard({ expirationDate: DateHelper.recent(2) })
+        const customer = CreateTestCustomer({ studentCard: studentCardExpired })
+
+        // Act & Assert
+        expect(customer.isStudent).toBe(false)
+      })
+    })
+
+    describe('isOlder', () => {
+      const MIN_OLDER_AGE = 65
+
+      it(`deve retornar true se o cliente for mais velho que ${MIN_OLDER_AGE}`, () => {
+        // Arrange
+        const oldDate = DateHelper.past({ years: MIN_OLDER_AGE, days: 1 })
+        const customer = CreateTestCustomer({ birthDate: oldDate })
+
+        // Act & Assert
+        expect(customer.isOlder).toBe(true)
+      })
+
+      it(`deve retornar false se o cliente for mais novo que ${MIN_OLDER_AGE}`, () => {
+        // Arrange
+        const youngDate = DateHelper.past({ years: MIN_OLDER_AGE, days: -1 })
+        const customer = CreateTestCustomer({ birthDate: youngDate })
+
+        // Act & Assert
+        expect(customer.isOlder).toBe(false)
+      })
+
+      it(`deve retornar false se o cliente tiver exatamente ${MIN_OLDER_AGE}`, () => {
+        // Arrange
+        const exactDate = DateHelper.past({ years: MIN_OLDER_AGE })
+        const customer = CreateTestCustomer({ birthDate: exactDate })
+
+        // Act & Assert
+        expect(customer.isOlder).toBe(false)
       })
     })
   })
