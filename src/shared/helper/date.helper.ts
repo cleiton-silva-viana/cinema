@@ -3,7 +3,10 @@
  */
 export class DateHelper {
   static formatDateToISOString(date: Date): string {
-    return date.toLocaleDateString().split('T')[0]
+    if (!date) {
+      return 'null'
+    }
+    return date.toISOString().split('T')[0]
   }
 
   /**
@@ -50,6 +53,28 @@ export class DateHelper {
    */
   static recent(days: number, refDate?: Date | number): Date {
     return this.subtractDays(days, refDate)
+  }
+
+  /**
+   * Cria uma data no passado baseada em uma data de referência, permitindo especificar minutos, horas, dias e anos
+   * @param config Objeto de configuração com minutos, horas, dias e anos a serem subtraídos
+   * @param refDate Data de referência (padrão: data atual)
+   * @returns Nova data no passado
+   */
+  static past(
+    config: { minutes?: number; hours?: number; days?: number; years?: number },
+    refDate?: Date | number
+  ): Date {
+    const { minutes, hours, days, years } = config
+    const reference = refDate ? new Date(refDate) : new Date()
+    const result = new Date(reference)
+
+    if (minutes) result.setMinutes(result.getMinutes() - minutes)
+    if (hours) result.setHours(result.getHours() - hours)
+    if (days) result.setDate(result.getDate() - days)
+    if (years) result.setFullYear(result.getFullYear() - years)
+
+    return result
   }
 
   /**
