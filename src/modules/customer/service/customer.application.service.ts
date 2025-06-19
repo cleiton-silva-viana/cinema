@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Injectable, Inject } from '@nestjs/common'
 import { CUSTOMER_REPOSITORY } from '../constant/customer.constants'
 import { ICustomerRepository } from '../repository/customer.repository.interface'
 import { CustomerUID } from '../entity/value-object/customer.uid'
@@ -8,66 +8,58 @@ import { Password } from '../entity/value-object/password'
 import { failure, Result, success } from '@shared/result/result'
 import { ResourceTypesEnum as ResourceTypes } from '@shared/constant/resource.types'
 import { FailureFactory } from '@shared/failure/failure.factory'
-import {
-  ICreateCustomerProps,
-  ICustomerApplicationService,
-  IStudentCardInput,
-} from '@modules/customer/service/customer.application.service.interface'
-import { isNullOrUndefined } from '@shared/validator/utils/validation'
+import { ICustomerApplicationService } from '@modules/customer/service/customer.application.service.interface'
+import { ensureNotNullResult } from '@shared/validator/utils/validation.helpers'
+import { ICreateCustomerCommand, IStudentCardCommand } from '@modules/customer/interface/customer.command.interface'
 
 @Injectable()
 export class CustomerApplicationService implements ICustomerApplicationService {
   constructor(@Inject(CUSTOMER_REPOSITORY) private readonly repository: ICustomerRepository) {}
 
   public async findById(uid: string | CustomerUID): Promise<Result<Customer>> {
-    if (isNullOrUndefined(uid)) return failure(FailureFactory.MISSING_REQUIRED_DATA('customer uid'))
+    const result = ensureNotNullResult({ uid })
 
-    const parseCustomerUidResult = uid instanceof CustomerUID ? success(uid) : CustomerUID.parse(uid)
-
-    if (parseCustomerUidResult.isInvalid()) return parseCustomerUidResult
-
-    const customerUID = parseCustomerUidResult.value
-
-    const customer = await this.repository.findById(customerUID)
-
-    return !customer
-      ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerUID.value))
-      : success(customer)
+    return result
+      .flatMap(() => {
+        return uid instanceof CustomerUID ? success(uid) : CustomerUID.parse(uid)
+      })
+      .flatMapAsync(async (customerUID) => {
+        const customer = await this.repository.findById(customerUID)
+        return !customer
+          ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerUID.value))
+          : success(customer)
+      })
   }
 
   public async findByEmail(email: string | Email): Promise<Result<Customer>> {
-    if (isNullOrUndefined(email)) return failure(FailureFactory.MISSING_REQUIRED_DATA('email'))
+    const result = ensureNotNullResult({ email })
 
-    const emailCheckedResult = email instanceof Email ? success(email) : Email.create(email)
+    return result
+      .flatMap(() => {
+        return email instanceof Email ? success(email) : Email.create(email)
+      })
+      .flatMapAsync(async (customerEmail) => {
+        const customer = await this.repository.findByEmail(customerEmail)
 
-    if (emailCheckedResult.isInvalid()) return emailCheckedResult
-
-    const customerEmail = emailCheckedResult.value
-
-    const customer = await this.repository.findByEmail(customerEmail)
-
-    return !customer
-      ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerEmail.value))
-      : success(customer)
+        return !customer
+          ? failure(FailureFactory.RESOURCE_NOT_FOUND(ResourceTypes.CUSTOMER, customerEmail.value))
+          : success(customer)
+      })
   }
 
-  public async create(props: ICreateCustomerProps): Promise<Result<Customer>> {
-    if (isNullOrUndefined(props)) return failure(FailureFactory.MISSING_REQUIRED_DATA('props'))
+  public async create(input: ICreateCustomerCommand): Promise<Result<Customer>> {
+    const customerResult = ensureNotNullResult({ input }).flatMap(() => Customer.create(input))
+    if (customerResult.isInvalid()) return customerResult
 
-    const { name, birthDate, email, password } = props
-
-    const createCustomerResult = Customer.create(name, birthDate, email)
-    if (createCustomerResult.isInvalid()) return createCustomerResult
-
-    const customer = createCustomerResult.value
-
+    const customer = customerResult.value
     const emailAlreadyInUse = await this.repository.hasEmail(customer.email)
-    if (emailAlreadyInUse) return failure(FailureFactory.EMAIL_ALREADY_IN_USE(email))
+    if (emailAlreadyInUse) return failure(FailureFactory.EMAIL_ALREADY_IN_USE(customer.email.value))
 
-    const createPasswordResult = await Password.create(password)
-    if (createPasswordResult.isInvalid()) return createPasswordResult
+    const passwordResult = await Password.create(input.password)
+    if (passwordResult.isInvalid()) return passwordResult
 
-    return success(await this.repository.create(customer))
+    const password = passwordResult.value
+    return success(await this.repository.create(customer, password))
   }
 
   public async updateCustomerEmail(customerUID: string, email: string): Promise<Result<Customer>> {
@@ -97,7 +89,7 @@ export class CustomerApplicationService implements ICustomerApplicationService {
     const updateResult = customer.updateName(newName)
     if (updateResult.isInvalid()) return updateResult
 
-    return success(await this.repository.update(customer.uid, { name: customer.name }))
+    return success(await this.repository.update(customer.uid, { name: updateResult.value.name }))
   }
 
   public async updateCustomerBirthDate(customerUID: string, birthDate: Date): Promise<Result<Customer>> {
@@ -138,22 +130,17 @@ export class CustomerApplicationService implements ICustomerApplicationService {
     return success(await this.repository.update(customer.uid, { cpf: updatedCustomerResult.value.cpf }))
   }
 
-  public async assignCustomerStudentCard(
-    customerUID: string,
-    studentCard: IStudentCardInput
-  ): Promise<Result<Customer>> {
+  public async assignCustomerStudentCard(customerUID: string, input: IStudentCardCommand): Promise<Result<Customer>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
-
     const customer = findCustomerResult.value
 
-    const updateCustomerResult = customer.assignStudentCard(studentCard?.id, studentCard?.validity)
+    const studentCardExists = await this.repository.hasStudentCardID(input.registrationNumber)
+    if (studentCardExists) return failure(FailureFactory.STUDENT_CARD_ALREADY_IN_USE(input.registrationNumber))
+
+    const updateCustomerResult = customer.assignStudentCard(input)
     if (updateCustomerResult.isInvalid()) return updateCustomerResult
-
     const updatedCustomer = updateCustomerResult.value
-
-    const studentCardExists = await this.repository.hasStudentCardID(updatedCustomer.studentCard!.id)
-    if (studentCardExists) failure(FailureFactory.STUDENT_CARD_ALREADY_IN_USE(studentCard.id))
 
     return success(await this.repository.update(customer.uid, { studentCard: updatedCustomer.studentCard }))
   }
@@ -161,7 +148,6 @@ export class CustomerApplicationService implements ICustomerApplicationService {
   public async removeCustomerStudentCard(customerUID: string): Promise<Result<Customer>> {
     const findCustomerResult = await this.findById(customerUID)
     if (findCustomerResult.isInvalid()) return findCustomerResult
-
     const customer = findCustomerResult.value
 
     const updateCustomerResult = customer.removeStudentCard()
