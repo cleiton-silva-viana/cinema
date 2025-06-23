@@ -9,7 +9,7 @@ export interface ICustomerRepository {
 
   hasCPF(cpf: CPF): Promise<boolean>
 
-  hasStudentCardID(id: string): Promise<boolean>
+  hasStudentCard(id: string): Promise<boolean>
 
   findById(uid: CustomerUID): Promise<Customer | null>
 
@@ -17,7 +17,10 @@ export interface ICustomerRepository {
 
   create(customer: Customer, password: Password): Promise<Customer>
 
-  update(uid: CustomerUID, customer: Partial<Customer>): Promise<Customer>
+  update(uid: CustomerUID, customer: Partial<Customer>): Promise<Customer | null>
 
-  delete(uid: CustomerUID): Promise<null>
+  // Métodos administrativos para hard delete
+  permanentlyDelete(uid: CustomerUID): Promise<{ affected: number }>
+
+  findInactiveCustomersSince(date: Date): Promise<Customer[]>
 }
