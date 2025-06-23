@@ -101,13 +101,25 @@ describe('UID', () => {
   })
 
   describe('hydrate', () => {
-    it('deve criar um objeto UID sem validação', () => {
+    it('deve criar um objeto UID sem validação com UID completo', () => {
       // Act
       const hydratedUID = TestUID.hydrate(UID_STRING)
 
       // Assert
       expect(hydratedUID).toBeInstanceOf(TestUID)
       expect(hydratedUID.value).toBe(UID_STRING)
+    })
+
+    it('deve criar um objeto UID a partir de UUID v7 puro', () => {
+      // Arrange
+      const uuidV7 = v7()
+
+      // Act
+      const hydratedUID = TestUID.hydrate(uuidV7)
+
+      // Assert
+      expect(hydratedUID).toBeInstanceOf(TestUID)
+      expect(hydratedUID.value).toBe(`${PREFIX}${SEPARATOR}${uuidV7}`)
     })
 
     it('deve extrair a parte UUID corretamente mesmo com formato inválido', () => {
@@ -122,8 +134,12 @@ describe('UID', () => {
       expect(hydratedUID.value).toBe(invalidUuid)
     })
 
-    it('deve lançar erro', () => {
+    it('deve lançar erro quando valor é nulo', () => {
       expect(() => TestUID.hydrate(null as unknown as string)).toThrow(TechnicalError)
+    })
+
+    it('deve lançar erro quando valor é vazio', () => {
+      expect(() => TestUID.hydrate('')).toThrow(TechnicalError)
     })
   })
 
@@ -161,6 +177,44 @@ describe('UID', () => {
 
       // Assert
       expect(uid.equal(notUIDObject as any)).toBe(false)
+    })
+  })
+
+  describe('unformattedValue', () => {
+    it('deve retornar apenas a parte UUID sem prefixo', () => {
+      // Arrange
+      const uuidV7 = v7()
+      const uid = TestUID.hydrate(`${PREFIX}${SEPARATOR}${uuidV7}`)
+
+      // Act
+      const unformattedValue = uid.unformattedValue
+
+      // Assert
+      expect(unformattedValue).toBe(uuidV7)
+    })
+
+    it('deve retornar a parte UUID de um UID criado', () => {
+      // Arrange
+      const uid = TestUID.create()
+
+      // Act
+      const unformattedValue = uid.unformattedValue
+
+      // Assert
+      expect(unformattedValue).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+      expect(uid.value).toBe(`${PREFIX}${SEPARATOR}${unformattedValue}`)
+    })
+
+    it('deve retornar a parte UUID mesmo quando hidratado com UUID puro', () => {
+      // Arrange
+      const uuidV7 = v7()
+      const uid = TestUID.hydrate(uuidV7)
+
+      // Act
+      const unformattedValue = uid.unformattedValue
+
+      // Assert
+      expect(unformattedValue).toBe(uuidV7)
     })
   })
 })

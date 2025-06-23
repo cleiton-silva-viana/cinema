@@ -65,14 +65,24 @@ export abstract class UID {
    * Cria uma instância de UID a partir de um valor conhecido como válido
    * Usado principalmente para hidratar entidades da persistência
    *
-   * @param value String contendo o UID completo (ex: "USER.123e4567-e89b-12d3-a456-426614174000")
+   * @param value String contendo o UID completo (ex: "USER.123e4567-e89b-12d3-a456-426614174000") ou apenas o UUID v7
    * @throws TechnicalError se o valor for nulo, vazio ou não corresponder ao formato esperado
    * @returns Nova instância de UID
    */
   public static hydrate(value: string): UID {
     TechnicalError.if(isBlank(value), () => FailureFactory.MISSING_REQUIRED_DATA('uid'))
-    const uid = UID.extractUuidPart(value, this)
-    return new (this as any)(uid)
+
+    const concreteClass = this
+    const prefixWithSeparator = concreteClass.PREFIX + concreteClass.SEPARATOR
+
+    // Se o valor já contém o prefixo, extrai apenas a parte UUID
+    if (value.startsWith(prefixWithSeparator)) {
+      const uid = UID.extractUuidPart(value, this)
+      return new (this as any)(uid)
+    }
+
+    // Se não contém prefixo, assume que é apenas o UUID v7
+    return new (this as any)(value)
   }
 
   /**
@@ -126,5 +136,12 @@ export abstract class UID {
     if (isNull(other)) return false
     if (!(other instanceof UID)) return false
     return other.value === this.value
+  }
+
+  /**
+   * Retorna apenas a parte UUID do UID (sem o prefixo e separador).
+   */
+  public get unformattedValue(): string {
+    return this.UUID
   }
 }
