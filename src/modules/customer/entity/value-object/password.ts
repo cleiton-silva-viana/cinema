@@ -1,7 +1,6 @@
 import { failure, Result, success } from '@shared/result/result'
 import { Validate } from '@shared/validator/validate'
 import { TechnicalError } from '@shared/error/technical.error'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { hash, verify } from 'argon2'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { FailureFactory } from '@shared/failure/failure.factory'
