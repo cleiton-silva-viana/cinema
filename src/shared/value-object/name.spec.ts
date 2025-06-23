@@ -48,7 +48,7 @@ describe('Name', () => {
         {
           name: '',
           scenario: 'quando o nome está vazio',
-          errorCodeExpected: FailureCode.MISSING_REQUIRED_DATA,
+          errorCodeExpected: FailureCode.STRING_CANNOT_BE_EMPTY,
         },
         {
           name: 'ab',
