@@ -19,8 +19,8 @@ describe('Price', () => {
       const result = Price.create(value)
 
       // Assert
-      expect(result).toBeValidResultMatching((price: Price) => {
-        expect(price.value).toBe(value)
+      expect(result).toBeValidResultMatching<Price>((p) => {
+        expect(p.value).toBe(value)
       })
     })
 
@@ -32,7 +32,7 @@ describe('Price', () => {
       const result = Price.create(value)
 
       // Assert
-      expect(result).toBeValidResultMatching((p: Price) => {
+      expect(result).toBeValidResultMatching<Price>((p) => {
         expect(p.value).toBe(value)
       })
     })
