@@ -48,6 +48,18 @@ describe('CPF', () => {
           cpf: '123.456.789-bc',
           scenario: 'quando CPF contém caracteres não numéricos',
         },
+        {
+          cpf: '12345678990',
+          scenario: 'quando CPF está sem formatação (apenas dígitos)',
+        },
+        {
+          cpf: '123456789',
+          scenario: 'quando CPF tem apenas 9 dígitos sem formatação',
+        },
+        {
+          cpf: '123456789012',
+          scenario: 'quando CPF tem 12 dígitos sem formatação',
+        },
       ]
 
       failureCases.forEach(({ cpf, scenario }) => {
@@ -86,13 +98,26 @@ describe('CPF', () => {
   })
 
   describe('hydrate', () => {
-    it('deve criar um objeto CPF sem validação', () => {
+    it('deve criar um objeto CPF sem validação com CPF formatado', () => {
       // Act
       const result = CPF.hydrate(VALID_CPF_1)
 
       // Assert
       expect(result).toBeInstanceOf(CPF)
       expect(result.value).toBe(VALID_CPF_1)
+    })
+
+    it('deve criar um objeto CPF e formatar um CPF sem formatação', () => {
+      // Arrange
+      const unformattedCpf = '12345678990'
+      const expectedFormattedCpf = '123.456.789-90'
+
+      // Act
+      const result = CPF.hydrate(unformattedCpf)
+
+      // Assert
+      expect(result).toBeInstanceOf(CPF)
+      expect(result.value).toBe(expectedFormattedCpf)
     })
 
     it('deve lançar um erro quando CPF é nulo ou indefinido', () => {
@@ -140,6 +165,42 @@ describe('CPF', () => {
 
       // Assert
       expect(result.equal(notCPFObject as unknown as CPF)).toBe(false)
+    })
+  })
+
+  describe('unformattedValue', () => {
+    it('deve retornar apenas os dígitos do CPF sem formatação', () => {
+      // Arrange
+      const cpf = CPF.hydrate('123.456.789-90')
+
+      // Act
+      const unformattedValue = cpf.unformattedValue
+
+      // Assert
+      expect(unformattedValue).toBe('12345678990')
+    })
+
+    it('deve retornar apenas dígitos mesmo com CPF diferente', () => {
+      // Arrange
+      const cpf = CPF.hydrate('987.654.321-23')
+
+      // Act
+      const unformattedValue = cpf.unformattedValue
+
+      // Assert
+      expect(unformattedValue).toBe('98765432123')
+    })
+
+    it('deve remover todos os caracteres não numéricos', () => {
+      // Arrange
+      const cpf = CPF.hydrate('000.000.000-00')
+
+      // Act
+      const unformattedValue = cpf.unformattedValue
+
+      // Assert
+      expect(unformattedValue).toBe('00000000000')
+      expect(unformattedValue).toHaveLength(11)
     })
   })
 })

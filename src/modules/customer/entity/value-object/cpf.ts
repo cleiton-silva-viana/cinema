@@ -46,7 +46,8 @@ export class CPF {
    */
   public static hydrate(cpf: string): CPF {
     TechnicalError.if(isNull(cpf), () => FailureFactory.MISSING_REQUIRED_DATA('cpf'))
-    return new CPF(cpf)
+    const formattedCpf = CPF.formatCpf(cpf)
+    return new CPF(formattedCpf)
   }
 
   /**
@@ -59,5 +60,20 @@ export class CPF {
     if (isNull(other)) return false
     if (!(other instanceof CPF)) return false
     return other.value === this.value
+  }
+
+  /**
+   * Retorna o valor do CPF sem formatação (apenas dígitos).
+   */
+  public get unformattedValue(): string {
+    return this.value.replace(/\D/g, '')
+  }
+
+  private static formatCpf(cpf: string): string {
+    const cleanedCpf = cpf.replace(/\D/g, '')
+    if (cleanedCpf.length !== 11) {
+      return cpf // Retorna o original se não tiver 11 dígitos para evitar formatação incorreta
+    }
+    return cleanedCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
   }
 }
