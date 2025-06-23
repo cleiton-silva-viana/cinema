@@ -11,6 +11,7 @@ import { DateHelper } from '@shared/helper/date.helper'
 import { testRequiredFields } from '@test/helpers/required.fields.helper'
 import { CreateTestCustomer } from '@test/builder/customer.builder'
 import { CreateTestStudentCard } from '@test/builder/student.card.builder'
+import { CustomerStatusEnum } from '@modules/customer/enum/customer.status.enum'
 
 describe('Customer', () => {
   describe('Métodos estáticos', () => {
@@ -19,6 +20,7 @@ describe('Customer', () => {
       email: faker.internet.email(),
       cpf: '123.123.123-12',
       birthDate: new Date(1990, 0, 1),
+      password: '123ABCasv#$@',
       studentCard: {
         institution: 'faker inst',
         expirationDate: DateHelper.soon(45),
@@ -76,6 +78,7 @@ describe('Customer', () => {
         ...input,
         uid: CustomerUID.create().value,
         cpf: '123.123.123-12',
+        status: CustomerStatusEnum.ACTIVE,
         createdAt: new Date(),
         updatedAt: new Date(),
       }

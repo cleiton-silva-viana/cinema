@@ -11,8 +11,9 @@ import {
   IHydrateCustomerCommand,
   IStudentCardCommand,
 } from '@modules/customer/interface/customer.command.interface'
-import { ensureNotNullResult } from '@shared/validator/utils/validation.helpers'
+import { ensureNotNullResult, hydrateEnum } from '@shared/validator/utils/validation.helpers'
 import { DateHelper } from '@shared/helper/date.helper'
+import { CustomerStatusEnum } from '@modules/customer/enum/customer.status.enum'
 
 /**
  * Representa um cliente no sistema de cinema.
@@ -26,6 +27,7 @@ export class Customer {
     public readonly name: Name,
     public readonly birthDate: BirthDate,
     public readonly email: Email,
+    public readonly status: CustomerStatusEnum,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
     public readonly studentCard?: StudentCard | null,
@@ -52,7 +54,19 @@ export class Customer {
     ]).flatMap((arr) => {
       const now = new Date()
       const [name, birthDate, email, cpf, studentCard] = arr
-      return success(new Customer(CustomerUID.create(), name, birthDate, email, now, now, studentCard, cpf))
+      return success(
+        new Customer(
+          CustomerUID.create(),
+          name,
+          birthDate,
+          email,
+          CustomerStatusEnum.ACTIVE,
+          now,
+          now,
+          studentCard,
+          cpf
+        )
+      )
     })
   }
 
@@ -74,6 +88,7 @@ export class Customer {
       Name.hydrate(input.name),
       BirthDate.hydrate(input.birthDate),
       Email.hydrate(input.email),
+      hydrateEnum({ status: input.status }, CustomerStatusEnum),
       input.createdAt,
       input.updatedAt,
       card,
@@ -175,11 +190,90 @@ export class Customer {
     return success(this.copyWith({ studentCard: undefined }))
   }
 
+  /**
+   * Atualiza o status do cliente.
+   * Retorna uma nova instância de `Customer` com o status atualizado.
+   * @param status O novo status do cliente.
+   * @returns Um `Result` contendo a nova instância de `Customer`.
+   */
+  public updateStatus(status: CustomerStatusEnum): Result<Customer> {
+    return success(this.copyWith({ status }))
+  }
+
+  /**
+   * Inativa o cliente (soft delete).
+   * Retorna uma nova instância de `Customer` com status INACTIVE.
+   * @returns Um `Result` contendo a nova instância de `Customer`.
+   */
+  public deactivate(): Result<Customer> {
+    return success(this.copyWith({ status: CustomerStatusEnum.INACTIVE }))
+  }
+
+  /**
+   * Reativa o cliente.
+   * Retorna uma nova instância de `Customer` com status ACTIVE.
+   * @returns Um `Result` contendo a nova instância de `Customer`.
+   */
+  public activate(): Result<Customer> {
+    return success(this.copyWith({ status: CustomerStatusEnum.ACTIVE }))
+  }
+
+  /**
+   * Suspende o cliente.
+   * Retorna uma nova instância de `Customer` com status SUSPENDED.
+   * @returns Um `Result` contendo a nova instância de `Customer`.
+   */
+  public suspend(): Result<Customer> {
+    return success(this.copyWith({ status: CustomerStatusEnum.SUSPENDED }))
+  }
+
+  /**
+   * Bloqueia o cliente permanentemente.
+   * Retorna uma nova instância de `Customer` com status BLOCKED.
+   * @returns Um `Result` contendo a nova instância de `Customer`.
+   */
+  public block(): Result<Customer> {
+    return success(this.copyWith({ status: CustomerStatusEnum.BLOCKED }))
+  }
+
+  /**
+   * Verifica se o cliente está ativo.
+   * @returns {boolean} Verdadeiro se o status do cliente é ACTIVE, falso caso contrário.
+   */
+  get isActive(): boolean {
+    return this.status === CustomerStatusEnum.ACTIVE
+  }
+
+  /**
+   * Verifica se o cliente está inativo.
+   * @returns {boolean} Verdadeiro se o status do cliente é INACTIVE, falso caso contrário.
+   */
+  get isInactive(): boolean {
+    return this.status === CustomerStatusEnum.INACTIVE
+  }
+
+  /**
+   * Verifica se o cliente está suspenso.
+   * @returns {boolean} Verdadeiro se o status do cliente é SUSPENDED, falso caso contrário.
+   */
+  get isSuspended(): boolean {
+    return this.status === CustomerStatusEnum.SUSPENDED
+  }
+
+  /**
+   * Verifica se o cliente está bloqueado.
+   * @returns {boolean} Verdadeiro se o status do cliente é BLOCKED, falso caso contrário.
+   */
+  get isBlocked(): boolean {
+    return this.status === CustomerStatusEnum.BLOCKED
+  }
+
   private copyWith(changes: {
     uid?: CustomerUID
     name?: Name
     birthDate?: BirthDate
     email?: Email
+    status?: CustomerStatusEnum
     createdAt?: Date
     updatedAt?: Date
     studentCard?: StudentCard | null
@@ -190,6 +284,7 @@ export class Customer {
       'name' in changes ? changes.name! : this.name,
       'birthDate' in changes ? changes.birthDate! : this.birthDate,
       'email' in changes ? changes.email! : this.email,
+      'status' in changes ? changes.status! : this.status,
       'createdAt' in changes ? changes.createdAt! : this.createdAt,
       new Date(), // Always update 'updatedAt' when copying
       'studentCard' in changes ? changes.studentCard : this.studentCard,
