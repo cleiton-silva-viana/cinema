@@ -21,6 +21,7 @@ export interface IHydrateCustomerCommand {
   email: string
   birthDate: Date
   cpf?: string
+  status: string
   studentCard?: IStudentCardCommand
   createdAt: Date
   updatedAt: Date
