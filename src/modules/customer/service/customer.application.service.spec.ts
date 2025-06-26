@@ -1,18 +1,19 @@
 import { faker } from '@faker-js/faker'
-import { Test } from '@nestjs/testing'
-import { CustomerApplicationService } from './customer.application.service'
-import { CUSTOMER_REPOSITORY } from '../constant/customer.constants'
-import { ICustomerRepository } from '../repository/customer.repository.interface'
-import { Customer } from '../entity/customer'
-import { FailureCode } from '@shared/failure/failure.codes.enum'
+import { CUSTOMER_REPOSITORY, CUSTOMER_STATUS_STATE_MACHINE } from '../constant/customer.constants'
 import { CloneTestCustomerWithOverrides, CreateTestCustomer } from '@test/builder/customer.builder'
 import { CreateTestStudentCard } from '@test/builder/student.card.builder'
 import { failure, success } from '@shared/result/result'
+import { Test } from '@nestjs/testing'
+import { CustomerApplicationService } from './customer.application.service'
+import { ICustomerRepository } from '../repository/customer.repository.interface'
+import { Customer } from '../entity/customer'
+import { FailureCode } from '@shared/failure/failure.codes.enum'
 import { SimpleFailure } from '@shared/failure/simple.failure.type'
 import { CustomerUID } from '@modules/customer/entity/value-object/customer.uid'
 import { Email } from '@modules/customer/entity/value-object/email'
 import { StudentCard } from '@modules/customer/entity/value-object/student-card'
 import { Password } from '../entity/value-object/password'
+import { CustomerStatusEnum } from '../enum/customer.status.enum'
 
 describe('CustomerApplicationService', () => {
   const simpleFailureMock: SimpleFailure = { code: FailureCode.STRING_CANNOT_BE_EMPTY, details: { a: 'b' } }
@@ -21,7 +22,7 @@ describe('CustomerApplicationService', () => {
   let service: CustomerApplicationService
   let repositoryMock: jest.Mocked<ICustomerRepository>
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const module = await Test.createTestingModule({
       providers: [
         CustomerApplicationService,
@@ -34,7 +35,15 @@ describe('CustomerApplicationService', () => {
             create: jest.fn(),
             update: jest.fn(),
             hasCPF: jest.fn(),
-            hasStudentCardID: jest.fn(),
+            hasStudentCard: jest.fn(),
+          },
+        },
+        {
+          provide: CUSTOMER_STATUS_STATE_MACHINE,
+          useValue: {
+            canTransition: jest.fn(),
+            executeTransition: jest.fn(),
+            for: jest.fn(),
           },
         },
       ],
@@ -44,6 +53,9 @@ describe('CustomerApplicationService', () => {
     repositoryMock = module.get(CUSTOMER_REPOSITORY)
   })
 
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
   describe('findById', () => {
     it('deve retornar um cliente quando encontrado pelo ID', async () => {
       // Arrange
@@ -223,6 +235,32 @@ describe('CustomerApplicationService', () => {
       expect(repositoryMock.hasEmail).not.toHaveBeenCalled()
       expect(repositoryMock.update).not.toHaveBeenCalled()
     })
+
+    describe('cenários com status adversos', () => {
+      const cases = [
+        { scenario: 'cliente bloqueado', status: CustomerStatusEnum.BLOCKED },
+        { scenario: 'cliente suspenso', status: CustomerStatusEnum.SUSPENDED },
+        { scenario: 'cliente com deleção pendente', status: CustomerStatusEnum.PENDING_DELETION },
+      ]
+
+      cases.forEach(async ({ scenario, status }) => {
+        it(`deve falhar quando ${scenario}`, async () => {
+          // Arrange
+          const email = faker.internet.email()
+          const blockedCustomer = CreateTestCustomer({ status })
+          jest.spyOn(Email, 'create').mockReturnValue(success(blockedCustomer.email))
+          repositoryMock.findById.mockResolvedValue(blockedCustomer)
+          repositoryMock.hasEmail.mockResolvedValue(false)
+
+          // Act
+          const result = await service.updateCustomerEmail(blockedCustomer.uid.value, email)
+
+          // Assert
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.CUSTOMER_WRITE_OPERATION_NOT_ALLOWED)
+          expect(repositoryMock.update).not.toHaveBeenCalled()
+        })
+      })
+    })
   })
 
   describe('updateCustomerName', () => {
@@ -256,6 +294,30 @@ describe('CustomerApplicationService', () => {
       expect(repositoryMock.update).not.toHaveBeenCalled()
       expect(result).toBeInvalidResultWithFailure(simpleFailureMock)
     })
+
+    describe('cenários com status adversos', () => {
+      const cases = [
+        { scenario: 'cliente bloqueado', status: CustomerStatusEnum.BLOCKED },
+        { scenario: 'cliente suspenso', status: CustomerStatusEnum.SUSPENDED },
+        { scenario: 'cliente com deleção pendente', status: CustomerStatusEnum.PENDING_DELETION },
+      ]
+
+      cases.forEach(async ({ scenario, status }) => {
+        it(`deve falhar quando ${scenario}`, async () => {
+          // Arrange
+          const name = faker.person.firstName()
+          const blockedCustomer = CreateTestCustomer({ status })
+          repositoryMock.findById.mockResolvedValue(blockedCustomer)
+
+          // Act
+          const result = await service.updateCustomerName(blockedCustomer.uid.value, name)
+
+          // Assert
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.CUSTOMER_WRITE_OPERATION_NOT_ALLOWED)
+          expect(repositoryMock.update).not.toHaveBeenCalled()
+        })
+      })
+    })
   })
 
   describe('updateCustomerBirthDate', () => {
@@ -288,6 +350,30 @@ describe('CustomerApplicationService', () => {
       expect(repositoryMock.findById).toHaveBeenCalledWith(customerMock.uid)
       expect(repositoryMock.update).not.toHaveBeenCalled()
       expect(result).toBeInvalidResultWithFailure(simpleFailureMock)
+    })
+
+    describe('cenários com status adversos', () => {
+      const cases = [
+        { scenario: 'cliente bloqueado', status: CustomerStatusEnum.BLOCKED },
+        { scenario: 'cliente suspenso', status: CustomerStatusEnum.SUSPENDED },
+        { scenario: 'cliente com deleção pendente', status: CustomerStatusEnum.PENDING_DELETION },
+      ]
+
+      cases.forEach(async ({ scenario, status }) => {
+        it(`deve falhar quando ${scenario}`, async () => {
+          // Arrange
+          const birthDate = faker.date.birthdate()
+          const blockedCustomer = CreateTestCustomer({ status })
+          repositoryMock.findById.mockResolvedValue(blockedCustomer)
+
+          // Act
+          const result = await service.updateCustomerBirthDate(blockedCustomer.uid.value, birthDate)
+
+          // Assert
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.CUSTOMER_WRITE_OPERATION_NOT_ALLOWED)
+          expect(repositoryMock.update).not.toHaveBeenCalled()
+        })
+      })
     })
   })
 
@@ -338,6 +424,31 @@ describe('CustomerApplicationService', () => {
       expect(repositoryMock.hasCPF).not.toHaveBeenCalled()
       expect(repositoryMock.update).not.toHaveBeenCalled()
     })
+
+    describe('cenários com status adversos', () => {
+      const cases = [
+        { scenario: 'cliente bloqueado', status: CustomerStatusEnum.BLOCKED },
+        { scenario: 'cliente suspenso', status: CustomerStatusEnum.SUSPENDED },
+        { scenario: 'cliente com deleção pendente', status: CustomerStatusEnum.PENDING_DELETION },
+      ]
+
+      cases.forEach(async ({ scenario, status }) => {
+        it(`deve falhar quando ${scenario}`, async () => {
+          // Arrange
+          const cpf = '123.456.789-09'
+          const blockedCustomer = CreateTestCustomer({ status })
+          repositoryMock.findById.mockResolvedValue(blockedCustomer)
+          repositoryMock.hasCPF.mockResolvedValue(false)
+
+          // Act
+          const result = await service.assignCustomerCPF(blockedCustomer.uid.value, cpf)
+
+          // Assert
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.CUSTOMER_WRITE_OPERATION_NOT_ALLOWED)
+          expect(repositoryMock.update).not.toHaveBeenCalled()
+        })
+      })
+    })
   })
 
   describe('removeCustomerCPF', () => {
@@ -358,6 +469,29 @@ describe('CustomerApplicationService', () => {
       expect(customerWithCpf.removeCPF).toHaveBeenCalled()
       expect(result).toBeValidResultWithValue(updatedCustomer)
     })
+
+    describe('cenários com status adversos', () => {
+      const cases = [
+        { scenario: 'cliente bloqueado', status: CustomerStatusEnum.BLOCKED },
+        { scenario: 'cliente suspenso', status: CustomerStatusEnum.SUSPENDED },
+        { scenario: 'cliente com deleção pendente', status: CustomerStatusEnum.PENDING_DELETION },
+      ]
+
+      cases.forEach(async ({ scenario, status }) => {
+        it(`deve falhar quando ${scenario}`, async () => {
+          // Arrange
+          const blockedCustomer = CreateTestCustomer({ status })
+          repositoryMock.findById.mockResolvedValue(blockedCustomer)
+
+          // Act
+          const result = await service.removeCustomerCPF(blockedCustomer.uid.value)
+
+          // Assert
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.CUSTOMER_WRITE_OPERATION_NOT_ALLOWED)
+          expect(repositoryMock.update).not.toHaveBeenCalled()
+        })
+      })
+    })
   })
 
   describe('assignStudentCard', () => {
@@ -369,7 +503,7 @@ describe('CustomerApplicationService', () => {
       const updatedCustomer = CloneTestCustomerWithOverrides(customerMock, { studentCard })
       jest.spyOn(StudentCard, 'create').mockReturnValue(success(studentCard))
       repositoryMock.findById.mockResolvedValue(customerMock)
-      repositoryMock.hasStudentCardID.mockResolvedValue(false)
+      repositoryMock.hasStudentCard.mockResolvedValue(false)
       jest.spyOn(customerMock, 'assignStudentCard').mockReturnValue(success(updatedCustomer))
       repositoryMock.update.mockResolvedValue(updatedCustomer)
 
@@ -386,13 +520,13 @@ describe('CustomerApplicationService', () => {
       // Arrange
       jest.spyOn(StudentCard, 'create').mockReturnValue(success(studentCard))
       repositoryMock.findById.mockResolvedValue(customerMock)
-      repositoryMock.hasStudentCardID.mockResolvedValue(true)
+      repositoryMock.hasStudentCard.mockResolvedValue(true)
 
       // Act
       const result = await service.assignCustomerStudentCard(customerMock.uid.value, studentCardCommand)
 
       // Assert
-      expect(repositoryMock.hasStudentCardID).toHaveBeenCalledWith(studentCardCommand.registrationNumber)
+      expect(repositoryMock.hasStudentCard).toHaveBeenCalledWith(studentCardCommand.registrationNumber)
       expect(repositoryMock.findById).toHaveBeenCalledWith(customerMock.uid)
       expect(repositoryMock.update).not.toHaveBeenCalled()
       expect(result).toBeInvalidResultWithSingleFailure(FailureCode.STUDENT_CARD_ALREADY_IN_USE)
@@ -401,6 +535,7 @@ describe('CustomerApplicationService', () => {
     it('deve retornar falha quando os dados da carteira do estudante forem inválidos', async () => {
       // Arrange
       repositoryMock.findById.mockResolvedValue(customerMock)
+      repositoryMock.hasStudentCard.mockResolvedValue(false)
       jest.spyOn(customerMock, 'assignStudentCard').mockReturnValue(failure(simpleFailureMock))
 
       // Act
@@ -408,9 +543,34 @@ describe('CustomerApplicationService', () => {
 
       // Assert
       expect(repositoryMock.findById).toHaveBeenCalledWith(customerMock.uid)
-      expect(repositoryMock.hasStudentCardID).toHaveBeenCalledWith(studentCardCommand.registrationNumber)
+      expect(repositoryMock.hasStudentCard).toHaveBeenCalledWith(studentCardCommand.registrationNumber)
       expect(repositoryMock.update).not.toHaveBeenCalled()
       expect(result).toBeInvalidResultWithFailure(simpleFailureMock)
+    })
+
+    describe('cenários com status adversos', () => {
+      const cases = [
+        { scenario: 'cliente bloqueado', status: CustomerStatusEnum.BLOCKED },
+        { scenario: 'cliente suspenso', status: CustomerStatusEnum.SUSPENDED },
+        { scenario: 'cliente com deleção pendente', status: CustomerStatusEnum.PENDING_DELETION },
+      ]
+
+      cases.forEach(async ({ scenario, status }) => {
+        it(`deve falhar quando ${scenario}`, async () => {
+          // Arrange
+          const blockedCustomer = CreateTestCustomer({ status })
+          jest.spyOn(StudentCard, 'create').mockReturnValue(success(studentCard))
+          repositoryMock.findById.mockResolvedValue(blockedCustomer)
+          repositoryMock.hasStudentCard.mockResolvedValue(false)
+
+          // Act
+          const result = await service.assignCustomerStudentCard(blockedCustomer.uid.value, studentCardCommand)
+
+          // Assert
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.CUSTOMER_WRITE_OPERATION_NOT_ALLOWED)
+          expect(repositoryMock.update).not.toHaveBeenCalled()
+        })
+      })
     })
   })
 
@@ -450,5 +610,163 @@ describe('CustomerApplicationService', () => {
       expect(result).toBeInvalidResultWithFailure(simpleFailureMock)
       expect(repositoryMock.update).not.toHaveBeenCalled()
     })
+
+    describe('cenários com status adversos', () => {
+      const cases = [
+        { scenario: 'cliente bloqueado', status: CustomerStatusEnum.BLOCKED },
+        { scenario: 'cliente suspenso', status: CustomerStatusEnum.SUSPENDED },
+        { scenario: 'cliente com deleção pendente', status: CustomerStatusEnum.PENDING_DELETION },
+      ]
+
+      cases.forEach(async ({ scenario, status }) => {
+        it(`deve falhar quando ${scenario}`, async () => {
+          // Arrange
+          const blockedCustomer = CreateTestCustomer({ status: CustomerStatusEnum.BLOCKED })
+          repositoryMock.findById.mockResolvedValue(blockedCustomer)
+
+          // Act
+          const result = await service.removeCustomerStudentCard(blockedCustomer.uid.value)
+
+          // Assert
+          expect(result).toBeInvalidResultWithSingleFailure(FailureCode.CUSTOMER_WRITE_OPERATION_NOT_ALLOWED)
+          expect(repositoryMock.update).not.toHaveBeenCalled()
+        })
+      })
+    })
+  })
+
+  describe('requestAccountDeletion', () => {
+    it('deve solicitar deleção da conta com sucesso', async () => {
+      // Arrange
+      const activeCustomer = customerMock
+      const pendingDeletionCustomer = CloneTestCustomerWithOverrides(activeCustomer, {
+        status: CustomerStatusEnum.PENDING_DELETION,
+      })
+      repositoryMock.findById.mockResolvedValue(activeCustomer)
+      repositoryMock.update.mockResolvedValue(pendingDeletionCustomer)
+
+      // Act
+      const result = await service.requestAccountDeletion(activeCustomer.uid.value)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(activeCustomer.uid)
+      expect(repositoryMock.update).toHaveBeenCalledWith(activeCustomer.uid, {
+        status: CustomerStatusEnum.PENDING_DELETION,
+      })
+      expect(result).toBeValidResultWithValue(pendingDeletionCustomer)
+    })
+
+    it('deve retornar erro quando cliente não for encontrado', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null)
+
+      // Act
+      const result = await service.requestAccountDeletion(customerMock.uid.value)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(customerMock.uid)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+    })
+
+    it('deve retornar erro quando transição não for permitida', async () => {
+      // Arrange
+      const blockedCustomer = CreateTestCustomer({ status: CustomerStatusEnum.BLOCKED })
+      repositoryMock.findById.mockResolvedValue(blockedCustomer)
+
+      // Act
+      const result = await service.requestAccountDeletion(blockedCustomer.uid.value)
+
+      // Assert
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.INVALID_STATUS_TRANSITION)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+    })
+
+    /*    it('deve retornar erro quando execução da transição falhar', async () => {
+      // Arrange
+      const activeCustomer = CreateTestCustomer({ status: CustomerStatusEnum.ACTIVE })
+      repositoryMock.findById.mockResolvedValue(activeCustomer)
+      jest.spyOn()
+      customerStatusStateMachineMock.canTransition.mockReturnValue(true)
+      customerStatusStateMachineMock.executeTransition.mockReturnValue(failure(simpleFailureMock))
+
+      // Act
+      const result = await service.requestAccountDeletion(activeCustomer.uid.value)
+
+      // Assert
+      expect(customerStatusStateMachineMock.executeTransition).toHaveBeenCalledWith(
+        activeCustomer.status,
+        'delete',
+        CustomerStatusTransitionActorEnum.CUSTOMER
+      )
+      expect(result).toBeInvalidResultWithFailure(simpleFailureMock)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+    })*/
+  })
+
+  describe('reactivateAccount', () => {
+    it('deve reativar conta com pedido de deleção com sucesso', async () => {
+      // Arrange
+      const suspendedCustomer = CreateTestCustomer({ status: CustomerStatusEnum.PENDING_DELETION })
+      const activatedCustomer = CloneTestCustomerWithOverrides(suspendedCustomer, { status: CustomerStatusEnum.ACTIVE })
+
+      repositoryMock.findById.mockResolvedValue(suspendedCustomer)
+      repositoryMock.update.mockResolvedValue(activatedCustomer)
+
+      // Act
+      const result = await service.reactivateAccount(suspendedCustomer.uid.value)
+      console.log(suspendedCustomer.uid.value)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(suspendedCustomer.uid)
+      expect(repositoryMock.update).toHaveBeenCalledWith(activatedCustomer.uid, { status: CustomerStatusEnum.ACTIVE })
+      expect(result).toBeValidResultWithValue(activatedCustomer)
+    })
+
+    it('deve retornar erro quando cliente não for encontrado', async () => {
+      // Arrange
+      repositoryMock.findById.mockResolvedValue(null)
+
+      // Act
+      const result = await service.reactivateAccount(customerMock.uid.value)
+
+      // Assert
+      expect(repositoryMock.findById).toHaveBeenCalledWith(customerMock.uid)
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.RESOURCE_NOT_FOUND)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+    })
+
+    it('deve retornar erro quando transição não for permitida', async () => {
+      // Arrange
+      const activeCustomer = CreateTestCustomer({ status: CustomerStatusEnum.BLOCKED })
+      repositoryMock.findById.mockResolvedValue(activeCustomer)
+
+      // Act
+      const result = await service.reactivateAccount(activeCustomer.uid.value)
+
+      // Assert
+      expect(result).toBeInvalidResultWithSingleFailure(FailureCode.INVALID_STATUS_TRANSITION)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+    })
+
+    /*    it('deve retornar erro quando execução da transição falhar', async () => {
+      // Arrange
+      const suspendedCustomer = CreateTestCustomer({ status: CustomerStatusEnum.SUSPENDED })
+      repositoryMock.findById.mockResolvedValue(suspendedCustomer)
+      customerStatusStateMachineMock.canTransition.mockReturnValue(true)
+      customerStatusStateMachineMock.executeTransition.mockReturnValue(failure(simpleFailureMock))
+
+      // Act
+      const result = await service.reactivateAccount(suspendedCustomer.uid.value)
+
+      // Assert
+      expect(customerStatusStateMachineMock.executeTransition).toHaveBeenCalledWith(
+        suspendedCustomer.status,
+        'activate',
+        CustomerStatusTransitionActorEnum.CUSTOMER
+      )
+      expect(result).toBeInvalidResultWithFailure(simpleFailureMock)
+      expect(repositoryMock.update).not.toHaveBeenCalled()
+    })*/
   })
 })
