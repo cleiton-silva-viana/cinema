@@ -28,7 +28,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      # Setup Node.js com cache condicional - CORRIGIDO
       - name: Setup Node.js (with cache)
         if: env.ENABLE_CACHE == 'true'
         uses: actions/setup-node@v4
@@ -100,7 +99,7 @@ jobs:
     name: Upload to Codecov
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: ${{ needs.build-and-test.outputs.coverage-generated == 'true' && secrets.CODECOV_TOKEN != '' }}
+    if: ${{ needs.build-and-test.outputs.coverage-generated == 'true' && env.ENABLE_CODECOV == 'true' }}
     
     steps:
       - name: Checkout
@@ -124,7 +123,7 @@ jobs:
     name: Docker Security Scans
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: ${{ secrets.DOCKER_USERNAME != '' }}
+    if: ${{ env.ENABLE_DOCKER_SECURITY == 'true' }}
     
     steps:
       - name: Checkout
@@ -144,5 +143,5 @@ jobs:
           
           # Trivy - Vulnerability scanning
           echo "🛡️ Scanning for vulnerabilities with Trivy..."
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \\
             aquasec/trivy image cinema-backend:security || echo "⚠️ Vulnerabilities found"
