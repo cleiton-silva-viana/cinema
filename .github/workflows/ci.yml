@@ -14,35 +14,28 @@ env:
   ENABLE_CACHE: ${{ secrets.ENABLE_CACHE == 'true' || vars.ENABLE_CACHE == 'true' }}
 
 jobs:
-# job principal - smepre executado
-  main-pipeline:
-    name: main-pipeline
+  build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./backend
     outputs:
       cache-key: ${{ steps.cache.outputs.cache-hit }}
+      coverage-generated: ${{ steps.coverage.outputs.generated }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Setup Node.js (with cache)
-        if: env.ENABLE_CACHE == 'true'
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: './backend/package-lock.json'
+          cache: ${{ env.ENABLE_CACHE == 'true' && 'npm' || '' }}
+          cache-dependency-path: ${{ env.ENABLE_CACHE == 'true' && './backend/package-lock.json' || '' }}
 
-      - name: Setup Node.js (without cache)
-        if: env.ENABLE_CACHE != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Cache node_modules (Optional)
+      - name: Cache node_modules
         if: env.ENABLE_CACHE == 'true'
         id: cache
         uses: actions/cache@v3
@@ -52,110 +45,123 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       
-      - name: Install dependencies (with cache check)
-        if: env.ENABLE_CACHE == 'true'
+      - name: Install dependencies
         run: |
-          if [[ "${{ steps.cache.outputs.cache-hit }}" == "true" ]]; then
-            echo "Dependencies restored from cache"
+          if [[ "${{ env.ENABLE_CACHE }}" == "true" && "${{ steps.cache.outputs.cache-hit }}" == "true" ]]; then
+            echo "✅ Dependencies restored from cache"
           else
-            echo "Installing dependencies..."
+            echo "📦 Installing dependencies..."
             npm ci
           fi
       
-      - name: Install dependencies (without cache)
-        if: env.ENABLE_CACHE != 'true'
-        run: | 
-          echo "Installing dependencies (no cache)..."
-          npm ci
-      
       - name: Code Quality checks
         run: |
-          echo "Running code quality checks..."
+          echo "🔍 Running code quality checks..."
           npm run format
           npm run lint
           npm run typecheck
       
-      - name: Tests check
+      - name: Run Tests
         run: |
           echo "🧪 Running tests..."
           npm test
           npm run test:e2e
-          npm run test:cov
-
-      - name: Docker Nuild Test
+      
+      - name: Generate Coverage
+        id: coverage
         run: |
-          echo "Testing Docker build..."
-          docker build -t cinema-backend:test .
-          echo "Docker build successful!"
+          echo "📊 Generating coverage report..."
+          npm run test:cov
+          echo "generated=true" >> $GITHUB_OUTPUT
 
-      - name: Upload Coverage Tests (Optional)
-        if: env.ENABLE_CODECOV == 'true'
-        uses:
+      - name: Docker Build Test
+        run: |
+          echo "🐳 Testing Docker build..."
+          docker build -t cinema-backend:test .
+          echo "✅ Docker build successful!"
+
+      - name: Upload Coverage Artifacts
+        if: steps.coverage.outputs.generated == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-reports
+          path: ./backend/coverage/
+          retention-days: 1
+
+  codecov-upload:
+    name: Upload to Codecov
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: ${{ needs.build-and-test.outputs.coverage-generated == 'true' && secrets.CODECOV_TOKEN != '' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Download Coverage Reports
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-reports
+          path: ./backend/coverage/
+      
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v3
+        with:
           file: ./backend/coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
-
-      - name: Tests Coverage Report
-        run: |
-          echo "Coverage Summary:"
-          npm run test:cov:summary || echo "Coverage summary not available"
+          verbose: true
 
   docker-security:
     name: Docker Security Scans
     runs-on: ubuntu-latest
-    needs: main-pipeline
+    needs: build-and-test
     if: ${{ secrets.DOCKER_USERNAME != '' }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Docker security scans
+      - name: Docker Security Analysis
         run: |
-         cd backend
+          cd backend
           
           # Hadolint - Dockerfile linting
-          echo "🔍 Analyzing Dockerfile..."
+          echo "🔍 Analyzing Dockerfile with Hadolint..."
           docker run --rm -i hadolint/hadolint < Dockerfile || echo "⚠️ Dockerfile issues found"
           
-          # Build image
+          # Build image for security scanning
+          echo "🏗️ Building image for security scan..."
           docker build -t cinema-backend:security .
           
           # Trivy - Vulnerability scanning
-          echo "🛡️ Scanning for vulnerabilities..."
+          echo "🛡️ Scanning for vulnerabilities with Trivy..."
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
             aquasec/trivy image cinema-backend:security || echo "⚠️ Vulnerabilities found"
   
   sonarqube:
     name: SonarQube Analysis
     runs-on: ubuntu-latest
-    needs: [main-pipeline]
+    needs: build-and-test
     if: ${{ secrets.SONAR_TOKEN != '' }}
     defaults:
       run:
         working-directory: ./backend
     
     steps:
-      - name: 📥 Checkout
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
-      - name: 🟢 Setup Node.js (with cache)
-        if: env.ENABLE_CACHE == 'true'
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: './backend/package-lock.json'
+          cache: ${{ env.ENABLE_CACHE == 'true' && 'npm' || '' }}
+          cache-dependency-path: ${{ env.ENABLE_CACHE == 'true' && './backend/package-lock.json' || '' }}
       
-      - name: 🟢 Setup Node.js (without cache)
-        if: env.ENABLE_CACHE != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      
-      - name: 💾 Restore cache (Optional)
+      - name: Restore Dependencies Cache
         if: env.ENABLE_CACHE == 'true'
         uses: actions/cache@v3
         with:
@@ -164,13 +170,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       
-      - name: 📦 Install dependencies
+      - name: Download Coverage Reports
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-reports
+          path: ./backend/coverage/
+      
+      - name: Install Dependencies
         run: npm ci
       
-      - name: 🧪 Generate Coverage
-        run: npm run test:cov
-      
-      - name: 📊 SonarQube Scan
+      - name: SonarQube Scan
         uses: sonarqube-quality-gate-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
