@@ -1,0 +1,179 @@
+name: CI Pipeline - Hybrid
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  # Configurações opcionais - usuários podem definir nos secrets do repositório
+  ENABLE_SONARQUBE: ${{ secrets.SONAR_TOKEN != '' }}
+  ENABLE_CODECOV: ${{ secrets.CODECOV_TOKEN != '' }}
+  ENABLE_DOCKER_SECURITY: ${{ secrets.DOCKER_USERNAME != '' }}
+  ENABLE_CACHE: ${{ secrets.ENABLE_CACHE == 'true' || vars.ENABLE_CACHE == 'true' }}
+
+jobs:
+# job principal - smepre executado
+  main-pipeline:
+    name: main-pipeline
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-hit }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js (with cache)
+        if: env.ENABLE_CACHE == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Setup Node.js (without cache)
+        if: env.ENABLE_CACHE != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache node_modules (Optional)
+        if: env.ENABLE_CACHE == 'true'
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: ./backend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
+      - name: Install dependencies (with cache check)
+        if: env.ENABLE_CACHE == 'true'
+        run: |
+          if [[ "${{ steps.cache.outputs.cache-hit }}" == "true" ]]; then
+            echo "Dependencies restored from cache"
+          else
+            echo "Installing dependencies..."
+            npm ci
+          fi
+      
+      - name: Install dependencies (without cache)
+        if: env.ENABLE_CACHE != 'true'
+        run: | 
+          echo "Installing dependencies (no cache)..."
+          npm ci
+      
+      - name: Code Quality checks
+        run: |
+          echo "Running code quality checks..."
+          npm run format
+          npm run lint
+          npm run typecheck
+      
+      - name: Tests check
+        run: |
+          echo "🧪 Running tests..."
+          npm test
+          npm run test:e2e
+          npm run test:cov
+
+      - name: Docker Nuild Test
+        run: |
+          echo "Testing Docker build..."
+          docker build -t cinema-backend:test .
+          echo "Docker build successful!"
+
+      - name: Upload Coverage Tests (Optional)
+        if: env.ENABLE_CODECOV == 'true'
+        uses:
+          file: ./backend/coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+      - name: Tests Coverage Report
+        run: |
+          echo "Coverage Summary:"
+          npm run test:cov:summary || echo "Coverage summary not available"
+
+  docker-security:
+    name: Docker Security Scans
+    runs-on: ubuntu-latest
+    needs: main-pipeline
+    if: ${{ secrets.DOCKER_USERNAME != '' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Docker security scans
+        run: |
+         cd backend
+          
+          # Hadolint - Dockerfile linting
+          echo "🔍 Analyzing Dockerfile..."
+          docker run --rm -i hadolint/hadolint < Dockerfile || echo "⚠️ Dockerfile issues found"
+          
+          # Build image
+          docker build -t cinema-backend:security .
+          
+          # Trivy - Vulnerability scanning
+          echo "🛡️ Scanning for vulnerabilities..."
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy image cinema-backend:security || echo "⚠️ Vulnerabilities found"
+  
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: [main-pipeline]
+    if: ${{ secrets.SONAR_TOKEN != '' }}
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 🟢 Setup Node.js (with cache)
+        if: env.ENABLE_CACHE == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+      
+      - name: 🟢 Setup Node.js (without cache)
+        if: env.ENABLE_CACHE != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: 💾 Restore cache (Optional)
+        if: env.ENABLE_CACHE == 'true'
+        uses: actions/cache@v3
+        with:
+          path: ./backend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
+      - name: 📦 Install dependencies
+        run: npm ci
+      
+      - name: 🧪 Generate Coverage
+        run: npm run test:cov
+      
+      - name: 📊 SonarQube Scan
+        uses: sonarqube-quality-gate-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          scanMetadataReportFile: ./backend/coverage/sonar-report.xml
+
