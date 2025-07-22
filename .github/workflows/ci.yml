@@ -28,12 +28,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Setup Node.js
+      # Setup Node.js com cache condicional - CORRIGIDO
+      - name: Setup Node.js (with cache)
+        if: env.ENABLE_CACHE == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: ${{ env.ENABLE_CACHE == 'true' && 'npm' || '' }}
-          cache-dependency-path: ${{ env.ENABLE_CACHE == 'true' && './backend/package-lock.json' || '' }}
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Setup Node.js (without cache)
+        if: env.ENABLE_CACHE != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
 
       - name: Cache node_modules
         if: env.ENABLE_CACHE == 'true'
@@ -154,12 +162,19 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Setup Node.js
+      - name: Setup Node.js (with cache)
+        if: env.ENABLE_CACHE == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: ${{ env.ENABLE_CACHE == 'true' && 'npm' || '' }}
-          cache-dependency-path: ${{ env.ENABLE_CACHE == 'true' && './backend/package-lock.json' || '' }}
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+      
+      - name: Setup Node.js (without cache)
+        if: env.ENABLE_CACHE != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
       
       - name: Restore Dependencies Cache
         if: env.ENABLE_CACHE == 'true'
