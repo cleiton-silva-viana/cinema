@@ -16,10 +16,14 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
+    "security:audit": "npm audit --audit-level=moderate",
     "test:cov": "jest --coverage",
+    "test:cov:sonar": "jest --coverage --coverageReporters=lcov --coverageReporters=text",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "generate:failures": "tsx scripts/generate.failures.script.ts"
+    "generate:failures-messages": "tsx scripts/generate.failures.script.ts",
+    "generate:loggings-messages": "tsx scripts/generate.logging.messages.script.ts",
+    "generate:fallbacks-messages": "tsx scripts/generate.fallbacks.messages.script.ts"
   },
   "repository": {
     "type": "git",
