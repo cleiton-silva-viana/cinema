@@ -74,6 +74,7 @@ DOCKER_USERNAME = seu_usuario_docker
 DOCKER_PASSWORD = sua_senha_docker
 
 ## 📁 Estrutura do Projeto
+```
 cinema/
 ├── 📁 .github/workflows/        # CI/CD Pipeline
 │   └── ci.yml                   # Workflow principal
@@ -86,3 +87,4 @@ cinema/
 │   └── package.json             # Dependências
 ├── docker-compose.yml           # Orquestração local
 └── README.md                    # Este arquivo
+```
