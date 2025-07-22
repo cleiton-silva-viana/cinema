@@ -99,7 +99,7 @@ jobs:
     name: Upload to Codecov
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: ${{ needs.build-and-test.outputs.coverage-generated == 'true' && env.ENABLE_CODECOV == 'true' }}
+    if: ${{ needs.build-and-test.outputs.coverage-generated == 'true' }}
     
     steps:
       - name: Checkout
@@ -112,36 +112,104 @@ jobs:
           path: ./backend/coverage/
       
       - name: Upload to Codecov
+        if: env.ENABLE_CODECOV == 'true'
         uses: codecov/codecov-action@v3
         with:
           file: ./backend/coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           verbose: true
+      
+      - name: Skip Codecov Upload
+        if: env.ENABLE_CODECOV != 'true'
+        run: echo \"⏭️ Codecov upload skipped - CODECOV_TOKEN not configured\"
 
   docker-security:
     name: Docker Security Scans
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: ${{ env.ENABLE_DOCKER_SECURITY == 'true' }}
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       
       - name: Docker Security Analysis
+        if: env.ENABLE_DOCKER_SECURITY == 'true'
         run: |
           cd backend
           
           # Hadolint - Dockerfile linting
-          echo "🔍 Analyzing Dockerfile with Hadolint..."
-          docker run --rm -i hadolint/hadolint < Dockerfile || echo "⚠️ Dockerfile issues found"
+          echo \"🔍 Analyzing Dockerfile with Hadolint...\"
+          docker run --rm -i hadolint/hadolint < Dockerfile || echo \"⚠️ Dockerfile issues found\"
           
           # Build image for security scanning
-          echo "🏗️ Building image for security scan..."
+          echo \"🏗️ Building image for security scan...\"
           docker build -t cinema-backend:security .
           
           # Trivy - Vulnerability scanning
-          echo "🛡️ Scanning for vulnerabilities with Trivy..."
+          echo \"🛡️ Scanning for vulnerabilities with Trivy...\"
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \\
-            aquasec/trivy image cinema-backend:security || echo "⚠️ Vulnerabilities found"
+            aquasec/trivy image cinema-backend:security || echo \"⚠️ Vulnerabilities found\"
+      
+      - name: Skip Docker Security
+        if: env.ENABLE_DOCKER_SECURITY != 'true'
+        run: echo \"⏭️ Docker security scans skipped - DOCKER_USERNAME not configured\"
+
+  # Job SonarQube (opcional)
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+      - name: Checkout
+        if: env.ENABLE_SONARQUBE == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js (with cache)
+        if: env.ENABLE_SONARQUBE == 'true' && env.ENABLE_CACHE == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+      
+      - name: Setup Node.js (without cache)
+        if: env.ENABLE_SONARQUBE == 'true' && env.ENABLE_CACHE != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Restore Dependencies Cache
+        if: env.ENABLE_SONARQUBE == 'true' && env.ENABLE_CACHE == 'true'
+        uses: actions/cache@v3
+        with:
+          path: ./backend/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
+      - name: Download Coverage Reports
+        if: env.ENABLE_SONARQUBE == 'true'
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-reports
+          path: ./backend/coverage/
+      
+      - name: Install Dependencies
+        if: env.ENABLE_SONARQUBE == 'true'
+        run: npm ci
+        working-directory: ./backend
+      
+      - name: SonarQube Scan
+        if: env.ENABLE_SONARQUBE == 'true'
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      
+      - name: Skip SonarQube
+        if: env.ENABLE_SONARQUBE != 'true'
+        run: echo \"⏭️ SonarQube analysis skipped - SONAR_TOKEN not configured\"
